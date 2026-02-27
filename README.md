@@ -22,18 +22,16 @@ Centang `[x]` kalau sudah selesai.
 
 | # | Kebutuhan | Keterangan | Status |
 |---|-----------|------------|--------|
-| 1 | **Foto hero banner** | Foto utama DDR Madeena atau lab radiologi. Untuk background banner paling atas | `[ ]` |
-| 2 | **Foto riset/kolaborasi** | Foto tim riset, lab UGM, atau kegiatan R&D — untuk section "Riset & Inovasi" | `[ ]` |
-| 3 | **Foto produk DDR** | Foto alat DDR Madeena HF100B-MDN (min 1, ideal 3 angle: depan, samping, detail) | `[ ]` |
-| 4 | **Foto ruang radiografi** | Foto instalasi lengkap di RS/klinik — untuk section "Ruang Radiografi" | `[ ]` |
+| 1 | **Foto hero banner** | Foto utama DDR Madeena atau lab radiologi, fokus produk/alat (tanpa orang). Untuk background banner paling atas | `[ ]` |
+| 2 | **Foto riset/kolaborasi** | Foto laboratorium, peralatan riset, atau fasilitas R&D (tanpa orang) — untuk section "Riset & Inovasi" | `[ ]` |
+| 3 | **Foto produk DDR** | Foto alat DDR Madeena HF100B-MDN (min 1, ideal 3 angle: depan, samping, detail) — tanpa orang | `[ ]` |
+| 4 | **Foto ruang radiografi** | Foto instalasi lengkap di RS/klinik, fokus ruangan & alat (tanpa orang) — untuk section "Ruang Radiografi" | `[ ]` |
 | 5 | **Foto sertifikat KEMENKES** | Scan/foto ijin edar — untuk bukti kredibilitas | `[ ]` |
 | 6 | **Logo partner** (UGM, dll) | PNG transparent, untuk section kolaborasi | `[ ]` |
 | 7 | **Favicon** | Versi kecil logo Madeena (32x32 dan 180x180 px, format PNG) | `[ ]` |
-| 8 | **OG Image** (social share) | 1200x630px — gambar yang muncul saat link di-share di WA/FB/LinkedIn | `[ ]` |
+| 8 | **OG Image** (social share) | 1200x630px — gambar yang muncul saat link di-share di WA/FB/LinkedIn (produk/logo, tanpa orang) | `[ ]` |
 
 **Opsional (nice to have):**
-- [ ] Foto tim / founder (400x400, square) — untuk "Tentang Kami"
-- [ ] Foto testimonial / client yang sudah pakai alat
 - [ ] Video produk (link YouTube)
 
 ---
@@ -49,11 +47,14 @@ Centang `[x]` kalau sudah selesai.
 | 3 | **Link berita UGM** | URL asli artikel berita UGM (sekarang linknya ke diri sendiri) | `[ ]` |
 | 4 | **Spesifikasi DDR** | Spek teknis ringkas: tegangan, arus, ukuran, berat, fitur utama | `[ ]` |
 | 5 | **Keunggulan produk** | 3-5 poin kenapa DDR Madeena lebih baik dari kompetitor | `[ ]` |
-| 6 | **Isi paket Ruang Radiografi** | Apa saja yang termasuk: alat, instalasi, pelatihan, garansi, dll | `[ ]` |
-| 7 | **Daftar RS/klinik client** | Nama rumah sakit/klinik yang sudah pakai (untuk testimoni/trust) | `[ ]` |
-| 8 | **Profil perusahaan** | Visi, misi, sejarah singkat, tahun berdiri, jumlah karyawan | `[ ]` |
-| 9 | **Profil tim/founder** | Nama, jabatan, foto (opsional) — untuk halaman "Tentang Kami" | `[ ]` |
-| 10 | **Jam operasional** | Senin-Jumat jam berapa? Sabtu buka? | `[ ]` |
+| 6 | **Daftar RS/klinik client** | Nama rumah sakit/klinik yang sudah pakai (untuk testimoni/trust) | `[ ]` |
+| 7 | **Profil perusahaan** | Visi, misi, sejarah singkat, tahun berdiri, jumlah karyawan | `[ ]` |
+| 8 | **Profil tim/founder** | Nama, jabatan — untuk halaman "Tentang Kami" (tanpa foto orang) | `[ ]` |
+| 9 | **Jam operasional** | Senin-Jumat jam berapa? Sabtu buka? | `[ ]` |
+| 10 | **Detail fitur Teleradiologi** | Bagaimana sistem teleradiologi bekerja, integrasi apa saja, jangkauan layanan | `[ ]` |
+| 11 | **Detail fitur AI Diagnostik** | Status pengembangan, kapabilitas AI, timeline rilis, dataset training | `[ ]` |
+| 12 | **Detail Program Kemitraan** | Model kemitraan: sewa/beli/bagi hasil, syarat, benefit untuk RS/klinik | `[ ]` |
+| 13 | **Spesifikasi Ruang Radiografi** | Apa saja yang termasuk dalam paket: dimensi ruang, shielding, peralatan, pelatihan | `[ ]` |
 
 ---
 
