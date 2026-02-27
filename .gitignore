@@ -1,0 +1,24 @@
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+
+# Sass cache
+.sass-cache/
+*.css.map
+
+# Node (if added later)
+node_modules/
+package-lock.json
+
+# Logs
+*.log
