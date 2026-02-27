@@ -124,7 +124,6 @@ Ini bukan konten, tapi keputusan desain yang perlu kamu tentukan:
 ├── right-sidebar.html      # Subpage — menunggu keputusan
 ├── no-sidebar.html         # Subpage — menunggu keputusan
 ├── elements.html           # UI reference (internal only)
-├── homework.html           # Checklist visual (buka di browser)
 ├── robots.txt              # SEO crawl rules
 ├── sitemap.xml             # SEO sitemap
 ├── images/                 # Gambar (perlu diganti foto asli)
