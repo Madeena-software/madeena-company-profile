@@ -3905,15 +3905,12 @@ input, select, textarea {
 						border: 0;
 					}
 
-				#titleBar .toggle {
-					text-decoration: none;
-					height: 60px;
-					left: 0;
-					position: absolute;
-					top: 0;
-					width: 90px;
-					outline: 0;
-					border: 0;
+				#titleBar .title img {
+					height: 1.5em;
+					vertical-align: middle;
+					margin-right: 0.35em;
+				}
+	
 				}
 
 					#titleBar .toggle:before {
@@ -4044,7 +4041,7 @@ input, select, textarea {
 				padding: 3.25em 1.5em;
 			}
 
-	}
+	
 
 /* XSmall */
 
@@ -4066,7 +4063,7 @@ input, select, textarea {
 			input[type="reset"],
 			input[type="button"],
 			.button {
-				padding: 0;
+				padding: 0 1.5em;
 			}
 
 		/* Spotlight */
@@ -4108,4 +4105,15 @@ input, select, textarea {
 						padding: 0;
 					}
 
+	}
+
+/* Contact section overflow fix */
+
+	#kontak p {
+		overflow-wrap: break-word;
+		word-break: break-word;
+	}
+
+	#kontak p a {
+		word-break: break-all;
 	}
