@@ -142,14 +142,22 @@
 			.each(function() {
 
 				var $this = $(this),
+					$mainImage = $this.find('.image.main > img'),
+					hasVideo = $this.find('.image.main > video').length > 0,
 					on, off;
+
+				if (hasVideo)
+					$this.addClass('has-video');
 
 				on = function() {
 
 					var top, bottom, mode;
 
-					// Use main <img>'s src as this spotlight's background.
-						$this.css('background-image', 'url("' + $this.find('.image.main > img').attr('src') + '")');
+					// Use main <img>'s src as this spotlight's background (if present).
+						if ($mainImage.length > 0)
+							$this.css('background-image', 'url("' + $mainImage.attr('src') + '")');
+						else
+							$this.css('background-image', 'none');
 
 					// Side-specific scrollex tweaks.
 						if ($this.hasClass('top')) {
