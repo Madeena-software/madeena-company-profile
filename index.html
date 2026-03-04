@@ -17,36 +17,101 @@
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 		<style>
 			#one.spotlight {
-				height: auto;
-				overflow: visible;
+				--one-next-space: 5em;
+				position: relative;
+				z-index: 1;
+				display: flex;
+				align-items: flex-end;
+				min-height: 100vh;
+				padding: 0;
+				overflow-x: clip;
+				overflow-y: visible;
 			}
 
 			#one.spotlight .image.main,
 			#one.spotlight.has-video .image.main {
-				display: block;
-				position: relative;
+				position: absolute;
+				inset: 0;
 				width: 100%;
-				height: auto;
+				height: 100%;
 				margin: 0;
+				z-index: 1;
+				overflow: hidden;
 			}
 
 			#one.spotlight .image.main video,
 			#one.spotlight .image.main iframe {
 				display: block;
 				width: 100%;
-				height: auto;
-				aspect-ratio: 16 / 9;
+				height: 100%;
+				object-fit: cover;
+				clip-path: inset(0 0 var(--one-next-space) 0);
 			}
 
 			#one.spotlight .content,
 			#one.spotlight.has-video .content {
 				position: relative;
-				left: auto;
-				right: auto;
-				top: auto;
-				bottom: auto;
+				z-index: 2;
 				width: 100%;
+				margin-top: auto;
+				margin-bottom: var(--one-next-space);
+				background: rgba(255, 255, 255, 0.92);
+				color: #2f3441;
+				text-shadow: none;
 			}
+
+			#one.spotlight .content h2,
+			#one.spotlight .content p,
+			#one.spotlight .content strong,
+			#one.spotlight .content em {
+				color: #2f3441;
+			}
+
+			#one.spotlight .content .container {
+				padding-top: 1.5em;
+				padding-bottom: 1.5em;
+			}
+
+			#one.spotlight .goto-next {
+				display: block;
+				opacity: 1;
+				z-index: 10;
+				bottom: calc(var(--one-next-space, 5em) / 2 - 2.5em);
+				left: 50%;
+				margin-left: -5em;
+				transition: transform 0.75s ease, opacity 1s ease-in;
+			}
+
+			@media screen and (max-width: 980px) {
+				#one.spotlight {
+					--one-next-space: 0;
+					display: block;
+					min-height: auto;
+				}
+
+				#one.spotlight .image.main,
+				#one.spotlight.has-video .image.main {
+					position: relative;
+					height: auto;
+				}
+
+				#one.spotlight .image.main video,
+				#one.spotlight .image.main iframe {
+					height: auto;
+					aspect-ratio: 16 / 9;
+				}
+
+				#one.spotlight .content,
+				#one.spotlight.has-video .content {
+					margin-bottom: 0;
+					background: rgba(255, 255, 255, 0.98);
+				}
+
+				#one.spotlight .goto-next {
+					bottom: 0;
+				}
+			}
+			
 		</style>
 
 		<!-- Open Graph -->
