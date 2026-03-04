@@ -51,6 +51,25 @@
 				padding-top: 1.5em;
 				padding-bottom: 1.5em;
 			}
+
+		/* Fit DDR product image fully visible in section #two */
+		#two.spotlight .image.main {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			overflow: visible;
+			background: #f5f5f5;
+		}
+
+		#two.spotlight .image.main img {
+			position: relative;
+			width: auto;
+			height: auto;
+			max-width: 100%;
+			max-height: 100%;
+			object-fit: contain;
+			object-position: center center;
+		}
 		</style>
 
 		<!-- Open Graph -->
@@ -166,16 +185,13 @@
 			<!-- Two -->
 				<section id="two" class="spotlight style2 right">
 					<!-- Ganti dengan foto alat DDR Madeena HF100B-MDN (tanpa orang) -->
-					<span class="image fit main"><img src="images/pic03.jpg" alt="Alat DDR Madeena HF100B-MDN" /></span>
+					<span class="image fit main"><img src="images/DDR Madeena HF100B-MDN.png" alt="Alat DDR Madeena HF100B-MDN" /></span>
 					<div class="content">
 						<header>
 							<h2>DDR Madeena HF100B-MDN</h2>
 							<p>Direct Digital Radiography buatan Indonesia &mdash; TKDN 57,62%</p>
 						</header>
 						<p>DDR Madeena HF100B-MDN dikembangkan oleh Universitas Gadjah Mada dan diproduksi oleh PT Madeena Karya Indonesia menggunakan teknologi Camera Coupled X-Ray Detector (CCXD). Tersedia dalam dua modalitas: <em>bedside radiography</em> dan <em>thorax radiography</em>. Detektor 12MP 40&times;30 cm resolusi 16-bit, format citra DICOM, perangkat lunak DR.Grabber dan DICOM Viewer. Garansi sparepart 1 tahun, dukungan sparepart 3 tahun, garansi bodi 5 tahun. Izin Edar Kemenkes RI No. AKD 21501220581.</p>
-						<ul class="actions">
-							<li><a href="#four" class="button">Selengkapnya</a></li>
-						</ul>
 					</div>
 					<a href="#three" class="goto-next scrolly">Next</a>
 				</section>
@@ -190,9 +206,6 @@
 							<p>Paket solusi instalasi ruang radiografi lengkap untuk fasilitas pelayanan kesehatan</p>
 						</header>
 						<p>PT Madeena menyediakan paket pengadaan dan instalasi ruang radiografi yang mencakup peralatan utama, aksesori pendukung, pemasangan, serta pelatihan operasional bagi tenaga teknis. Program kemitraan dirancang secara fleksibel untuk menyesuaikan kebutuhan dan anggaran fasilitas pelayanan kesehatan.</p>
-						<ul class="actions">
-							<li><a href="#four" class="button">Selengkapnya</a></li>
-						</ul>
 					</div>
 					<a href="#four" class="goto-next scrolly">Next</a>
 				</section>
