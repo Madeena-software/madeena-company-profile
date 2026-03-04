@@ -15,6 +15,39 @@
 		<link rel="canonical" href="https://madeena-xray.com/" />
 		<link rel="stylesheet" href="assets/css/main.css" />
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+		<style>
+			#one.spotlight {
+				height: auto;
+				overflow: visible;
+			}
+
+			#one.spotlight .image.main,
+			#one.spotlight.has-video .image.main {
+				display: block;
+				position: relative;
+				width: 100%;
+				height: auto;
+				margin: 0;
+			}
+
+			#one.spotlight .image.main video,
+			#one.spotlight .image.main iframe {
+				display: block;
+				width: 100%;
+				height: auto;
+				aspect-ratio: 16 / 9;
+			}
+
+			#one.spotlight .content,
+			#one.spotlight.has-video .content {
+				position: relative;
+				left: auto;
+				right: auto;
+				top: auto;
+				bottom: auto;
+				width: 100%;
+			}
+		</style>
 
 		<!-- Open Graph -->
 		<meta property="og:title" content="PT Madeena Karya Indonesia - Digital Radiography" />
@@ -59,6 +92,7 @@
 								<ul>
 									<li><a href="#two">DDR Madeena</a></li>
 									<li><a href="#three">Ruang Radiografi</a></li>
+									<li><a href="#spesifikasi">Spesifikasi</a></li>
 								</ul>
 							</li>
 							<li>
@@ -66,6 +100,7 @@
 								<ul>
 									<li><a href="#filosofi">Filosofi &amp; Visi</a></li>
 									<li><a href="#one">Riset &amp; Inovasi</a></li>
+									<li><a href="#legalitas">Legalitas</a></li>
 								</ul>
 							</li>
 							<li><a href="#">Blog</a></li>
@@ -91,9 +126,17 @@
 				<section id="one" class="spotlight style1 bottom">
 					<span class="image fit main">
 						<video autoplay muted loop playsinline preload="auto" style="width: 100%; height: 100%; object-fit: cover;">
+							<source src="https://drive.google.com/uc?export=download&id=1tuu0mcD7BJf1pio6TXqmeyL2unq30lzo" type="video/mp4" />
 							<source src="videos/Dispaly Video.mp4" type="video/mp4" />
 							Browser Anda tidak mendukung pemutaran video.
 						</video>
+						<iframe
+							src="https://drive.google.com/file/d/1tuu0mcD7BJf1pio6TXqmeyL2unq30lzo/preview"
+							style="display: none; width: 100%; height: 100%; border: 0;"
+							allow="autoplay"
+							allowfullscreen
+							title="Video Profil PT Madeena">
+						</iframe>
 					</span>
 					<div class="content">
 						<div class="container">
@@ -108,7 +151,7 @@
 									<p>PT Madeena Karya Indonesia didirikan untuk memfasilitasi hilirisasi inovasi radiografi digital yang dikembangkan oleh Prof. Dr. Gede Bayu Suparta bersama tim riset Universitas Gadjah Mada. Teknologi ini merupakan respons terhadap kebutuhan komersialisasi hasil riset perguruan tinggi menjadi produk inovasi yang siap dimanfaatkan masyarakat.</p>
 								</div>
 								<div class="col-4 col-12-medium">
-								<p>DDR Madeena menggunakan detektor Camera Coupled X-Ray Detector (CCXD) beresolusi tinggi dengan konsumsi daya rendah namun menghasilkan kualitas citra yang optimal. Produk tersedia dalam dua modalitas &mdash; radiografi bedside dan radiografi thorax &mdash; yang dapat digunakan di puskesmas, klinik, maupun rumah sakit.</p>
+							<p>DDR Madeena menggunakan detektor Camera Coupled X-Ray Detector (CCXD) beresolusi tinggi dengan konsumsi daya rendah namun menghasilkan kualitas citra yang optimal. Produk tersedia dalam dua modalitas &mdash; radiografi bedside dan radiografi thorax &mdash; yang dapat digunakan di puskesmas, klinik, maupun rumah sakit. Diproduksi di Indonesia dengan Tingkat Komponen Dalam Negeri (TKDN) sebesar <strong>57,62%</strong>.</p>
 								</div>
 							</div>
 						</div>
@@ -122,10 +165,10 @@
 					<span class="image fit main"><img src="images/pic03.jpg" alt="Alat DDR Madeena HF100B-MDN" /></span>
 					<div class="content">
 						<header>
-							<h2>DDR Madeena</h2>
-							<p>Sistem Radiografi Digital Langsung berbasis fluoresens X-ray buatan Indonesia</p>
+							<h2>DDR Madeena HF100B-MDN</h2>
+							<p>Direct Digital Radiography buatan Indonesia &mdash; TKDN 57,62%</p>
 						</header>
-						<p>DDR Madeena merupakan perangkat radiografi digital diagnostik yang dikembangkan dan diproduksi di dalam negeri. Produk ini menawarkan dosis radiasi rendah, waktu akuisisi citra yang singkat, serta dilengkapi sistem teleradiologi terintegrasi. Telah memperoleh Izin Edar Kemenkes RI No. AKD 21501220581, berlaku hingga 16 November 2027.</p>
+						<p>DDR Madeena HF100B-MDN dikembangkan oleh Universitas Gadjah Mada dan diproduksi oleh PT Madeena Karya Indonesia menggunakan teknologi Camera Coupled X-Ray Detector (CCXD). Tersedia dalam dua modalitas: <em>bedside radiography</em> dan <em>thorax radiography</em>. Detektor 12MP 40&times;30 cm resolusi 16-bit, format citra DICOM, perangkat lunak DR.Grabber dan DICOM Viewer. Garansi sparepart 1 tahun, dukungan sparepart 3 tahun, garansi bodi 5 tahun. Izin Edar Kemenkes RI No. AKD 21501220581.</p>
 						<ul class="actions">
 							<li><a href="#four" class="button">Selengkapnya</a></li>
 						</ul>
@@ -163,7 +206,7 @@
 								<section class="col-6 col-12-medium">
 									<span class="icon solid alt major fa-x-ray"></span>
 									<h3>DDR Madeena HF100B-MDN</h3>
-										<p>Perangkat Digital Direct Radiography berbasis fluoresens X-ray produksi dalam negeri. Dilengkapi sistem teleradiologi dan antarmuka diagnostik berbasis AI. Telah memperoleh Izin Edar Kemenkes RI No. AKD 21501220581.</p>
+									<p>Perangkat Direct Digital Radiography berbasis teknologi Camera Coupled X-Ray Detector (CCXD), produksi dalam negeri dengan TKDN 57,62%. Detektor 12MP 40&times;30 cm, format DICOM 16-bit, modalitas bedside dan thorax. Izin Edar Kemenkes RI No. AKD 21501220581.</p>
 									</section>
 									<section class="col-6 col-12-medium">
 										<span class="icon solid alt major fa-hospital"></span>
@@ -215,23 +258,20 @@
 						</header>
 						<div class="box" style="text-align: left; margin-bottom: 2.5em;">
 							<h3 style="margin-bottom: 0.75em;">Tentang Perusahaan</h3>
-							<p>PT Madeena Karya Indonesia didirikan pada 6 Maret 2012 dengan fokus pada hilirisasi dan komersialisasi teknologi hasil riset perguruan tinggi dan lembaga litbangyasa. Perusahaan mengintegrasikan berbagai hasil riset yang saling berkaitan menjadi produk inovasi yang siap dimanfaatkan oleh pemangku kepentingan secara luas.</p>
-							<p>Dengan dukungan dana riset dari Kemendiknas, KNRT, dan Ristekdikti pada periode 2013&ndash;2019, PT Madeena berhasil mengembangkan alat Madeena X-Ray Medical Diagnostic Equipment yang telah memperoleh Izin Edar Kemenkes RI No. AKD 21501220581 sejak 17 November 2022 hingga 16 November 2027. Perusahaan memiliki Nomor Induk Berusaha (NIB) 9120106900275 dan berkantor pusat di Dusun Sambisari, Purwomartani, Kalasan, Sleman, Daerah Istimewa Yogyakarta.</p>
+							<p>PT Madeena Karya Indonesia didirikan untuk memfasilitasi hilirisasi inovasi radiografi digital yang dikembangkan oleh <strong>Prof. Dr. Gede Bayu Suparta</strong> bersama tim riset Universitas Gadjah Mada. Perusahaan ini merupakan respons nyata terhadap tantangan hilirisasi dan komersialisasi teknologi hasil riset perguruan tinggi menjadi produk inovasi komersial yang siap dimanfaatkan masyarakat luas.</p>
+							<p>Dengan dukungan dana riset dari Kemendiknas, KNRT, dan Ristekdikti pada periode 2013&ndash;2019, PT Madeena berhasil mengembangkan Madeena X-Ray Medical Diagnostic Equipment yang telah memperoleh Izin Edar Kemenkes RI No. AKD 21501220581. Perusahaan memiliki Nomor Induk Berusaha (NIB) 9120106900275 dan berkantor di Jl. Lowanu No. 68-72, Sorosutan, Umbulharjo, Kota Yogyakarta, Daerah Istimewa Yogyakarta.</p>
 
 							<h3 style="margin-top: 1.5em; margin-bottom: 0.75em;">Kredo</h3>
 							<p><strong>Know Sciences, Learn Engineering, Create Technology, Develop Business.</strong></p>
 
 							<h3 style="margin-top: 1.5em; margin-bottom: 0.75em;">Visi</h3>
-							<p><strong>MADEENA: The Techno-Ambassador of Indonesia.</strong><br />
-							Menjadi perusahaan penghasil produk dan teknologi yang mampu merepresentasikan Indonesia di tingkat internasional.</p>
+							<p><em>&ldquo;Menjadi Duta Teknologi Indonesia dengan menghasilkan teknologi dan produk kesehatan mutakhir untuk masyarakat global.&rdquo;</em></p>
 
 							<h3 style="margin-top: 1.5em; margin-bottom: 0.75em;">Misi</h3>
-							<p><em>&ldquo;To provide an artisan Digital X-Ray Radiography with affordable price yet integrating the latest technology available in the market.&rdquo;</em></p>
 							<ol>
-								<li>Mengembangkan dan menghasilkan produk serta teknologi diagnostik kesehatan yang terjangkau dan dapat diakses oleh seluruh lapisan masyarakat.</li>
-								<li>Mengembangkan dan menghasilkan produk serta teknologi pencitraan untuk mendukung keselamatan, keamanan, dan kesehatan lingkungan.</li>
-								<li>Melakukan transformasi dan hilirisasi hasil riset perguruan tinggi serta lembaga litbangyasa kepada pemangku kepentingan yang relevan.</li>
-								<li>Mengembangkan dan menghasilkan produk serta teknologi pencitraan untuk pengujian non-destruktif guna meningkatkan mutu produk industri.</li>
+								<li>Melakukan hilirisasi perkembangan dan hasil riset serta pengembangan teknologi.</li>
+								<li>Mengkomersialisasikan teknologi hasil riset &amp; pengembangan menjadi produk inovatif yang siap dimanfaatkan masyarakat.</li>
+								<li>Mengembangkan sistem pencitraan untuk memenuhi kebutuhan medis dan industri.</li>
 							</ol>
 						</div>
 						<header class="major">
@@ -278,6 +318,118 @@
 					</div>
 				</section>
 
+			<!-- Spesifikasi Produk -->
+				<section id="spesifikasi" class="wrapper style1 special fade-up">
+					<div class="container">
+						<header class="major">
+							<h2>SPESIFIKASI PRODUK</h2>
+							<p>DDR Madeena HF100B-MDN &mdash; Direct Digital Radiography buatan Indonesia</p>
+						</header>
+						<div class="table-wrapper">
+							<table>
+								<thead>
+									<tr>
+										<th>No.</th>
+										<th>Komponen</th>
+										<th>Keterangan</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>01</td>
+										<td>Detektor Langsung</td>
+										<td>Madeena 12MP 40&times;30 cm, Resolusi 16-bit 4096&times;3000 (12MP)</td>
+									</tr>
+									<tr>
+										<td>02</td>
+										<td>Komputer</td>
+										<td>Prosesor i7, RAM 32 GB; GPU RTX, HDD SATA 1 TB, K/M, 4 USB 3.0, 4 USB 2.0, Wi-Fi, RJ45, 2 HDMI</td>
+									</tr>
+									<tr>
+										<td>03</td>
+										<td>Layar</td>
+										<td>Monitor vertikal 32&rdquo; 4K, 3840&times;2160, 10-bit, dilengkapi rangka penyangga</td>
+									</tr>
+									<tr>
+										<td>04</td>
+										<td>Radiografi Badan (Bedside)</td>
+										<td>120 cm (P) &times; 60 cm (L) &times; 70 cm (T); tinggi sinar X 90 cm; meja pasien: 60 cm &times; 200 cm; gerak maju-mundur 50 cm</td>
+									</tr>
+									<tr>
+										<td>05</td>
+										<td>Radiografi Thorax</td>
+										<td>Tinggi 130 cm; alas 60 cm &times; 40 cm; jarak sinar X 90 cm; elevasi 20 cm; beban maksimum 140 kg</td>
+									</tr>
+									<tr>
+										<td>06</td>
+										<td>Perangkat Lunak</td>
+										<td>MS Windows 10 Pro 64-bit; DR.Grabber (Body &amp; Thorax); DICOM Converter; DICOM Viewer</td>
+									</tr>
+									<tr>
+										<td>07</td>
+										<td>Format Citra</td>
+										<td>DICOM 4096&times;3200 (12MP) &amp; 3200&times;4096 (12MP), 16-bit</td>
+									</tr>
+									<tr>
+										<td>08</td>
+										<td>Garansi Produk</td>
+										<td>Panduan instalasi &amp; pelatihan daring; garansi sparepart 1 tahun; dukungan sparepart 3 tahun; garansi bodi 5 tahun</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<footer class="major" style="margin-top: 2em;">
+							<ul class="actions special">
+								<li><a href="#kontak" class="button">Konsultasi Spesifikasi</a></li>
+							</ul>
+						</footer>
+					</div>
+				</section>
+
+			<!-- Legalitas Formal -->
+				<section id="legalitas" class="wrapper style2 special fade-up">
+					<div class="container">
+						<header class="major">
+							<h2>LEGALITAS FORMAL</h2>
+							<p>Seluruh produk PT Madeena Karya Indonesia telah memenuhi persyaratan regulasi dan sertifikasi yang berlaku</p>
+						</header>
+						<div class="box alt">
+							<div class="row gtr-uniform">
+								<section class="col-4 col-6-medium col-12-xsmall">
+									<span class="icon solid alt major fa-building"></span>
+									<h3>Surat Izin Berusaha Berbasis Risiko</h3>
+									<p>NIB&nbsp;<strong>9120106900275</strong></p>
+								</section>
+								<section class="col-4 col-6-medium col-12-xsmall">
+									<span class="icon solid alt major fa-file-contract"></span>
+									<h3>Lisensi Paten UGM</h3>
+									<p>No.&nbsp;<strong>5204/UN&nbsp;1.P/DIT-KAUI/HK/2020</strong></p>
+								</section>
+								<section class="col-4 col-6-medium col-12-xsmall">
+									<span class="icon solid alt major fa-certificate"></span>
+									<h3>Sertifikat Izin Edar Kemenkes RI</h3>
+									<p>AKD&nbsp;<strong>21501220581</strong></p>
+								</section>
+								<section class="col-4 col-6-medium col-12-xsmall">
+									<span class="icon solid alt major fa-award"></span>
+									<h3>Sertifikat Capaian TKDN 57,62%</h3>
+									<p>No.&nbsp;<strong>8110/SJ-IND.8/TKDN/9/2023</strong></p>
+								</section>
+								<section class="col-4 col-6-medium col-12-xsmall">
+									<span class="icon solid alt major fa-shield-alt"></span>
+									<h3>Sertifikat CPAKB Kemenkes RI</h3>
+									<p>PB-UMKU&nbsp;<strong>91201069002750000001</strong></p>
+								</section>
+								<section class="col-4 col-6-medium col-12-xsmall">
+									<span class="icon solid alt major fa-university"></span>
+									<h3>Surat Rekomendasi FK Undiksha</h3>
+									<p>No.&nbsp;<strong>1632/UN48.24/TU/2024</strong></p>
+								</section>
+							</div>
+						</div>
+					</div>
+				</section>
+
 			<!-- Kontak -->
 				<section id="kontak" class="wrapper style2 special fade">
 					<div class="container">
@@ -289,7 +441,7 @@
 							<span class="icon solid fa-envelope"></span> <a href="mailto:madeenajog@gmail.com">madeenajog@gmail.com</a><br />
 							<span class="icon solid fa-phone"></span> <a href="tel:+6282138114011">+62 821 3811 4011</a><br />
 							<span class="icon brands fa-whatsapp"></span> <a href="https://wa.me/6285728304141" target="_blank" rel="noopener">+62 857 2830 4141 (WhatsApp)</a><br />
-							<span class="icon solid fa-map-marker-alt"></span> Dusun Sambisari, Purwomartani, Kalasan, Sleman, Daerah Istimewa Yogyakarta 55571
+							<span class="icon solid fa-map-marker-alt"></span> Jl. Lowanu No. 68-72, Sorosutan, Umbulharjo, Kota Yogyakarta, Daerah Istimewa Yogyakarta
 						</p>
 						<form method="post" action="#" class="cta">
 							<div class="row gtr-uniform gtr-50">
@@ -337,19 +489,61 @@
 			<script>
 				document.addEventListener('DOMContentLoaded', function () {
 					var heroVideo = document.querySelector('#one .image.main video');
+					var heroIframe = document.querySelector('#one .image.main iframe');
+					var videoSources = heroVideo ? heroVideo.querySelectorAll('source') : [];
+					var localVideoSrc = 'videos/Dispaly Video.mp4';
+					var hasTriedLocalSource = false;
 
 					if (!heroVideo)
 						return;
 
+					function useIframeFallback() {
+						if (!heroIframe)
+							return;
+
+						heroVideo.style.display = 'none';
+						heroIframe.style.display = 'block';
+					}
+
+					function tryLocalVideoFallback() {
+						if (hasTriedLocalSource)
+							return false;
+
+						hasTriedLocalSource = true;
+
+						if (videoSources.length > 0) {
+							videoSources[0].src = localVideoSrc;
+						} else {
+							heroVideo.src = localVideoSrc;
+						}
+
+						heroVideo.load();
+
+						var localPlayPromise = heroVideo.play();
+
+						if (localPlayPromise && typeof localPlayPromise.catch === 'function') {
+							localPlayPromise.catch(function () {
+								useIframeFallback();
+							});
+						}
+
+						return true;
+					}
+
 					heroVideo.muted = true;
+					heroVideo.addEventListener('error', function () {
+						if (!tryLocalVideoFallback()) {
+							useIframeFallback();
+						}
+					}, { once: true });
 
 					var playPromise = heroVideo.play();
 
 					if (playPromise && typeof playPromise.catch === 'function') {
 						playPromise.catch(function () {
-							document.addEventListener('click', function () {
-								heroVideo.play();
-							}, { once: true });
+							if (!tryLocalVideoFallback()) {
+								useIframeFallback();
+							}
 						});
 					}
 				});
