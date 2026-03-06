@@ -1,18 +1,5 @@
-@import url(\"fontawesome-all.min.css\");
-@import url(\"https://fonts.googleapis.com/css?family=Roboto:100,300,100italic,300italic\");
-
-/* Screen-reader only utility */
-.sr-only {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	padding: 0;
-	margin: -1px;
-	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
-	white-space: nowrap;
-	border: 0;
-}
+@import url("fontawesome-all.min.css");
+@import url("https://fonts.googleapis.com/css?family=Roboto:100,300,100italic,300italic");
 
 /*
 	Landed by HTML5 UP
@@ -3087,40 +3074,6 @@ input, select, textarea {
 				position: relative;
 			}
 
-		.spotlight.has-video {
-			background-image: none !important;
-		}
-
-			.spotlight.has-video:before {
-				position: absolute;
-				z-index: 1;
-			}
-
-			.spotlight.has-video .image.main {
-				display: block;
-				position: absolute;
-				top: 0;
-				left: 0;
-				width: 100%;
-				height: 100%;
-				margin: 0;
-				overflow: hidden;
-				z-index: 0;
-			}
-
-				.spotlight.has-video .image.main video {
-					display: block;
-					width: 100%;
-					height: 100%;
-					object-fit: cover;
-				}
-
-			.spotlight.has-video .content,
-			.spotlight.has-video .goto-next {
-				position: relative;
-				z-index: 2;
-			}
-
 		.spotlight .content {
 			-moz-transform: translate(0,0);
 			-webkit-transform: translate(0,0);
@@ -3547,8 +3500,7 @@ input, select, textarea {
 				vertical-align: middle;
 			}
 
-				#banner .content header h2,
-				#banner .content header h1 {
+				#banner .content header h2 {
 					font-size: 2.5em;
 					margin: 0;
 				}
@@ -3895,8 +3847,7 @@ input, select, textarea {
 					padding: 4.0625em 1.5em 4.875em 1.5em;
 				}
 
-					#banner .content header h2,
-					#banner .content header h1 {
+					#banner .content header h2 {
 						font-size: 1.5em;
 					}
 
@@ -3954,12 +3905,15 @@ input, select, textarea {
 						border: 0;
 					}
 
-				#titleBar .title img {
-					height: 1.5em;
-					vertical-align: middle;
-					margin-right: 0.35em;
-				}
-	
+				#titleBar .toggle {
+					text-decoration: none;
+					height: 60px;
+					left: 0;
+					position: absolute;
+					top: 0;
+					width: 90px;
+					outline: 0;
+					border: 0;
 				}
 
 					#titleBar .toggle:before {
@@ -4090,7 +4044,7 @@ input, select, textarea {
 				padding: 3.25em 1.5em;
 			}
 
-	
+	}
 
 /* XSmall */
 
@@ -4112,7 +4066,7 @@ input, select, textarea {
 			input[type="reset"],
 			input[type="button"],
 			.button {
-				padding: 0 1.5em;
+				padding: 0;
 			}
 
 		/* Spotlight */
@@ -4154,15 +4108,4 @@ input, select, textarea {
 						padding: 0;
 					}
 
-	}
-
-/* Contact section overflow fix */
-
-	#kontak p {
-		overflow-wrap: break-word;
-		word-break: break-word;
-	}
-
-	#kontak p a {
-		word-break: break-all;
 	}

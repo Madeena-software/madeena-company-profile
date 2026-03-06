@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://madeena-xray.com/sitemap.xml
-
-# Disallow template pages (remove when content is ready)
-Disallow: /elements.html
