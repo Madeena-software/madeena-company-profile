@@ -28,7 +28,7 @@ class HeroBannerResource extends Resource
                 Forms\Components\Textarea::make('description')
                     ->label('Deskripsi')->rows(3),
                 Forms\Components\FileUpload::make('image_path')
-                    ->label('Gambar Banner')->image()->directory('banners'),
+                    ->label('Gambar Banner')->image()->disk('public')->directory('banners'),
                 Forms\Components\TextInput::make('cta_text')
                     ->label('Teks Tombol CTA'),
                 Forms\Components\TextInput::make('cta_url')
@@ -51,11 +51,11 @@ class HeroBannerResource extends Resource
             Tables\Columns\IconColumn::make('is_active')->label('Aktif')->boolean(),
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),
         ])->defaultSort('sort_order')->reorderable('sort_order')
-          ->filters([])
-          ->actions([Tables\Actions\EditAction::make()])
-          ->bulkActions([Tables\Actions\BulkActionGroup::make([
-              Tables\Actions\DeleteBulkAction::make(),
-          ])]);
+            ->filters([])
+            ->actions([Tables\Actions\EditAction::make()])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+            ])]);
     }
 
     public static function getPages(): array

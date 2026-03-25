@@ -1,5 +1,15 @@
 <?php
 
+$storageBasePath = env('STORAGE_BASE_PATH');
+
+$privateRoot = $storageBasePath
+    ? rtrim($storageBasePath, '/') . '/app/private'
+    : storage_path('app/private');
+
+$publicRoot = $storageBasePath
+    ? rtrim($storageBasePath, '/') . '/app/public'
+    : storage_path('app/public');
+
 return [
 
     /*
@@ -32,7 +42,7 @@ return [
 
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app/private'),
+            'root' => $privateRoot,
             'serve' => true,
             'throw' => false,
             'report' => false,
@@ -40,8 +50,8 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'root' => $publicRoot,
+            'url' => env('APP_URL') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -74,7 +84,7 @@ return [
     */
 
     'links' => [
-        public_path('storage') => storage_path('app/public'),
+        public_path('storage') => $publicRoot,
     ],
 
 ];

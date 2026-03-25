@@ -25,7 +25,7 @@ class ProductResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->label('Nama Produk')->required()->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug($state))),
+                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('slug', Str::slug($state))),
                 Forms\Components\TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('tagline')
@@ -33,7 +33,7 @@ class ProductResource extends Resource
                 Forms\Components\RichEditor::make('description')
                     ->label('Deskripsi')->columnSpanFull(),
                 Forms\Components\FileUpload::make('image_path')
-                    ->label('Gambar Produk')->image()->directory('products'),
+                    ->label('Gambar Produk')->image()->disk('public')->directory('products'),
                 Forms\Components\KeyValue::make('specifications')
                     ->label('Spesifikasi')->columnSpanFull(),
                 Forms\Components\Toggle::make('is_featured')->label('Unggulan'),
@@ -53,11 +53,11 @@ class ProductResource extends Resource
             Tables\Columns\IconColumn::make('is_active')->label('Aktif')->boolean(),
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),
         ])->defaultSort('sort_order')
-          ->filters([])
-          ->actions([Tables\Actions\EditAction::make()])
-          ->bulkActions([Tables\Actions\BulkActionGroup::make([
-              Tables\Actions\DeleteBulkAction::make(),
-          ])]);
+            ->filters([])
+            ->actions([Tables\Actions\EditAction::make()])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+            ])]);
     }
 
     public static function getPages(): array

@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: madeena_mysql84
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: madeena_company_profile
+      MYSQL_USER: madeena
+      MYSQL_PASSWORD: madeena_pass
+      TZ: Asia/Jakarta
+    ports:
+      - "3307:3306"
+    volumes:
+      - /mnt/local_madeena_website_data/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10

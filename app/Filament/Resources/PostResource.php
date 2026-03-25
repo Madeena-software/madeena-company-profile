@@ -25,19 +25,19 @@ class PostResource extends Resource
                 Forms\Components\TextInput::make('title')
                     ->label('Judul')->required()->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug($state))),
+                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('slug', Str::slug($state))),
                 Forms\Components\TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('category')->label('Kategori'),
                 Forms\Components\Textarea::make('excerpt')->label('Ringkasan')->rows(2),
                 Forms\Components\FileUpload::make('cover_image')
-                    ->label('Gambar Sampul')->image()->directory('posts'),
+                    ->label('Gambar Sampul')->image()->disk('public')->directory('posts'),
                 Forms\Components\RichEditor::make('body')
                     ->label('Isi Artikel')->columnSpanFull(),
                 Forms\Components\Toggle::make('is_published')->label('Publikasikan')
                     ->live()
-                    ->afterStateUpdated(fn ($state, Forms\Set $set) =>
-                        $set('published_at', $state ? now() : null)),
+                    ->afterStateUpdated(fn($state, Forms\Set $set) =>
+                    $set('published_at', $state ? now() : null)),
                 Forms\Components\DateTimePicker::make('published_at')
                     ->label('Tanggal Publikasi'),
             ])->columns(2),
@@ -54,11 +54,11 @@ class PostResource extends Resource
             Tables\Columns\TextColumn::make('published_at')->label('Tanggal Publikasi')->date('d M Y')->sortable(),
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),
         ])->defaultSort('published_at', 'desc')
-          ->filters([])
-          ->actions([Tables\Actions\EditAction::make()])
-          ->bulkActions([Tables\Actions\BulkActionGroup::make([
-              Tables\Actions\DeleteBulkAction::make(),
-          ])]);
+            ->filters([])
+            ->actions([Tables\Actions\EditAction::make()])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+            ])]);
     }
 
     public static function getPages(): array
