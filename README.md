@@ -66,6 +66,10 @@ php artisan serve
 
 Buka `/admin` di browser dan login dengan akun yang dibuat via `php artisan make:filament-user`.
 
+## Deployment
+
+Dokumentasi deployment dipisah di [README-DEPLOYMENT.md](README-DEPLOYMENT.md).
+
 ## Kontak
 
 - **Email**: madeenajog@gmail.com
