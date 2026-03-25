@@ -12,11 +12,11 @@ Website company profile untuk PT Madeena Karya Indonesia, produsen alat Digital 
 
 ## Fitur
 
-- Halaman beranda dengan hero section, produk, tentang kami, legalitas, berita, dan kontak
+- Halaman beranda dengan hero section, produk, tentang kami, legalitas, blog, dan kontak
 - Admin panel Filament di `/admin` untuk mengelola:
     - Hero Banner
     - Produk
-    - Artikel/Berita
+    - Blog
     - Pengaturan website
 - Responsive mobile-friendly design
 - WhatsApp floating button

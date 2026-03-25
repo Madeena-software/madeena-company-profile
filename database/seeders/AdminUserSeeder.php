@@ -10,10 +10,10 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => env('FILAMENT_ADMIN_EMAIL', 'admin@madeena.local')],
+            ['email' => config('auth.filament_admin_email', 'admin@madeena.local')],
             [
                 'name' => 'Madeena Super Admin',
-                'password' => env('FILAMENT_ADMIN_PASSWORD', 'root'),
+                'password' => config('auth.filament_admin_password', 'root'),
                 'email_verified_at' => now(),
             ]
         );

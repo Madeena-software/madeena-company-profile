@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     @stack('head')
 </head>
+
 <body class="font-sans bg-white text-gray-900 antialiased">
 
     <header class="fixed top-0 left-0 right-0 z-50 bg-madeena-blue/95 backdrop-blur-sm shadow-lg" x-data="{ open: false }">
@@ -24,9 +26,9 @@
                     <a href="{{ route('home') }}" class="text-white/90 hover:text-white font-medium transition-colors">Home</a>
                     <a href="{{ route('home') }}#produk" class="text-white/90 hover:text-white font-medium transition-colors">Produk</a>
                     <a href="{{ route('home') }}#tentang" class="text-white/90 hover:text-white font-medium transition-colors">Tentang Kami</a>
-                    <a href="{{ route('home') }}#berita" class="text-white/90 hover:text-white font-medium transition-colors">Berita</a>
+                    <a href="{{ route('home') }}#blog" class="text-white/90 hover:text-white font-medium transition-colors">Blog</a>
                     <a href="{{ route('home') }}#kontak"
-                       class="bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">
+                        class="bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">
                         Hubungi Kami
                     </a>
                 </nav>
@@ -41,9 +43,9 @@
                 <a href="{{ route('home') }}" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Home</a>
                 <a href="{{ route('home') }}#produk" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Produk</a>
                 <a href="{{ route('home') }}#tentang" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Tentang Kami</a>
-                <a href="{{ route('home') }}#berita" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Berita</a>
+                <a href="{{ route('home') }}#blog" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Blog</a>
                 <a href="{{ route('home') }}#kontak"
-                   class="block bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg text-center mt-2">
+                    class="block bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg text-center mt-2">
                     Hubungi Kami
                 </a>
             </div>
@@ -71,6 +73,7 @@
                     <ul class="space-y-2 text-white/70">
                         <li><a href="{{ route('home') }}#produk" class="hover:text-white transition-colors">Produk</a></li>
                         <li><a href="{{ route('home') }}#tentang" class="hover:text-white transition-colors">Tentang Kami</a></li>
+                        <li><a href="{{ route('home') }}#blog" class="hover:text-white transition-colors">Blog</a></li>
                         <li><a href="{{ route('home') }}#legalitas" class="hover:text-white transition-colors">Legalitas</a></li>
                         <li><a href="{{ route('home') }}#kontak" class="hover:text-white transition-colors">Kontak</a></li>
                     </ul>
@@ -129,11 +132,12 @@
     </footer>
 
     <a href="https://wa.me/{{ preg_replace('/\D/', '', $settings['whatsapp'] ?? '6285728304141') }}"
-       target="_blank" rel="noopener" aria-label="Chat WhatsApp"
-       class="fixed bottom-6 right-6 z-50 bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-200">
+        target="_blank" rel="noopener" aria-label="Chat WhatsApp"
+        class="fixed bottom-6 right-6 z-50 bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-200">
         <i class="fab fa-whatsapp text-2xl"></i>
     </a>
 
     @stack('scripts')
 </body>
+
 </html>

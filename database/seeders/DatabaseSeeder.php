@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             HeroBannerSeeder::class,
             ProductSeeder::class,
             PostSeeder::class,
+            PageSeeder::class,
         ]);
     }
 }

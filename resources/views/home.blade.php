@@ -219,7 +219,7 @@
                         </ol>
                     </div>
                     <div class="flex justify-center mt-8">
-                        <img src="{{ asset('images/logo-no-bg.png') }}" alt="Logo Madeena" class="w-48 h-48 object-contain">
+                        <img src="{{ asset('images/logo.png') }}" alt="Logo Madeena" class="w-48 h-48 object-contain mix-blend-multiply">
                     </div>
                 </div>
             </div>
@@ -256,11 +256,11 @@
 </section>
 
 @if($posts->isNotEmpty())
-<section id="berita" class="py-20 bg-white">
+<section id="blog" class="py-20 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14">
-            <span class="inline-block bg-madeena-teal/10 text-madeena-teal font-semibold text-sm uppercase tracking-wider px-3 py-1 rounded-full mb-4">Berita</span>
-            <h2 class="section-title">Berita &amp; Artikel Terbaru</h2>
+            <span class="inline-block bg-madeena-teal/10 text-madeena-teal font-semibold text-sm uppercase tracking-wider px-3 py-1 rounded-full mb-4">Blog</span>
+            <h2 class="section-title">Blog &amp; Artikel Terbaru</h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             @foreach($posts as $post)

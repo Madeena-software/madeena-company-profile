@@ -112,4 +112,7 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    'filament_admin_email' => env('FILAMENT_ADMIN_EMAIL', 'admin@madeena.local'),
+    'filament_admin_password' => env('FILAMENT_ADMIN_PASSWORD', 'root'),
+
 ];
