@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\HeroBanner;
 use App\Models\Post;
 use App\Models\Product;
-use App\Models\Setting;
 
 class HomeController extends Controller
 {
@@ -17,9 +16,8 @@ class HomeController extends Controller
             ->orderByDesc('published_at')
             ->take(3)
             ->get();
-        $settings = Setting::all()->pluck('value', 'key');
 
-        return view('home', compact('banners', 'products', 'posts', 'settings'));
+        return view('home', compact('banners', 'products', 'posts'));
     }
 
     public function post(\App\Models\Post $post)

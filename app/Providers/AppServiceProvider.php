@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Setting;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer(['layouts.app', 'home', 'product', 'post'], function ($view) {
+            try {
+                if (Schema::hasTable('settings')) {
+                    $settings = Setting::all()->pluck('value', 'key');
+                } else {
+                    $settings = collect();
+                }
+            } catch (\Exception $e) {
+                $settings = collect();
+            }
+
+            $view->with('settings', $settings);
+        });
     }
 }
+
