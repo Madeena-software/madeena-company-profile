@@ -20,6 +20,15 @@ class HomeController extends Controller
         return view('home', compact('banners', 'products', 'posts'));
     }
 
+    public function blog()
+    {
+        $posts = Post::where('is_published', true)
+            ->orderByDesc('published_at')
+            ->paginate(10);
+
+        return view('blog', compact('posts'));
+    }
+
     public function post(\App\Models\Post $post)
     {
         abort_if(! $post->is_published, 404);
