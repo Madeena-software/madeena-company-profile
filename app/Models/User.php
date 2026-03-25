@@ -52,6 +52,11 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->email === config('auth.filament_admin_email', 'admin@madeena.local');
+        return true; // All authenticated users can access the panel
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->is_admin || $this->email === config('auth.filament_admin_email', 'admin@madeena.local');
     }
 }

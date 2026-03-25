@@ -2,11 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
 use App\Models\Setting;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Auth;
 
 class ManageSettings extends Page
 {
@@ -16,6 +18,17 @@ class ManageSettings extends Page
     protected static ?string $title = 'Pengaturan Website';
     protected static ?string $navigationGroup = 'Konten Website';
     protected static ?int $navigationSort = 4;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local');
+    }
 
     public ?array $data = [];
 

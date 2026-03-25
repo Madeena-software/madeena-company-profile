@@ -36,7 +36,17 @@ class PostResource extends Resource
                     ->label('Penulis')
                     ->options(User::pluck('name', 'id'))
                     ->required()
-                    ->default(Auth::id()),
+                    ->default(Auth::id())
+                    ->disabled(function () {
+                        $user = Auth::user();
+
+                        if (! $user instanceof User) {
+                            return true;
+                        }
+
+                        return ! ($user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local'));
+                    })
+                    ->dehydrated(),
                 Forms\Components\TextInput::make('category')->label('Kategori'),
                 Forms\Components\Textarea::make('excerpt')->label('Ringkasan')->rows(2),
                 Forms\Components\FileUpload::make('cover_image')
@@ -71,8 +81,13 @@ class PostResource extends Resource
             ])])
             ->modifyQueryUsing(function (Builder $query) {
                 $user = Auth::user();
+
+                if (! $user instanceof User) {
+                    return;
+                }
+
                 // Admin sees all posts, non-admin sees only their own
-                if ($user && !$user->is_admin) {
+                if (! ($user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local'))) {
                     $query->where('user_id', $user->id);
                 }
             });

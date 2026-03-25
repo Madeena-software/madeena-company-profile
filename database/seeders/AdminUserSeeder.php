@@ -15,6 +15,7 @@ class AdminUserSeeder extends Seeder
                 'name' => 'Madeena Super Admin',
                 'password' => config('auth.filament_admin_password', 'root'),
                 'email_verified_at' => now(),
+                'is_admin' => true,
             ]
         );
     }

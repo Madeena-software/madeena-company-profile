@@ -4,11 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PageResource\Pages;
 use App\Models\Page;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class PageResource extends Resource
@@ -18,6 +20,17 @@ class PageResource extends Resource
     protected static ?string $navigationLabel = 'Halaman';
     protected static ?string $navigationGroup = 'Konten Website';
     protected static ?int $navigationSort = 5;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local');
+    }
 
     public static function form(Form $form): Form
     {

@@ -4,11 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\HeroBannerResource\Pages;
 use App\Models\HeroBanner;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class HeroBannerResource extends Resource
 {
@@ -16,6 +18,17 @@ class HeroBannerResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-photo';
     protected static ?string $navigationGroup = 'Konten Website';
     protected static ?int $navigationSort = 1;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local');
+    }
 
     public static function form(Form $form): Form
     {
