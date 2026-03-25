@@ -4,7 +4,7 @@ Website company profile untuk PT Madeena Karya Indonesia, produsen alat Digital 
 
 ## Tech Stack
 
-- **Framework**: Laravel 11
+- **Framework**: Laravel 12
 - **Admin Panel**: Filament PHP v3
 - **CSS Framework**: Tailwind CSS v3
 - **JS**: Alpine.js
@@ -14,10 +14,10 @@ Website company profile untuk PT Madeena Karya Indonesia, produsen alat Digital 
 
 - Halaman beranda dengan hero section, produk, tentang kami, legalitas, berita, dan kontak
 - Admin panel Filament di `/admin` untuk mengelola:
-  - Hero Banner
-  - Produk
-  - Artikel/Berita
-  - Pengaturan website
+    - Hero Banner
+    - Produk
+    - Artikel/Berita
+    - Pengaturan website
 - Responsive mobile-friendly design
 - WhatsApp floating button
 - SEO meta tags dari database

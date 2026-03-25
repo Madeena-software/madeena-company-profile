@@ -6,42 +6,42 @@
 
 <section id="banner" class="relative min-h-screen flex items-center bg-gradient-to-br from-madeena-blue via-madeena-blue to-teal-800 pt-20">
     <div class="absolute inset-0 opacity-10">
-        <div class="absolute inset-0" style="background-image: url(&quot;data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&quot;)"></div>
+        <div class="absolute inset-0" style='background-image: url("data:image/svg+xml,%3Csvg width=%2760%27 height=%2760%27 viewBox=%270 0 60 60%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cg fill=%27none%27 fill-rule=%27evenodd%27%3E%3Cg fill=%27%23ffffff%27 fill-opacity=%270.4%27%3E%3Cpath d=%27M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%27/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'></div>
     </div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
                 @if($banners->isNotEmpty())
-                    @php $hero = $banners->first(); @endphp
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-                        {{ $hero->title }}
-                    </h1>
-                    @if($hero->subtitle)
-                    <p class="text-xl md:text-2xl font-medium text-madeena-teal mb-6">{{ $hero->subtitle }}</p>
-                    @endif
-                    @if($hero->description)
-                    <p class="text-white/80 text-lg leading-relaxed mb-8">{{ $hero->description }}</p>
-                    @endif
-                    @if($hero->cta_text && $hero->cta_url)
-                    <a href="{{ $hero->cta_url }}" class="btn-primary text-lg">{{ $hero->cta_text }}</a>
-                    @endif
+                @php $hero = $banners->first(); @endphp
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
+                    {{ $hero->title }}
+                </h1>
+                @if($hero->subtitle)
+                <p class="text-xl md:text-2xl font-medium text-madeena-teal mb-6">{{ $hero->subtitle }}</p>
+                @endif
+                @if($hero->description)
+                <p class="text-white/80 text-lg leading-relaxed mb-8">{{ $hero->description }}</p>
+                @endif
+                @if($hero->cta_text && $hero->cta_url)
+                <a href="{{ $hero->cta_url }}" class="btn-primary text-lg">{{ $hero->cta_text }}</a>
+                @endif
                 @else
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-                        PT MADEENA<br><span class="text-madeena-teal">Karya Indonesia</span>
-                    </h1>
-                    <p class="text-xl font-medium text-madeena-teal mb-6">Know Sciences, Learn Engineering, Create Technology, Develop Business.</p>
-                    <p class="text-white/80 text-lg leading-relaxed mb-8">
-                        Produsen alat Digital Direct Radiography (DDR) berbasis teknologi Camera Coupled X-Ray Detector (CCXD) buatan Indonesia. TKDN 57,62%.
-                    </p>
-                    <a href="#produk" class="btn-primary text-lg">Lihat Produk Kami</a>
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
+                    PT MADEENA<br><span class="text-madeena-teal">Karya Indonesia</span>
+                </h1>
+                <p class="text-xl font-medium text-madeena-teal mb-6">Know Sciences, Learn Engineering, Create Technology, Develop Business.</p>
+                <p class="text-white/80 text-lg leading-relaxed mb-8">
+                    Produsen alat Digital Direct Radiography (DDR) berbasis teknologi Camera Coupled X-Ray Detector (CCXD) buatan Indonesia. TKDN 57,62%.
+                </p>
+                <a href="#produk" class="btn-primary text-lg">Lihat Produk Kami</a>
                 @endif
             </div>
             <div class="flex justify-center lg:justify-end">
                 <div class="relative">
                     <div class="absolute -inset-4 bg-madeena-teal/20 rounded-full blur-2xl"></div>
                     <img src="{{ asset('images/logo.png') }}"
-                         alt="Logo PT Madeena Karya Indonesia"
-                         class="relative w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-2xl">
+                        alt="Logo PT Madeena Karya Indonesia"
+                        class="relative w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-2xl">
                 </div>
             </div>
         </div>
@@ -104,8 +104,8 @@
                 @if($product->image_path)
                 <div class="aspect-video bg-gray-50 overflow-hidden">
                     <img src="{{ Storage::url($product->image_path) }}"
-                         alt="{{ $product->name }}"
-                         class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300">
+                        alt="{{ $product->name }}"
+                        class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300">
                 </div>
                 @else
                 <div class="aspect-video bg-gradient-to-br from-madeena-blue to-madeena-teal flex items-center justify-center">
@@ -121,7 +121,7 @@
                     <p class="text-gray-600 text-sm leading-relaxed line-clamp-3">{!! strip_tags($product->description) !!}</p>
                     @endif
                     <a href="{{ route('product.show', $product->slug) }}"
-                       class="mt-4 inline-block text-madeena-teal font-semibold hover:text-madeena-blue transition-colors text-sm">
+                        class="mt-4 inline-block text-madeena-teal font-semibold hover:text-madeena-blue transition-colors text-sm">
                         Selengkapnya <i class="fas fa-arrow-right ml-1"></i>
                     </a>
                 </div>
@@ -157,10 +157,10 @@
             <h3 class="text-2xl font-bold text-madeena-blue text-center mb-10">Keunggulan Teknologi</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 @foreach([
-                    ['icon' => 'fa-network-wired', 'title' => 'Sistem Teleradiologi', 'desc' => 'Transmisi dan konsultasi citra radiologi secara daring untuk mendukung efisiensi layanan diagnostik jarak jauh.'],
-                    ['icon' => 'fa-brain', 'title' => 'Antarmuka AI Diagnostik', 'desc' => 'Integrasi kecerdasan buatan untuk membantu analisis dan interpretasi citra radiologi secara otomatis.'],
-                    ['icon' => 'fa-certificate', 'title' => 'Izin Edar Kemenkes RI', 'desc' => 'Produk telah mendapatkan izin edar resmi dari Kementerian Kesehatan RI.'],
-                    ['icon' => 'fa-handshake', 'title' => 'Program Kemitraan', 'desc' => 'Skema kemitraan pengadaan yang fleksibel untuk berbagai jenis fasilitas pelayanan kesehatan.'],
+                ['icon' => 'fa-network-wired', 'title' => 'Sistem Teleradiologi', 'desc' => 'Transmisi dan konsultasi citra radiologi secara daring untuk mendukung efisiensi layanan diagnostik jarak jauh.'],
+                ['icon' => 'fa-brain', 'title' => 'Antarmuka AI Diagnostik', 'desc' => 'Integrasi kecerdasan buatan untuk membantu analisis dan interpretasi citra radiologi secara otomatis.'],
+                ['icon' => 'fa-certificate', 'title' => 'Izin Edar Kemenkes RI', 'desc' => 'Produk telah mendapatkan izin edar resmi dari Kementerian Kesehatan RI.'],
+                ['icon' => 'fa-handshake', 'title' => 'Program Kemitraan', 'desc' => 'Skema kemitraan pengadaan yang fleksibel untuk berbagai jenis fasilitas pelayanan kesehatan.'],
                 ] as $feat)
                 <div class="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow">
                     <div class="w-14 h-14 bg-madeena-teal/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -236,12 +236,12 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach([
-                ['icon' => 'fa-building', 'title' => 'Surat Izin Berusaha Berbasis Risiko', 'detail' => 'NIB 9120106900275'],
-                ['icon' => 'fa-file-contract', 'title' => 'Lisensi Paten UGM', 'detail' => 'No. 5204/UN 1.P/DIT-KAUI/HK/2020'],
-                ['icon' => 'fa-certificate', 'title' => 'Sertifikat Izin Edar Kemenkes RI', 'detail' => 'AKD 21501220581'],
-                ['icon' => 'fa-award', 'title' => 'Sertifikat Capaian TKDN 57,62%', 'detail' => 'No. 8110/SJ-IND.8/TKDN/9/2023'],
-                ['icon' => 'fa-shield-alt', 'title' => 'Sertifikat CPAKB Kemenkes RI', 'detail' => 'PB-UMKU 91201069002750000001'],
-                ['icon' => 'fa-university', 'title' => 'Surat Rekomendasi FK Undiksha', 'detail' => 'No. 1632/UN48.24/TU/2024'],
+            ['icon' => 'fa-building', 'title' => 'Surat Izin Berusaha Berbasis Risiko', 'detail' => 'NIB 9120106900275'],
+            ['icon' => 'fa-file-contract', 'title' => 'Lisensi Paten UGM', 'detail' => 'No. 5204/UN 1.P/DIT-KAUI/HK/2020'],
+            ['icon' => 'fa-certificate', 'title' => 'Sertifikat Izin Edar Kemenkes RI', 'detail' => 'AKD 21501220581'],
+            ['icon' => 'fa-award', 'title' => 'Sertifikat Capaian TKDN 57,62%', 'detail' => 'No. 8110/SJ-IND.8/TKDN/9/2023'],
+            ['icon' => 'fa-shield-alt', 'title' => 'Sertifikat CPAKB Kemenkes RI', 'detail' => 'PB-UMKU 91201069002750000001'],
+            ['icon' => 'fa-university', 'title' => 'Surat Rekomendasi FK Undiksha', 'detail' => 'No. 1632/UN48.24/TU/2024'],
             ] as $cert)
             <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-colors">
                 <div class="w-12 h-12 bg-madeena-teal/30 rounded-lg flex items-center justify-center mb-4">
@@ -268,8 +268,8 @@
                 @if($post->cover_image)
                 <div class="aspect-video overflow-hidden">
                     <img src="{{ Storage::url($post->cover_image) }}"
-                         alt="{{ $post->title }}"
-                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        alt="{{ $post->title }}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 </div>
                 @endif
                 <div class="p-6">
@@ -287,7 +287,7 @@
                         <span class="text-gray-400 text-xs">{{ $post->published_at->format('d M Y') }}</span>
                         @endif
                         <a href="{{ route('post.show', $post->slug) }}"
-                           class="text-madeena-teal font-semibold text-sm hover:text-madeena-blue transition-colors">
+                            class="text-madeena-teal font-semibold text-sm hover:text-madeena-blue transition-colors">
                             Baca <i class="fas fa-arrow-right ml-1"></i>
                         </a>
                     </div>
@@ -306,19 +306,19 @@
         <p class="text-white/80 text-lg mb-10">Untuk informasi lebih lanjut mengenai produk dan layanan PT Madeena Karya Indonesia, silakan menghubungi kami melalui saluran berikut</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             <a href="mailto:{{ $settings['email'] ?? 'madeenajog@gmail.com' }}"
-               class="bg-white/10 hover:bg-white/20 transition-colors rounded-xl p-5 text-center border border-white/20">
+                class="bg-white/10 hover:bg-white/20 transition-colors rounded-xl p-5 text-center border border-white/20">
                 <i class="fas fa-envelope text-2xl text-madeena-teal mb-3 block"></i>
                 <div class="text-sm font-medium">Email</div>
                 <div class="text-white/70 text-xs mt-1">{{ $settings['email'] ?? 'madeenajog@gmail.com' }}</div>
             </a>
             <a href="tel:{{ preg_replace('/\s/', '', $settings['phone'] ?? '+6282138114011') }}"
-               class="bg-white/10 hover:bg-white/20 transition-colors rounded-xl p-5 text-center border border-white/20">
+                class="bg-white/10 hover:bg-white/20 transition-colors rounded-xl p-5 text-center border border-white/20">
                 <i class="fas fa-phone text-2xl text-madeena-teal mb-3 block"></i>
                 <div class="text-sm font-medium">Telepon</div>
                 <div class="text-white/70 text-xs mt-1">{{ $settings['phone'] ?? '+62 821 3811 4011' }}</div>
             </a>
             <a href="https://wa.me/{{ preg_replace('/\D/', '', $settings['whatsapp'] ?? '6285728304141') }}" target="_blank"
-               class="bg-white/10 hover:bg-white/20 transition-colors rounded-xl p-5 text-center border border-white/20">
+                class="bg-white/10 hover:bg-white/20 transition-colors rounded-xl p-5 text-center border border-white/20">
                 <i class="fab fa-whatsapp text-2xl text-madeena-teal mb-3 block"></i>
                 <div class="text-sm font-medium">WhatsApp</div>
                 <div class="text-white/70 text-xs mt-1">{{ $settings['whatsapp'] ?? '+62 857 2830 4141' }}</div>
@@ -330,7 +330,7 @@
             </div>
         </div>
         <a href="https://wa.me/{{ preg_replace('/\D/', '', $settings['whatsapp'] ?? '6285728304141') }}" target="_blank"
-           class="btn-primary text-lg inline-flex items-center gap-2">
+            class="btn-primary text-lg inline-flex items-center gap-2">
             <i class="fab fa-whatsapp"></i> Chat via WhatsApp
         </a>
     </div>
@@ -340,14 +340,17 @@
 
 @push('scripts')
 <script>
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
     });
-});
 </script>
 @endpush
