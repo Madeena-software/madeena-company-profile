@@ -39,7 +39,7 @@
             <div class="flex justify-center lg:justify-end">
                 <div class="relative">
                     <div class="absolute -inset-4 bg-madeena-teal/20 rounded-full blur-2xl"></div>
-                    <img src="{{ asset('images/logo.png') }}"
+                    <img src="{{ asset('images/logo-current.png') }}"
                         alt="Logo PT Madeena Karya Indonesia"
                         class="relative w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-2xl">
                 </div>
@@ -219,7 +219,7 @@
                         </ol>
                     </div>
                     <div class="flex justify-center mt-8">
-                        <img src="{{ asset('images/logo.png') }}" alt="Logo Madeena" class="w-48 h-48 object-contain mix-blend-multiply">
+                        <img src="{{ asset('images/logo-current.png') }}" alt="Logo Madeena" class="w-48 h-48 object-contain mix-blend-multiply">
                     </div>
                 </div>
             </div>

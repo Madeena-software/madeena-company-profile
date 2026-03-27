@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', $settings['meta_title'] ?? 'PT Madeena Karya Indonesia - Digital Radiography')</title>
     <meta name="description" content="@yield('description', $settings['meta_description'] ?? 'PT Madeena Karya Indonesia — produsen alat Digital Direct Radiography buatan Indonesia.')">
-    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-current.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     @stack('head')
@@ -18,7 +18,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 md:h-20">
                 <a href="{{ route('home') }}" class="flex items-center gap-3">
-                    <img src="{{ asset('images/logo-no-bg.png') }}" alt="Logo Madeena" class="h-10 w-auto">
+                    <img src="{{ asset('images/logo-current.png') }}" alt="Logo Madeena" class="h-10 w-auto">
                     <span class="text-white font-bold text-xl hidden sm:block">Madeena</span>
                 </a>
 
@@ -61,7 +61,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                 <div>
                     <div class="flex items-center gap-3 mb-4">
-                        <img src="{{ asset('images/logo-no-bg.png') }}" alt="Logo Madeena" class="h-10 w-auto">
+                        <img src="{{ asset('images/logo-current.png') }}" alt="Logo Madeena" class="h-10 w-auto">
                         <span class="font-bold text-xl">Madeena</span>
                     </div>
                     <p class="text-white/70 text-sm leading-relaxed">
