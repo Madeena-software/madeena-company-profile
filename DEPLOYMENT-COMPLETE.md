@@ -120,7 +120,6 @@ This repository now has a **complete, production-ready Docker deployment archite
                      │ (needs: build-and-push)
 ┌────────────────────▼────────────────────────────────┐
 │  Job 2: Deploy (SSH to VPS)                         │
-│  - git pull latest code                             │
 │  - docker pull latest image                         │
 │  - docker-compose -f docker-compose.prod.yml up -d  │
 │  - php artisan migrate --force                      │
@@ -134,7 +133,7 @@ This repository now has a **complete, production-ready Docker deployment archite
 - Triggers on push to `main` or `master` branch
 - Builds and pushes image to Docker Hub
 - SSHes into VPS with GitHub Secrets
-- Auto-deploys with docker-compose
+- Auto-deploys with docker-compose using the freshly pulled image
 - Runs database migrations
 - **Shows 100 lines of application logs in Actions console** (you don't need to SSH)
 - Renews SSL certificates

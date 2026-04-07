@@ -134,26 +134,26 @@ certbot --nginx -d profile.example.com
 Gunakan urutan berikut secara **strict order**:
 
 1. `cd /var/www/madeena-website-company-profile`
-2. `git pull`
-3. `composer install --no-dev --optimize-autoloader`
-4. `npm install && npm run build`
-5. `php artisan migrate --force`
-6. `php artisan db:seed --force`
-7. `php artisan storage:link`
-8. `php artisan config:cache && php artisan route:cache && php artisan view:cache`
-9. `php artisan optimize`
-10. `systemctl reload nginx`
+2. `docker pull <image>:latest`
+3. `docker compose -f docker-compose.prod.yml down`
+4. `docker compose -f docker-compose.prod.yml up -d`
+5. `docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force`
+6. `docker compose -f docker-compose.prod.yml exec -T app php artisan optimize:clear`
+7. `docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache`
+8. `docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache`
+9. `docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache`
+10. `docker compose -f docker-compose.prod.yml exec -T app php artisan octane:reload`
 
 Validasi setelah deploy:
 
-- `php artisan about`
-- `php artisan route:list | head`
+- `docker compose -f docker-compose.prod.yml exec -T app php artisan about`
+- `docker compose -f docker-compose.prod.yml exec -T app php artisan route:list | head`
 - `curl -I https://profile.example.com`
 
 Jika rollback diperlukan:
 
-1. checkout ke commit stabil sebelumnya
-2. ulangi langkah 3-10
+1. pull image tag stabil sebelumnya
+2. jalankan kembali langkah 3-10
 
 ---
 

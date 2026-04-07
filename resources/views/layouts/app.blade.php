@@ -7,7 +7,9 @@
     <title>@yield('title', $settings['meta_title'] ?? 'PT Madeena Karya Indonesia - Digital Radiography')</title>
     <meta name="description" content="@yield('description', $settings['meta_description'] ?? 'PT Madeena Karya Indonesia — produsen alat Digital Direct Radiography buatan Indonesia.')">
     <link rel="icon" type="image/png" href="{{ asset('images/logo-current.png') }}">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @endif
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     @stack('head')
 </head>

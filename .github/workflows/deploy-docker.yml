@@ -5,7 +5,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/madeena-company-profile
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}/madeena-company-profile
 
 jobs:
   build-and-push:
@@ -25,8 +25,8 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKER_PASSWORD }}
 
       - name: Build and push image
         uses: docker/build-push-action@v5
@@ -46,29 +46,37 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: 22
+          host: ${{ secrets.SSH_HOST || secrets.VPS_HOST }}
+          username: ${{ secrets.SSH_USER || secrets.VPS_USER }}
+          key: ${{ secrets.SSH_KEY || secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || secrets.VPS_PORT || 22 }}
           script: |
             set -e
 
             SUDO_PASS='${{ secrets.SUDO_PASSWORD }}'
-            SUDO="echo ${SUDO_PASS} | sudo -S"
+            if [ -n "$SUDO_PASS" ]; then
+              sudo_cmd() {
+                printf '%s\n' "$SUDO_PASS" | sudo -S "$@"
+              }
+            else
+              sudo_cmd() {
+                sudo "$@"
+              }
+            fi
+
+            DEPLOY_PATH="${{ secrets.REMOTE_PATH || secrets.APP_DEPLOY_PATH || '/var/www/madeena-website-company-profile' }}"
+
+            if [ ! -d "$DEPLOY_PATH" ]; then
+              echo "Deployment path not found: $DEPLOY_PATH"
+              exit 1
+            fi
             
             # Navigate to app directory
-            cd ${{ secrets.REMOTE_PATH }}
-            
-            # Pull latest code
-            echo "=== Pulling latest code ==="
-            git pull origin ${{ github.ref_name }}
-            
+            cd "$DEPLOY_PATH"
+
             # Pull latest Docker image
             echo "=== Pulling Docker image ==="
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
@@ -115,11 +123,11 @@ jobs:
             
             # Stop running containers
             echo "=== Stopping running containers ==="
-            $SUDO docker compose -f docker-compose.prod.yml down || true
+            sudo_cmd docker compose -f docker-compose.prod.yml down || true
             
             # Start containers
             echo "=== Starting Docker Compose ==="
-            $SUDO docker compose -f docker-compose.prod.yml up -d
+            sudo_cmd env DOCKER_IMAGE="$DOCKER_IMAGE" docker compose -f docker-compose.prod.yml up -d
             
             # Wait for app to be healthy
             echo "=== Waiting for application to be ready ==="
@@ -127,37 +135,39 @@ jobs:
             
             # Show container logs
             echo "=== Application Logs (Last 100 lines) ==="
-            $SUDO docker compose -f docker-compose.prod.yml logs --tail 100 app
+            sudo_cmd docker compose -f docker-compose.prod.yml logs --tail 100 app
             
             # Run migrations
             echo "=== Running database migrations ==="
-            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+            sudo_cmd docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
 
             # Rebuild cache for Octane workers
             echo "=== Rebuilding Laravel caches ==="
-            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan optimize:clear
-            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
-            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache
-            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache
+            sudo_cmd docker compose -f docker-compose.prod.yml exec -T app php artisan optimize:clear
+            sudo_cmd docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
+            sudo_cmd docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache
+            sudo_cmd docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache
             
             # Restart Octane workers after deployment
             echo "=== Restarting Octane workers ==="
-            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan octane:reload || true
+            sudo_cmd docker compose -f docker-compose.prod.yml exec -T app php artisan octane:reload || true
             
             # Update Certbot SSL certificate
             echo "=== Updating SSL certificate with Certbot ==="
-            $SUDO certbot certonly --nginx --non-interactive --agree-tos --email ${{ secrets.LETSENCRYPT_EMAIL }} -d ${{ secrets.APP_DOMAIN }} || true
-            $SUDO certbot renew --quiet --nginx -d ${{ secrets.APP_DOMAIN }} || true
+            sudo_cmd certbot certonly --nginx --non-interactive --agree-tos --email ${{ secrets.LETSENCRYPT_EMAIL }} -d ${{ secrets.APP_DOMAIN }} || true
+            sudo_cmd certbot renew --quiet --nginx -d ${{ secrets.APP_DOMAIN }} || true
             
             # Health check
             echo "=== Running health check ==="
             HEALTH_CHECK_URL="https://${{ secrets.APP_DOMAIN }}/company-profile/health"
             echo "Checking: $HEALTH_CHECK_URL"
+            health_check_passed=false
             
             for attempt in {1..5}; do
               echo "Health check attempt $attempt/5..."
               if curl -f -s -o /dev/null -w "HTTP Status: %{http_code}" "$HEALTH_CHECK_URL"; then
                 echo "✓ Health check passed!"
+                health_check_passed=true
                 break
               fi
               if [ $attempt -lt 5 ]; then
@@ -165,7 +175,7 @@ jobs:
               fi
             done
             
-            if [ $? -eq 0 ]; then
+            if [ "$health_check_passed" = true ]; then
               echo "✓ Deployment completed successfully!"
             else
               echo "✗ Health check failed after 5 attempts"
