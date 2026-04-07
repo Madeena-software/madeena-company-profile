@@ -70,6 +70,7 @@ class Register extends BaseRegister
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'role' => 'user',
             'is_admin' => false,
         ]);
 

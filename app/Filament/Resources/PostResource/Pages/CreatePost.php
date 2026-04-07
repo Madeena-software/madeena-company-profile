@@ -20,7 +20,7 @@ class CreatePost extends CreateRecord
         }
 
         // Non-admin users can only create posts as themselves
-        if (! ($user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local'))) {
+        if (! $user->isAdmin()) {
             $data['user_id'] = Auth::id();
         }
 

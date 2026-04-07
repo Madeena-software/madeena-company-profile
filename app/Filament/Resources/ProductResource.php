@@ -28,7 +28,7 @@ class ProductResource extends Resource
             return false;
         }
 
-        return $user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local');
+        return $user->isAdmin();
     }
 
     public static function form(Form $form): Form

@@ -29,7 +29,7 @@ class PostPolicy
     public function update(User $user, Post $post): bool
     {
         // Admin can update all posts, non-admin can only update their own
-        return $user->is_admin || $user->id === $post->user_id;
+        return $user->isAdmin() || $user->id === $post->user_id;
     }
 
     /**
@@ -38,7 +38,7 @@ class PostPolicy
     public function delete(User $user, Post $post): bool
     {
         // Admin can delete all posts, non-admin can only delete their own
-        return $user->is_admin || $user->id === $post->user_id;
+        return $user->isAdmin() || $user->id === $post->user_id;
     }
 
     /**
@@ -46,6 +46,6 @@ class PostPolicy
      */
     public function forceDelete(User $user, Post $post): bool
     {
-        return $user->is_admin;
+        return $user->isAdmin();
     }
 }

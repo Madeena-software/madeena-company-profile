@@ -22,7 +22,7 @@ class EditPost extends EditRecord
         }
 
         // Non-admin users can only edit their own posts
-        if (! ($user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local')) && $post->user_id !== $user->id) {
+        if (! $user->isAdmin() && $post->user_id !== $user->id) {
             abort(403, 'Unauthorized to edit this post.');
         }
     }
@@ -36,7 +36,7 @@ class EditPost extends EditRecord
         }
 
         // Non-admin users can't change the author of a post
-        if (! ($user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local'))) {
+        if (! $user->isAdmin()) {
             $data['user_id'] = $this->getRecord()->user_id;
         }
 

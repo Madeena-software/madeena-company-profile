@@ -3,6 +3,8 @@
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/health', fn () => response()->json(['status' => 'ok']));
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/blog', [HomeController::class, 'blog'])->name('blog.index');
 Route::get('/produk/{product:slug}', [HomeController::class, 'product'])->name('product.show');

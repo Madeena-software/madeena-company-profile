@@ -1,0 +1,202 @@
+name: Build, Push & Deploy Docker
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/madeena-company-profile
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+  deploy:
+    name: Deploy to Production
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            SUDO_PASS='${{ secrets.SUDO_PASSWORD }}'
+            SUDO="echo ${SUDO_PASS} | sudo -S"
+            
+            # Navigate to app directory
+            cd ${{ secrets.REMOTE_PATH }}
+            
+            # Pull latest code
+            echo "=== Pulling latest code ==="
+            git pull origin ${{ github.ref_name }}
+            
+            # Pull latest Docker image
+            echo "=== Pulling Docker image ==="
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            export DOCKER_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            export APP_DOMAIN=${{ secrets.APP_DOMAIN }}
+            
+            # Create .env file from secrets if needed
+            if [ ! -f .env ]; then
+              echo "=== Creating .env file ==="
+              cat > .env << 'ENVEOF'
+            APP_NAME="Madeena Company Profile"
+            APP_ENV=production
+            APP_DEBUG=false
+            APP_KEY=${{ secrets.APP_KEY }}
+            APP_DOMAIN=${{ secrets.APP_DOMAIN }}
+            APP_URL=https://${{ secrets.APP_DOMAIN }}/company-profile
+            OCTANE_SERVER=frankenphp
+            OCTANE_HTTPS=true
+            
+            DB_CONNECTION=mysql
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_DATABASE=${{ secrets.DB_DATABASE }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
+            
+            CACHE_STORE=file
+            SESSION_DRIVER=file
+            QUEUE_CONNECTION=sync
+            
+            FILAMENT_ADMIN_EMAIL=${{ secrets.SUPER_ADMIN_EMAIL }}
+            FILAMENT_ADMIN_PASSWORD=${{ secrets.SUPER_ADMIN_PASSWORD }}
+
+            MAIL_MAILER=smtp
+            MAIL_HOST=smtp.gmail.com
+            MAIL_PORT=587
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            MAIL_FROM_ADDRESS=${{ secrets.SUPER_ADMIN_EMAIL }}
+            MAIL_FROM_NAME="Madeena Company Profile"
+            ENVEOF
+            fi
+            
+            # Stop running containers
+            echo "=== Stopping running containers ==="
+            $SUDO docker compose -f docker-compose.prod.yml down || true
+            
+            # Start containers
+            echo "=== Starting Docker Compose ==="
+            $SUDO docker compose -f docker-compose.prod.yml up -d
+            
+            # Wait for app to be healthy
+            echo "=== Waiting for application to be ready ==="
+            sleep 10
+            
+            # Show container logs
+            echo "=== Application Logs (Last 100 lines) ==="
+            $SUDO docker compose -f docker-compose.prod.yml logs --tail 100 app
+            
+            # Run migrations
+            echo "=== Running database migrations ==="
+            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+
+            # Rebuild cache for Octane workers
+            echo "=== Rebuilding Laravel caches ==="
+            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan optimize:clear
+            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
+            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache
+            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache
+            
+            # Restart Octane workers after deployment
+            echo "=== Restarting Octane workers ==="
+            $SUDO docker compose -f docker-compose.prod.yml exec -T app php artisan octane:reload || true
+            
+            # Update Certbot SSL certificate
+            echo "=== Updating SSL certificate with Certbot ==="
+            $SUDO certbot certonly --nginx --non-interactive --agree-tos --email ${{ secrets.LETSENCRYPT_EMAIL }} -d ${{ secrets.APP_DOMAIN }} || true
+            $SUDO certbot renew --quiet --nginx -d ${{ secrets.APP_DOMAIN }} || true
+            
+            # Health check
+            echo "=== Running health check ==="
+            HEALTH_CHECK_URL="https://${{ secrets.APP_DOMAIN }}/company-profile/health"
+            echo "Checking: $HEALTH_CHECK_URL"
+            
+            for attempt in {1..5}; do
+              echo "Health check attempt $attempt/5..."
+              if curl -f -s -o /dev/null -w "HTTP Status: %{http_code}" "$HEALTH_CHECK_URL"; then
+                echo "✓ Health check passed!"
+                break
+              fi
+              if [ $attempt -lt 5 ]; then
+                sleep 5
+              fi
+            done
+            
+            if [ $? -eq 0 ]; then
+              echo "✓ Deployment completed successfully!"
+            else
+              echo "✗ Health check failed after 5 attempts"
+              exit 1
+            fi
+
+  notify:
+    name: Notify Deployment Status
+    needs: [build-and-push, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "status=✅ Deployment successful" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ Deployment failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Output deployment summary
+        run: |
+          echo "## Deployment Summary"
+          echo "- **Repository**: ${{ github.repository }}"
+          echo "- **Branch**: ${{ github.ref_name }}"
+          echo "- **Commit**: ${{ github.sha }}"
+          echo "- **Status**: ${{ steps.status.outputs.status }}"
+          echo "- **Application URL**: https://${{ secrets.APP_DOMAIN }}/company-profile"

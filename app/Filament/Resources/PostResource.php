@@ -44,7 +44,7 @@ class PostResource extends Resource
                             return true;
                         }
 
-                        return ! ($user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local'));
+                        return ! $user->isAdmin();
                     })
                     ->dehydrated(),
                 Forms\Components\TextInput::make('category')->label('Kategori'),
@@ -87,7 +87,7 @@ class PostResource extends Resource
                 }
 
                 // Admin sees all posts, non-admin sees only their own
-                if (! ($user->is_admin || $user->email === config('auth.filament_admin_email', 'admin@madeena.local'))) {
+                if (! $user->isAdmin()) {
                     $query->where('user_id', $user->id);
                 }
             });

@@ -1,20 +1,50 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: madeena_website_app
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      APP_ENV: local
+      APP_DEBUG: 'true'
+      APP_URL: http://localhost:8000
+      OCTANE_SERVER: frankenphp
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: madeena_website
+      DB_USERNAME: root
+      DB_PASSWORD: secret
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   mysql:
     image: mysql:8.4
-    container_name: madeena_mysql84
+    container_name: madeena_website_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: madeena_company_profile
-      MYSQL_USER: madeena
-      MYSQL_PASSWORD: madeena_pass
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: madeena_website
       TZ: Asia/Jakarta
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
-      - /mnt/local_madeena_website_data/mysql:/var/lib/mysql
+      - mysql_website_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-psecret"]
       interval: 10s
       timeout: 5s
       retries: 10
+
+volumes:
+  mysql_website_data:
