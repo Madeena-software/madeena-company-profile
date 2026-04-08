@@ -430,8 +430,8 @@ jobs:
                 break
               fi
 
-              if [ "$state" = "restarting" ]; then
-                echo "⚠️  App is restarting; recent logs:"
+              if [ "$state" = "restarting" ] || [ "$state" = "exited" ]; then
+                echo "⚠️  App is in $state state; recent logs:"
                 docker logs --tail 50 madeena_profile_app || true
               fi
 
@@ -506,7 +506,7 @@ jobs:
       - name: Health check
         run: |
           echo "Waiting for the application to be ready..."
-          max_attempts=5
+          max_attempts=10
           attempt=0
           while [ "$attempt" -lt "$max_attempts" ]; do
             attempt=$((attempt + 1))
@@ -519,8 +519,8 @@ jobs:
               exit 0
             fi
             if [ $attempt -lt $max_attempts ]; then
-              echo "⚠️  Not ready yet — retrying in 10 s..."
-              sleep 10
+              echo "⚠️  Not ready yet — retrying in 15 s..."
+              sleep 15
             fi
           done
           echo "❌ Health check failed after $max_attempts attempts (last HTTP status: $HTTP_STATUS)"
