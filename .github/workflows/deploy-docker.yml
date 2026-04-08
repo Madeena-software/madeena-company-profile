@@ -27,13 +27,6 @@ jobs:
         with:
           fetch-depth: 0 # required to access tags
 
-      # ── Encode docker-compose for SSH transfer ─────────────────────────────
-      # Avoids a separate SCP connection by passing the file content through
-      # the SSH session itself.
-      - name: Encode docker-compose for transfer
-        id: compose
-        run: echo "b64=$(base64 -w 0 docker-compose.prod.yml)" >> "$GITHUB_OUTPUT"
-
       - name: Derive version from git tags or VERSION file
         id: version
         run: |
@@ -209,7 +202,6 @@ jobs:
       - name: Transfer files and restart containers
         uses: appleboy/ssh-action@v1.0.3
         env:
-          COMPOSE_B64: ${{ steps.compose.outputs.b64 }}
           SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
           SSH_USER: ${{ secrets.SSH_USER || secrets.VPS_USER }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}
@@ -219,7 +211,7 @@ jobs:
           username: ${{ secrets.SSH_USER || secrets.VPS_USER }}
           key: ${{ secrets.SSH_KEY || secrets.VPS_SSH_KEY }}
           port: ${{ secrets.SSH_PORT || secrets.VPS_PORT || 22 }}
-          envs: COMPOSE_B64,SUDO_PASSWORD,SSH_USER,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+          envs: SUDO_PASSWORD,SSH_USER,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           timeout: 10m
           command_timeout: 60m
           script: |
@@ -248,8 +240,69 @@ jobs:
                 echo "==> Tidak ada interface VPN (tun/wg) aktif, melewati pengaturan MTU."
             fi
 
-            # Restore docker-compose.prod.yml from base64-encoded runner output.
-            printf '%s' "$COMPOSE_B64" | base64 -d > docker-compose.prod.yml
+            # Write docker-compose.prod.yml directly so the file is never empty.
+            cat > docker-compose.prod.yml <<'YML'
+            services:
+              app:
+                image: ${DOCKER_IMAGE:-docker.io/${DOCKERHUB_USERNAME:-your-dockerhub-username}/madeena-company-profile:latest}
+                container_name: madeena_profile_app
+                restart: unless-stopped
+                working_dir: /var/www/app
+                environment:
+                  APP_ENV: production
+                  APP_DEBUG: 'false'
+                  APP_URL: ${APP_URL:-http://127.0.0.1:8011}
+                  APP_VERSION: ${APP_VERSION:-latest}
+                  DB_CONNECTION: mysql
+                  DB_HOST: mysql
+                  DB_PORT: 3306
+                  DB_DATABASE: ${DB_DATABASE:-madeena_company_profile}
+                  DB_USERNAME: ${DB_USERNAME:-madeena}
+                  DB_PASSWORD: ${DB_PASSWORD:-madeena_pass}
+                  APP_TIMEZONE: Asia/Jakarta
+                  LOG_CHANNEL: stack
+                  LOG_STACK: single
+                  LOG_LEVEL: error
+                  FILESYSTEM_DISK: public
+                  CACHE_STORE: file
+                  SESSION_DRIVER: file
+                  QUEUE_CONNECTION: sync
+                volumes:
+                  - ./storage:/var/www/app/storage
+                  - ./bootstrap/cache:/var/www/app/bootstrap/cache
+                depends_on:
+                  mysql:
+                    condition: service_healthy
+                ports:
+                  - "8011:80"
+                healthcheck:
+                  test: ["CMD", "curl", "-f", "http://localhost/health"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 40s
+
+              mysql:
+                image: mysql:8.4
+                container_name: madeena_profile_mysql
+                restart: unless-stopped
+                environment:
+                  MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+                  MYSQL_DATABASE: ${DB_DATABASE:-madeena_company_profile}
+                  MYSQL_USER: ${DB_USERNAME:-madeena}
+                  MYSQL_PASSWORD: ${DB_PASSWORD:-madeena_pass}
+                  TZ: Asia/Jakarta
+                volumes:
+                  - mysql_data:/var/lib/mysql
+                healthcheck:
+                  test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_ROOT_PASSWORD:-root}"]
+                  interval: 10s
+                  timeout: 5s
+                  retries: 10
+
+            volumes:
+              mysql_data:
+            YML
 
             # Write .env (secrets are substituted by GitHub Actions before the
             # script is sent over SSH, so they never appear in runner logs)
