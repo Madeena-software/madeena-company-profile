@@ -416,21 +416,34 @@ jobs:
             MIGRATE_LOG=/tmp/deploy_migrate_output.log
             set +e
             docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force > "$MIGRATE_LOG" 2>&1 || MIGRATE_EXIT=$?
+            MIGRATE_EXIT=${MIGRATE_EXIT:-0}
             set -e
-            if [ -n "${MIGRATE_EXIT:-}" ] && [ "$MIGRATE_EXIT" -ne 0 ]; then
+            if [ "$MIGRATE_EXIT" -ne 0 ]; then
+              echo "---- MIGRATION EXIT CODE: $MIGRATE_EXIT ----"
+              echo "---- MIGRATION LOG (begin) ----"
+              if [ -s "$MIGRATE_LOG" ]; then
+                sed -n '1,300p' "$MIGRATE_LOG" || true
+              else
+                echo "(migration log is empty)"
+              fi
+              echo "---- MIGRATION LOG (end) ----"
+
               if grep -q "SQLSTATE\\[42S01\\]: Base table or view already exists" "$MIGRATE_LOG"; then
                 echo "⚠️  Detected existing-table migration error. Attempting non-destructive remediation..."
-                TABLE_NAME=$(grep -oP "Table '\K[^']+(?=' already exists)" "$MIGRATE_LOG" | head -1)
+                TABLE_NAME=$(grep -oP "Table '\\K[^']+(?=' already exists)" "$MIGRATE_LOG" | head -1)
                 if [ -n "$TABLE_NAME" ]; then
                   echo "Found orphaned table: $TABLE_NAME. Registering pending migrations to migrations table..."
                   docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force || true
                 else
                   echo "Could not extract table name from error. Full error:"
-                  cat "$MIGRATE_LOG"
+                  cat "$MIGRATE_LOG" || true
+                  echo "---- CONTAINER (app) logs (tail 300) ----"
+                  docker compose -f docker-compose.prod.yml logs --no-color --tail 300 app || true
                   exit 1
                 fi
               else
-                cat "$MIGRATE_LOG"
+                echo "---- CONTAINER (app) logs (tail 300) ----"
+                docker compose -f docker-compose.prod.yml logs --no-color --tail 300 app || true
                 echo "❌ Migrations failed with an unexpected error."
                 exit 1
               fi
