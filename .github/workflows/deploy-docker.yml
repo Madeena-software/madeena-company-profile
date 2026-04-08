@@ -233,7 +233,8 @@ jobs:
             fi
             
             DEPLOY_PATH="${{ secrets.REMOTE_PATH || secrets.APP_DEPLOY_PATH || '/var/www/madeena-website-company-profile' }}"
-            mkdir -p "$DEPLOY_PATH"
+            echo "$SUDO_PASSWORD" | sudo -S mkdir -p "$DEPLOY_PATH"
+            echo "$SUDO_PASSWORD" | sudo -S chown -R "$SSH_USER:$SSH_USER" "$DEPLOY_PATH"
             cd "$DEPLOY_PATH"
 
             # Set MTU untuk interface VPN secara otomatis agar koneksi stabil
