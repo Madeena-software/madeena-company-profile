@@ -27,6 +27,13 @@ jobs:
         with:
           fetch-depth: 0 # required to access tags
 
+      # ── Encode docker-compose for SSH transfer ─────────────────────────────
+      # Avoids a separate SCP connection by passing the file content through
+      # the SSH session itself.
+      - name: Encode docker-compose for transfer
+        id: compose
+        run: echo "b64=$(base64 -w 0 docker-compose.prod.yml)" >> "$GITHUB_OUTPUT"
+
       - name: Derive version from git tags or VERSION file
         id: version
         run: |
@@ -185,13 +192,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── Encode docker-compose for SSH transfer ─────────────────────────────
-      # Avoids a separate SCP connection (which can time out on restricted
-      # networks) by passing the file content through the SSH session itself.
-      - name: Encode docker-compose for transfer
-        id: compose
-        run: echo "b64=$(base64 -w 0 docker-compose.prod.yml)" >> "$GITHUB_OUTPUT"
-
       # ── Wait for SSH to be reachable ───────────────────────────────────────
       # Retries every 15 s for up to 30 minutes so transient network blips or
       # a server reboot during CI do not cause an immediate failure.
@@ -247,7 +247,7 @@ jobs:
                 echo "==> Tidak ada interface VPN (tun/wg) aktif, melewati pengaturan MTU."
             fi
 
-            # Restore docker-compose.prod.yml from base64-encoded runner output
+            # Restore docker-compose.prod.yml from base64-encoded runner output.
             printf '%s' "$COMPOSE_B64" | base64 -d > docker-compose.prod.yml
 
             # Write .env (secrets are substituted by GitHub Actions before the
@@ -258,7 +258,7 @@ jobs:
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
             APP_DOMAIN=${{ secrets.APP_DOMAIN }}
-            APP_URL=https://${{ secrets.APP_DOMAIN }}/company-profile
+            APP_URL=http://${{ secrets.SSH_HOST }}:8011
             APP_TIMEZONE=Asia/Jakarta
 
             LOG_CHANNEL=stack
@@ -266,7 +266,7 @@ jobs:
             LOG_LEVEL=error
 
             DB_CONNECTION=mysql
-            DB_HOST=db
+            DB_HOST=mysql
             DB_PORT=3306
             DB_DATABASE=${{ secrets.DB_DATABASE }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
@@ -274,7 +274,7 @@ jobs:
             DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
 
             BROADCAST_CONNECTION=log
-            FILESYSTEM_DISK=local
+            FILESYSTEM_DISK=public
             QUEUE_CONNECTION=sync
             CACHE_STORE=file
             SESSION_DRIVER=file
@@ -289,7 +289,7 @@ jobs:
             MAIL_ENCRYPTION=tls
             MAIL_FROM_ADDRESS=${{ secrets.MAIL_USERNAME }}
             MAIL_FROM_NAME="${APP_NAME}"
-            
+
             SUPER_ADMIN_EMAIL=${{ secrets.SUPER_ADMIN_EMAIL }}
             SUPER_ADMIN_PASSWORD=${{ secrets.SUPER_ADMIN_PASSWORD }}
 
@@ -325,6 +325,9 @@ jobs:
             # and stale internal IPs (e.g. nginx → app) are resolved correctly.
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
 
+            echo "==> Container logs (tail 100) ..."
+            docker logs --tail 100 madeena_profile_app || true
+
             # Remove old madeena-company-profile images left behind by prior deploys.
             docker images --format '{{.Repository}} {{.Tag}} {{.ID}}' \
               | awk -v repo="${DOCKERHUB_USERNAME}/madeena-company-profile" '$1 == repo && $2 != "latest" { print $3 }' \
@@ -333,10 +336,6 @@ jobs:
 
             # Remove dangling layers from previous pulls/builds.
             docker image prune -f
-
-            # Cache Laravel config inside the running container so runtime
-            # config (including APP_VERSION) is baked into the app config cache.
-            docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache || true
 
             # Post-deploy: run migrations (idempotent & safe for repeated runs)
             echo "==> Running migrations with conflict handling..."
@@ -363,82 +362,12 @@ jobs:
               fi
             fi
             docker compose -f docker-compose.prod.yml exec -T app php artisan config:clear || true
-
-            # Permission settings
-            echo "==> Setting storage and cache permissions..."
-            docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache || true
-            docker compose -f docker-compose.prod.yml exec -T app chmod -R 775 storage bootstrap/cache || true
+            docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache || true
+            docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache || true
 
             # 1. Verify all containers are actually in 'Up' status
             echo "==> Checking container status..."
             docker compose -f docker-compose.prod.yml ps
-
-            # ── SELF-HEALING HEALTH CHECK ─────────────────────────────────────────
-            # Phase 1: Poll the internal port — PHP-FPM needs a moment to boot.
-            echo "==> Phase 1: Initial health check on http://127.0.0.1:8015 ..."
-            _HC_MAX_ATTEMPTS=10       # polls per phase
-            _HC_POLL_INTERVAL=5       # seconds between polls
-            _HC_RESET_WAIT=30         # seconds to wait after hard reset
-            _HC_LOG_TAIL=200          # lines to dump per container on failure
-            _health_passed=0
-            for _attempt in $(seq 1 "$_HC_MAX_ATTEMPTS"); do
-              _http_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8015 2>/dev/null || echo "000")
-              echo "  Attempt $_attempt/$_HC_MAX_ATTEMPTS — HTTP $_http_status"
-              if echo "$_http_status" | grep -qE '^(200|301|302|307|308)$'; then
-                echo "✅ Application is healthy (HTTP $_http_status)."
-                _health_passed=1
-                break
-              fi
-              sleep "$_HC_POLL_INTERVAL"
-            done
-
-            # Phase 2: Auto-recovery — hard reset if the initial poll failed (e.g. 502)
-            if [ "$_health_passed" -eq 0 ]; then
-              echo "⚠️  Initial health check failed. Initiating Hard Reset (down → up --force-recreate)..."
-              docker compose -f docker-compose.prod.yml down
-              docker compose -f docker-compose.prod.yml up -d --force-recreate
-              echo "⏳ Waiting $_HC_RESET_WAIT s for containers to stabilize after hard reset..."
-              sleep "$_HC_RESET_WAIT"
-              for _attempt in $(seq 1 "$_HC_MAX_ATTEMPTS"); do
-                _http_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8015 2>/dev/null || echo "000")
-                echo "  Recovery attempt $_attempt/$_HC_MAX_ATTEMPTS — HTTP $_http_status"
-                if echo "$_http_status" | grep -qE '^(200|301|302|307|308)$'; then
-                  echo "✅ Application recovered after hard reset (HTTP $_http_status)."
-                  _health_passed=1
-                  break
-                fi
-                sleep "$_HC_POLL_INTERVAL"
-              done
-            fi
-
-            # Phase 3: Auto-diagnostic — dump logs & stats if recovery also failed
-            if [ "$_health_passed" -eq 0 ]; then
-              echo "❌ Application failed to recover. Dumping diagnostic information..."
-              echo ""
-              echo "══════════════ LARAVEL INTERNAL LOGS (last 100 lines) ══════════════"
-              docker compose -f docker-compose.prod.yml exec -T app tail -n 100 storage/logs/laravel.log || echo "No laravel.log found."
-              echo ""
-              echo "══════════════ APP CONTAINER LOGS (last $_HC_LOG_TAIL lines) ════════════════"
-              docker compose -f docker-compose.prod.yml logs --tail="$_HC_LOG_TAIL" app || true
-              echo ""
-              echo "══════════════ SERVER DISK USAGE ══════════════════════════════════"
-              df -h
-              echo ""
-              echo "══════════════ SERVER MEMORY USAGE ════════════════════════════════"
-              free -m
-              echo ""
-              echo "══════════════ CONTAINER STATUS ════════════════════════════════════"
-              docker compose -f docker-compose.prod.yml ps
-              exit 1
-            fi
-
-            # Update SSL certificate with Certbot
-            echo "==> Updating SSL certificate with Certbot..."
-            echo "$SUDO_PASSWORD" | sudo -S certbot certonly --nginx --non-interactive --agree-tos --email ${{ secrets.LETSENCRYPT_EMAIL }} -d ${{ secrets.APP_DOMAIN }} || true
-            echo "$SUDO_PASSWORD" | sudo -S certbot renew --quiet --nginx -d ${{ secrets.APP_DOMAIN }} || true
-
-            # Remove dangling images to keep the server clean
-            docker image prune -f
 
             echo "✅ Deployment complete."
 
@@ -452,7 +381,7 @@ jobs:
             attempt=$((attempt + 1))
             HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
               --max-time 30 \
-              "https://${{ secrets.APP_DOMAIN }}/company-profile/health" || echo "000")
+                "http://${{ secrets.SSH_HOST }}:8011/health" || echo "000")
             echo "Attempt $attempt/$max_attempts — HTTP status: $HTTP_STATUS"
             if [[ "$HTTP_STATUS" =~ ^(200|301|302|307|308)$ ]]; then
               echo "✅ Application is healthy (HTTP $HTTP_STATUS)"
@@ -489,4 +418,4 @@ jobs:
           echo "- **Branch**: ${{ github.ref_name }}"
           echo "- **Commit**: ${{ github.sha }}"
           echo "- **Status**: ${{ steps.status.outputs.status }}"
-          echo "- **Application URL**: https://${{ secrets.APP_DOMAIN }}/company-profile"
+          echo "- **Application URL**: http://${{ secrets.SSH_HOST }}:8011"

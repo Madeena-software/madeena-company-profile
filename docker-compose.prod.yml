@@ -3,36 +3,36 @@ services:
     image: ${DOCKER_IMAGE:-docker.io/${DOCKERHUB_USERNAME:-your-dockerhub-username}/madeena-company-profile:latest}
     container_name: madeena_profile_app
     restart: unless-stopped
-    working_dir: /app
+    working_dir: /var/www/app
     environment:
       APP_ENV: production
       APP_DEBUG: 'false'
-      APP_URL: https://${APP_DOMAIN}/company-profile
-      OCTANE_SERVER: frankenphp
+      APP_URL: ${APP_URL:-http://127.0.0.1:8011}
+      APP_VERSION: ${APP_VERSION:-latest}
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
       DB_DATABASE: ${DB_DATABASE:-madeena_company_profile}
       DB_USERNAME: ${DB_USERNAME:-madeena}
       DB_PASSWORD: ${DB_PASSWORD:-madeena_pass}
-      CACHE_STORE: redis
-      SESSION_DRIVER: redis
-      REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
-      REDIS_PORT: 6379
-      QUEUE_CONNECTION: redis
+      APP_TIMEZONE: Asia/Jakarta
+      LOG_CHANNEL: stack
+      LOG_STACK: single
+      LOG_LEVEL: error
+      FILESYSTEM_DISK: public
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
     volumes:
-      - ./storage:/app/storage
-      - ./bootstrap/cache:/app/bootstrap/cache
+      - ./storage:/var/www/app/storage
+      - ./bootstrap/cache:/var/www/app/bootstrap/cache
     depends_on:
       mysql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     ports:
-      - "127.0.0.1:8015:8000"
+      - "8011:80"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -56,19 +56,5 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    container_name: madeena_profile_redis
-    restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-null}
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
 volumes:
   mysql_data:
-  redis_data:

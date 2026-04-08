@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+cd /var/www/app
+
 # Wait for database to be ready
 echo "Waiting for MySQL to be ready..."
 while ! nc -z mysql 3306; do
@@ -28,15 +30,14 @@ fi
 echo "Creating storage link..."
 php artisan storage:link || true
 
+# Ensure writable runtime directories when storage/cache are bind-mounted.
+chown -R www-data:www-data storage bootstrap/cache || true
+chmod -R 775 storage bootstrap/cache || true
+
 # Cache configuration
 echo "Caching configuration..."
 php artisan config:cache
-php artisan route:cache
 php artisan view:cache
-
-# Optimize
-echo "Running optimization..."
-php artisan optimize
 
 echo "Startup complete. Starting application..."
 
