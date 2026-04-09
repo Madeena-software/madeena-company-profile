@@ -36,11 +36,13 @@ dig +short profile.example.com
 
 Output harus mengarah ke public IP server.
 
+Access aplikasi production:
+
+- `http://<SSH_HOST>:8011`
+- Verifikasi: `curl -I http://<SSH_HOST>:8011`
+
 ---
-
 ## 3) Deploy Manual (Human-Friendly)
-
-```bash
 # 1. Clone project ke server
 git clone <repo-url> /var/www/madeena-website-company-profile
 cd /var/www/madeena-website-company-profile
