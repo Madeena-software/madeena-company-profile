@@ -1,45 +1,48 @@
 #!/bin/sh
 set -e
 
-cd /var/www/app
+cd /var/www/html
 
-# Wait for database to be ready
-echo "Waiting for MySQL to be ready..."
-while ! nc -z mysql 3306; do
-  sleep 1
-done
-echo "MySQL is ready!"
-
-# Generate app key if not already set
-if [ -z "$APP_KEY" ]; then
-  echo "Generating app key..."
-  php artisan key:generate --force
+# If arguments are provided, run them directly (used for artisan commands, etc.)
+if [ $# -gt 0 ]; then
+    exec "$@"
 fi
 
-# Run migrations
-echo "Running database migrations..."
-php artisan migrate --force
+# ── Web server bootstrap ──────────────────────────────────────────────────────
+echo "[entrypoint] Running Laravel bootstrap..."
 
-# Seed database if specified
-if [ "$DB_SEED" = "true" ]; then
-  echo "Seeding database..."
-  php artisan db:seed --force
+# Wait briefly for DB to be ready (useful when containers start simultaneously)
+if [ -n "$DB_HOST" ]; then
+    echo "[entrypoint] Waiting for database at $DB_HOST:${DB_PORT:-3306}..."
+    until php -r "new PDO('mysql:host=${DB_HOST};port=${DB_PORT:-3306};dbname=${DB_DATABASE}', '${DB_USERNAME}', '${DB_PASSWORD}');" 2>/dev/null; do
+        sleep 2
+    done
+    echo "[entrypoint] Database is ready."
 fi
 
-# Create storage link
-echo "Creating storage link..."
-php artisan storage:link || true
+# Create storage symlink
+php artisan storage:link --force 2>/dev/null || true
 
 # Ensure writable runtime directories when storage/cache are bind-mounted.
 chown -R www-data:www-data storage bootstrap/cache || true
 chmod -R 775 storage bootstrap/cache || true
 
-# Cache configuration
-echo "Caching configuration..."
+# Run migrations
+echo "[entrypoint] Running database migrations..."
+php artisan migrate --force
+
+# Seed database if specified
+if [ "$DB_SEED" = "true" ]; then
+    echo "[entrypoint] Seeding database..."
+    php artisan db:seed --force
+fi
+
+# Optimise for production
+echo "[entrypoint] Caching configuration..."
 php artisan config:cache
+php artisan route:cache
 php artisan view:cache
 
-echo "Startup complete. Starting application..."
+echo "[entrypoint] Bootstrap complete. Starting services..."
 
-# Execute the CMD
-exec "$@"
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
