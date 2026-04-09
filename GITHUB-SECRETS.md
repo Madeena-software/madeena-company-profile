@@ -124,7 +124,8 @@ APP_NAME="Madeena Company Profile"
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=${{ secrets.APP_KEY }}
-APP_URL=http://${{ secrets.SSH_HOST }}:8011
+APP_URL=https://${{ secrets.APP_DOMAIN }}/demo-company-profile
+ASSET_URL=https://${{ secrets.APP_DOMAIN }}/demo-company-profile
 
 DB_CONNECTION=mysql
 DB_HOST=mysql

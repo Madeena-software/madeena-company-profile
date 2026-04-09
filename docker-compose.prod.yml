@@ -5,7 +5,7 @@
 #   DOCKERHUB_USERNAME   Docker Hub account name
 #   IMAGE_TAG            Image tag to pull (CI now uses "latest" only)
 #   APP_KEY              Laravel application key
-#   APP_URL              Public URL (http://<SSH_HOST>:8011)
+#   APP_URL              Public URL (https://<APP_DOMAIN>/demo-company-profile)
 #   APP_DOMAIN           Public domain name
 #   DB_DATABASE          MySQL database name
 #   DB_USERNAME          MySQL application user
@@ -79,7 +79,7 @@ services:
     image: nginx:alpine
     restart: always
     ports:
-      - "8011:80"
+      - "127.0.0.1:8011:80"
     volumes:
       - ./docker/nginx-prod.conf:/etc/nginx/conf.d/default.conf:ro
       - app_public:/var/www/html/public:ro

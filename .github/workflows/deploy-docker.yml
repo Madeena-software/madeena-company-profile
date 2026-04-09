@@ -248,7 +248,8 @@ jobs:
             APP_ENV=production
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
-            APP_URL=http://${{ secrets.SSH_HOST }}:8011
+            APP_URL=https://${{ secrets.APP_DOMAIN }}/demo-company-profile
+            ASSET_URL=https://${{ secrets.APP_DOMAIN }}/demo-company-profile
             APP_TIMEZONE=Asia/Jakarta
 
             LOG_CHANNEL=stack
@@ -300,12 +301,6 @@ jobs:
             echo "$SUDO_PASSWORD" | sudo -S mkdir -p /media/nextcloud-data/madeena_storage
             echo "$SUDO_PASSWORD" | sudo -S chown -R $SSH_USER:$SSH_USER /media/nextcloud-data/madeena_storage
 
-            # Allow direct public access to the published Docker port.
-            # If UFW is active, open 8011/tcp so http://<SSH_HOST>:8011 works.
-            if echo "$SUDO_PASSWORD" | sudo -S ufw status | grep -q "Status: active"; then
-              echo "$SUDO_PASSWORD" | sudo -S ufw allow 8011/tcp || true
-            fi
-
             # Ensure the production Nginx config path exists for the compose bind mount
             mkdir -p docker
 
@@ -347,6 +342,90 @@ jobs:
 
             # Remove dangling layers from previous pulls/builds.
             docker image prune -f
+
+            # Configure host Nginx to expose the app under /demo-company-profile.
+            # The Docker port stays private on 127.0.0.1:8011; public traffic flows
+            # through the VPS Nginx vhost on 80/443.
+            HOST_NGINX_CONF=/tmp/madeena-demo-company-profile.conf
+            APP_BASE_PATH=/demo-company-profile
+            APP_DOMAIN=${{ secrets.APP_DOMAIN }}
+            CERT_DIR=/etc/letsencrypt/live/$APP_DOMAIN
+
+            echo "$SUDO_PASSWORD" | sudo -S bash -c "grep -Frl '$APP_DOMAIN' /etc/nginx/sites-enabled/ 2>/dev/null | xargs -r rm -f" || true
+            echo "$SUDO_PASSWORD" | sudo -S bash -c "grep -Frl '$APP_DOMAIN' /etc/nginx/sites-available/ 2>/dev/null | xargs -r rm -f" || true
+
+            {
+              printf '%s\n' \
+                'server {' \
+                '  listen 80;' \
+                "  server_name $APP_DOMAIN;" \
+                '' \
+                '  location = / {' \
+                "    return 301 $APP_BASE_PATH/;" \
+                '  }' \
+                '' \
+                "  location = $APP_BASE_PATH {" \
+                "    return 301 $APP_BASE_PATH/;" \
+                '  }' \
+                '' \
+                "  location ^~ $APP_BASE_PATH/ {" \
+                '    proxy_pass http://127.0.0.1:8011/;' \
+                '    proxy_set_header Host $host;' \
+                '    proxy_set_header X-Real-IP $remote_addr;' \
+                '    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+                '    proxy_set_header X-Forwarded-Proto $scheme;' \
+                "    proxy_set_header X-Forwarded-Prefix $APP_BASE_PATH;" \
+                '    proxy_redirect off;' \
+                '  }' \
+                '' \
+                '  location / {' \
+                '    return 404;' \
+                '  }' \
+                '}'
+            } > "$HOST_NGINX_CONF"
+
+            if [ -f "$CERT_DIR/fullchain.pem" ] && [ -f "$CERT_DIR/privkey.pem" ]; then
+              {
+                printf '%s\n' \
+                  '' \
+                  'server {' \
+                  '  listen 443 ssl http2;' \
+                  "  server_name $APP_DOMAIN;" \
+                  '' \
+                  "  ssl_certificate $CERT_DIR/fullchain.pem;" \
+                  "  ssl_certificate_key $CERT_DIR/privkey.pem;" \
+                  '' \
+                  '  location = / {' \
+                  "    return 301 $APP_BASE_PATH/;" \
+                  '  }' \
+                  '' \
+                  "  location = $APP_BASE_PATH {" \
+                  "    return 301 $APP_BASE_PATH/;" \
+                  '  }' \
+                  '' \
+                  "  location ^~ $APP_BASE_PATH/ {" \
+                  '    proxy_pass http://127.0.0.1:8011/;' \
+                  '    proxy_set_header Host $host;' \
+                  '    proxy_set_header X-Real-IP $remote_addr;' \
+                  '    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+                  '    proxy_set_header X-Forwarded-Proto $scheme;' \
+                  "    proxy_set_header X-Forwarded-Prefix $APP_BASE_PATH;" \
+                  '    proxy_redirect off;' \
+                  '  }' \
+                  '' \
+                  '  location / {' \
+                  '    return 404;' \
+                  '  }' \
+                  '}'
+              } >> "$HOST_NGINX_CONF"
+            fi
+
+            echo "$SUDO_PASSWORD" | sudo -S rm -f /etc/nginx/sites-enabled/madeena-demo-company-profile.conf || true
+            echo "$SUDO_PASSWORD" | sudo -S rm -f /etc/nginx/sites-available/madeena-demo-company-profile.conf || true
+            echo "$SUDO_PASSWORD" | sudo -S cp "$HOST_NGINX_CONF" /etc/nginx/sites-available/madeena-demo-company-profile.conf
+            echo "$SUDO_PASSWORD" | sudo -S ln -sf /etc/nginx/sites-available/madeena-demo-company-profile.conf /etc/nginx/sites-enabled/madeena-demo-company-profile.conf
+            echo "$SUDO_PASSWORD" | sudo -S nginx -t
+            echo "$SUDO_PASSWORD" | sudo -S systemctl reload nginx
 
             # Cache Laravel config inside the running container so runtime
             # config (including APP_VERSION) is baked into the app config cache.
@@ -486,23 +565,25 @@ jobs:
       # ── Health check ──────────────────────────────────────────────────────
       - name: Health check
         run: |
-          echo "Waiting for the application to be ready on http://${{ secrets.SSH_HOST }}:8011..."
           max_attempts=5
-          attempt=0
-          while [ "$attempt" -lt "$max_attempts" ]; do
-            attempt=$((attempt + 1))
-            HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
-              --max-time 30 \
-              "http://${{ secrets.SSH_HOST }}:8011" || echo "000")
-            echo "Attempt $attempt/$max_attempts — HTTP status: $HTTP_STATUS"
-            if [[ "$HTTP_STATUS" =~ ^(200|301|302|307|308)$ ]]; then
-              echo "✅ Application is healthy (HTTP $HTTP_STATUS)"
-              exit 0
-            fi
-            if [ "$attempt" -lt "$max_attempts" ]; then
-              echo "⚠️  Not ready yet — retrying in 10 s..."
-              sleep 10
-            fi
+          for base_url in "https://${{ secrets.APP_DOMAIN }}/demo-company-profile" "http://${{ secrets.APP_DOMAIN }}/demo-company-profile"; do
+            echo "Waiting for the application to be ready on $base_url..."
+            attempt=0
+            while [ "$attempt" -lt "$max_attempts" ]; do
+              attempt=$((attempt + 1))
+              HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
+                --max-time 30 \
+                "$base_url/health" || echo "000")
+              echo "Attempt $attempt/$max_attempts — HTTP status: $HTTP_STATUS"
+              if [[ "$HTTP_STATUS" =~ ^(200|301|302|307|308)$ ]]; then
+                echo "✅ Application is healthy (HTTP $HTTP_STATUS)"
+                exit 0
+              fi
+              if [ "$attempt" -lt "$max_attempts" ]; then
+                echo "⚠️  Not ready yet — retrying in 10 s..."
+                sleep 10
+              fi
+            done
           done
-          echo "❌ Health check failed after $max_attempts attempts (last HTTP status: $HTTP_STATUS)"
+          echo "❌ Health check failed for both HTTPS and HTTP after $max_attempts attempts each."
           exit 1

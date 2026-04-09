@@ -38,8 +38,8 @@ Output harus mengarah ke public IP server.
 
 Access aplikasi production:
 
-- `http://<SSH_HOST>:8011`
-- Verifikasi: `curl -I http://<SSH_HOST>:8011`
+- `https://<APP_DOMAIN>/demo-company-profile`
+- Verifikasi: `curl -I https://<APP_DOMAIN>/demo-company-profile/health`
 
 ---
 ## 3) Deploy Manual (Human-Friendly)
@@ -59,7 +59,8 @@ php artisan key:generate
 # 4. Edit .env (contoh minimal)
 # APP_ENV=production
 # APP_DEBUG=false
-# APP_URL=https://profile.example.com
+# APP_URL=https://profile.example.com/demo-company-profile
+# ASSET_URL=https://profile.example.com/demo-company-profile
 # DB_CONNECTION=mysql
 # DB_HOST=127.0.0.1
 # DB_PORT=3306
@@ -96,16 +97,26 @@ server {
     listen 80;
     server_name profile.example.com;
 
-    root /var/www/madeena-website-company-profile/public;
-    index index.php index.html;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
+    location = / {
+        return 301 /demo-company-profile/;
     }
 
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    location = /demo-company-profile {
+        return 301 /demo-company-profile/;
+    }
+
+    location ^~ /demo-company-profile/ {
+        proxy_pass http://127.0.0.1:8011/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /demo-company-profile;
+        proxy_redirect off;
+    }
+
+    location / {
+        return 404;
     }
 
     location ~ /\.ht {

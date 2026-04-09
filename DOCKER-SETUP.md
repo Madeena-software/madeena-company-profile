@@ -6,7 +6,7 @@ This document describes the complete Docker-based production and local developme
 
 - **Production**: Docker Compose with Laravel app container, MySQL 8.4, Redis, and Nginx reverse proxy
 - **Local Development**: Native PHP 8.3 (WSL) + Dockerized MySQL and Nginx
-- **Subdirectory Routing**: Application served from `/company-profile` path
+- **Subdirectory Routing**: Application served from `/demo-company-profile` path
 - **CI/CD**: GitHub Actions workflow with automated build, push, and deployment
 
 ---
@@ -19,7 +19,7 @@ This document describes the complete Docker-based production and local developme
 │                    Nginx (Port 80/443)                  │
 │              (Reverse Proxy + SSL Termination)          │
 │                    ↓                                      │
-│         Routes to /company-profile path                 │
+│         Routes to /demo-company-profile path            │
 │                    ↓                                      │
 ├─────────────────────────────────────────────────────────┤
 │  Laravel App Container (PHP 8.3-FPM + Supervisor)       │
@@ -224,7 +224,7 @@ sudo ls -la /etc/letsencrypt/live/example.com/
 
 ### Step 4: Nginx Configuration (VPS Host)
 
-Create `/etc/nginx/sites-available/company-profile.conf`:
+Create `/etc/nginx/sites-available/demo-company-profile.conf`:
 
 ```nginx
 server {
@@ -240,8 +240,12 @@ server {
     ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
-    location /company-profile {
-        proxy_pass http://localhost/company-profile;
+   location = /demo-company-profile {
+      return 301 /demo-company-profile/;
+   }
+
+   location ^~ /demo-company-profile/ {
+      proxy_pass http://localhost:8011/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -254,7 +258,7 @@ server {
 Enable and reload:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/company-profile.conf /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/demo-company-profile.conf /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -275,8 +279,8 @@ The `.github/workflows/deploy-docker.yml` workflow automatically:
    - Runs `docker-compose -f docker-compose.prod.yml up -d`
    - Executes migrations: `php artisan migrate --force`
    - Shows container logs
-   - Runs Certbot for SSL renewal
-   - Performs health check against `/health` endpoint
+   - Configures host Nginx to expose `/demo-company-profile`
+   - Performs health check against `/demo-company-profile/health`
 
 Push to `main` or `master` branch to trigger deployment:
 
@@ -289,7 +293,7 @@ git push origin main
 Once deployed, access the application at:
 
 ```
-https://example.com/company-profile
+https://example.com/demo-company-profile
 ```
 
 ---
@@ -305,7 +309,7 @@ madeena-website-company-profile/
 │   ├── nginx.conf                      # Main Nginx config
 │   ├── app.conf                        # App routing config (production)
 │   ├── nginx-dev.conf                  # Dev Nginx config (local)
-│   ├── nginx-prod.conf                 # Production Nginx config (/company-profile subdirectory)
+│   ├── nginx-prod.conf                 # Production Nginx config (/demo-company-profile subdirectory)
 │   ├── php.ini                         # PHP configuration
 │   ├── www.conf                        # PHP-FPM worker config
 │   ├── supervisord.conf                # Supervisor (PHP-FPM + Nginx)
@@ -334,7 +338,7 @@ madeena-website-company-profile/
    - Pull new image
    - Run migrations
    - Health check passes
-   - Application live at `/company-profile`
+   - Application live at `/demo-company-profile`
 
 ---
 
@@ -392,7 +396,7 @@ sudo cat /var/log/letsencrypt/letsencrypt.log
 **Issue**: Health check fails after deployment
 ```bash
 # Test endpoint manually
-curl -v https://example.com/company-profile/health
+curl -v https://example.com/demo-company-profile/health
 
 # Check application logs
 docker-compose -f docker-compose.prod.yml logs --tail 50 app
