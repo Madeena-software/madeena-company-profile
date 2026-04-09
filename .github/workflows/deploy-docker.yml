@@ -379,10 +379,16 @@ jobs:
             # Ensure volume-mounted directories exist and are writable by the container user.
             # Without this, Laravel crashes on boot with "Please provide a valid cache path."
             # which causes the app container to restart-loop before migrations can run.
+            # This MUST happen before 'docker compose up' to prevent restart loops.
+            # chmod 777 is intentional: the SSH user is not root so chown to uid 33 will
+            # silently fail, and 777 is the only way to guarantee the container process
+            # (php-fpm/nginx running as www-data uid 33) can write to these host directories.
             mkdir -p storage/app/public storage/framework/cache/data \
                      storage/framework/sessions storage/framework/views \
                      storage/logs bootstrap/cache
-            chmod -R ug+rwX storage bootstrap/cache
+            chmod -R 777 storage bootstrap/cache
+            chown -R 33:33 storage bootstrap/cache 2>/dev/null && \
+              chmod -R 775 storage bootstrap/cache || true
 
             # Authenticate with Docker Hub to avoid rate-limiting and improve pull stability
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
@@ -422,6 +428,21 @@ jobs:
             # Bring up services — force-recreate ensures Docker DNS is refreshed
             # and stale internal IPs (e.g. nginx → app) are resolved correctly.
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
+
+            # Give containers a moment to start, then verify cache directories are
+            # writable from within the app container. If not, fix permissions in place.
+            # The exec runs as root (supervisord starts as root), so chown succeeds here.
+            sleep 5
+            docker compose -f docker-compose.prod.yml exec -T app \
+              bash -c "test -w /var/www/app/storage/framework/cache/data && \
+                       test -w /var/www/app/bootstrap/cache && \
+                       echo '✅ Cache directories are writable' || \
+                       (echo '❌ Cache directories NOT writable'; exit 1)" || {
+              echo "⚠️  Fixing permissions inside container..."
+              docker compose -f docker-compose.prod.yml exec -T app \
+                bash -c "chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache && \
+                         chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache"
+            }
 
             # Show current container status and early logs so the real crash reason
             # (e.g. missing env var, bad permissions) is visible immediately.
@@ -523,6 +544,7 @@ jobs:
             docker compose -f docker-compose.prod.yml ps
 
             # ── SELF-HEALING HEALTH CHECK ─────────────────────────────────────────
+            APP_PORT=8011
             # Phase 1: Poll http://127.0.0.1:${APP_PORT} — PHP-FPM needs a moment to boot.
             echo "==> Phase 1: Initial health check on http://127.0.0.1:${APP_PORT} ..."
             _HC_MAX_ATTEMPTS=10       # polls per phase
