@@ -265,7 +265,7 @@ jobs:
                 image: ${DOCKER_IMAGE:-docker.io/${DOCKERHUB_USERNAME:-your-dockerhub-username}/madeena-company-profile:latest}
                 container_name: madeena_profile_app
                 restart: unless-stopped
-                working_dir: /var/www/app
+                working_dir: /var/www/html
                 env_file:
                   - .env
                 environment:
@@ -288,8 +288,8 @@ jobs:
                   SESSION_DRIVER: file
                   QUEUE_CONNECTION: sync
                 volumes:
-                  - ./storage:/var/www/app/storage
-                  - ./bootstrap/cache:/var/www/app/bootstrap/cache
+                  - ./storage:/var/www/html/storage
+                  - ./bootstrap/cache:/var/www/html/bootstrap/cache
                 depends_on:
                   mysql:
                     condition: service_healthy
@@ -434,14 +434,14 @@ jobs:
             # The exec runs as root (supervisord starts as root), so chown succeeds here.
             sleep 5
             docker compose -f docker-compose.prod.yml exec -T app \
-              bash -c "test -w /var/www/app/storage/framework/cache/data && \
-                       test -w /var/www/app/bootstrap/cache && \
+              bash -c "test -w /var/www/html/storage/framework/cache/data && \
+                       test -w /var/www/html/bootstrap/cache && \
                        echo '✅ Cache directories are writable' || \
                        (echo '❌ Cache directories NOT writable'; exit 1)" || {
               echo "⚠️  Fixing permissions inside container..."
               docker compose -f docker-compose.prod.yml exec -T app \
-                bash -c "chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache && \
-                         chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache"
+                bash -c "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+                         chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache"
             }
 
             # Show current container status and early logs so the real crash reason
