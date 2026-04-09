@@ -300,6 +300,12 @@ jobs:
             echo "$SUDO_PASSWORD" | sudo -S mkdir -p /media/nextcloud-data/madeena_storage
             echo "$SUDO_PASSWORD" | sudo -S chown -R $SSH_USER:$SSH_USER /media/nextcloud-data/madeena_storage
 
+            # Allow direct public access to the published Docker port.
+            # If UFW is active, open 8011/tcp so http://<SSH_HOST>:8011 works.
+            if echo "$SUDO_PASSWORD" | sudo -S ufw status | grep -q "Status: active"; then
+              echo "$SUDO_PASSWORD" | sudo -S ufw allow 8011/tcp || true
+            fi
+
             # Ensure the production Nginx config path exists for the compose bind mount
             mkdir -p docker
 
