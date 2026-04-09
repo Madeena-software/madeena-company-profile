@@ -294,13 +294,13 @@ jobs:
                   mysql:
                     condition: service_healthy
                 ports:
-                  - "${APP_PORT:-8011}:80"
+                  - "8011:80"
                 healthcheck:
                   test: ["CMD", "curl", "-f", "http://localhost/health"]
                   interval: 30s
                   timeout: 10s
                   retries: 3
-                  start_period: 60s
+                  start_period: 120s
 
               # ── MySQL 8.4 database ──────────────────────────────────────────────────────
               mysql:
@@ -404,39 +404,23 @@ jobs:
             # Remove stored Docker Hub credentials from the server
             docker logout
 
-            # Stop existing containers to free their ports before port selection.
+            # Stop existing containers to free port 8011 before bringing up new ones.
             # --remove-orphans cleans up any containers from a previous compose config.
-            echo "==> Stopping existing containers to free ports..."
+            echo "==> Stopping existing containers to free port 8011..."
             docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 
-            # Dynamic port selection: try 8011, 8012, 8013, … until a free port is found.
-            # A port is considered free if nothing else (non-madeena service) is listening on it.
-            APP_PORT=8011
-            MAX_PORT=8020
-            while [ "$APP_PORT" -le "$MAX_PORT" ]; do
-              if ! ss -tlnp 2>/dev/null | grep -qE ":${APP_PORT}([[:space:]]|$)"; then
-                echo "==> Port ${APP_PORT} is available."
-                break
-              fi
-              echo "==> Port ${APP_PORT} is busy (in use by another service), trying next port..."
-              APP_PORT=$((APP_PORT + 1))
-            done
-            if [ "$APP_PORT" -gt "$MAX_PORT" ]; then
-              echo "❌ No available port found in range 8011-${MAX_PORT}."
+            # Strict port requirement: port 8011 only. Do not attempt fallback ports.
+            # If port 8011 is in use by a non-madeena process, fail and report it.
+            if ss -tlnp 2>/dev/null | grep -qE ":8011([[:space:]]|$)"; then
+              echo "❌ FATAL: Port 8011 is still in use by another process after stopping containers."
+              echo "Please free port 8011 manually and re-run the deployment."
+              ss -tlnp | grep ":8011" || true
               exit 1
             fi
-            export APP_PORT
-
-            # Dynamically update APP_URL in .env to match the selected port and HTTP scheme.
-            sed -i "s|APP_URL=.*|APP_URL=http://${{ secrets.SSH_HOST }}:${APP_PORT}|" .env
-
-            # Open the selected port on the firewall.
-            echo "==> Opening port ${APP_PORT}/tcp on firewall..."
-            echo "$SUDO_PASSWORD" | sudo -S ufw allow "${APP_PORT}/tcp" || true
+            echo "==> Port 8011 is available."
 
             # Bring up services — force-recreate ensures Docker DNS is refreshed
             # and stale internal IPs (e.g. nginx → app) are resolved correctly.
-            # APP_PORT is exported so docker-compose substitutes ${APP_PORT:-8011} in ports:.
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
 
             # Show current container status and early logs so the real crash reason
@@ -597,7 +581,7 @@ jobs:
               exit 1
             fi
 
-            echo "✅ Deployment complete. Application available at http://${{ secrets.SSH_HOST }}:${APP_PORT}"
+            echo "✅ Deployment complete. Application available at http://${{ secrets.SSH_HOST }}:8011"
 
       # ── Health check ──────────────────────────────────────────────────────
       - name: Health check
@@ -617,38 +601,27 @@ jobs:
           echo "Waiting for the application to be ready..."
           max_attempts=10
           attempt=0
-          FOUND_URL=""
+          APP_URL="http://${SSH_HOST}:8011/health"
           while [ "$attempt" -lt "$max_attempts" ]; do
             attempt=$((attempt + 1))
-            HTTP_STATUS="000"
-            # Try ports 8011–8013 (covers the default + two fallback levels).
-            # Mirrors the MAX_PORT range used in the server-side port selection above.
-            for PORT in 8011 8012 8013; do
-              STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
-                --max-time 30 \
-                "http://${SSH_HOST}:${PORT}/health" 2>/dev/null || echo "000")
-              if echo "$STATUS" | grep -qE '^(200|301|302|307|308)$'; then
-                HTTP_STATUS="$STATUS"
-                FOUND_URL="http://${SSH_HOST}:${PORT}"
-                break
-              fi
-              # Keep the last non-zero status for diagnostic logging
-              [ "$STATUS" != "000" ] && HTTP_STATUS="$STATUS"
-            done
+            HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
+              --max-time 30 \
+              "$APP_URL" 2>/dev/null || echo "000")
 
             echo "Attempt $attempt/$max_attempts — HTTP status: $HTTP_STATUS"
 
-            if [ -n "$FOUND_URL" ]; then
-              echo "✅ Application is healthy (HTTP $HTTP_STATUS) at $FOUND_URL"
+            if echo "$HTTP_STATUS" | grep -qE '^(200|301|302|307|308)$'; then
+              echo "✅ Application is healthy (HTTP $HTTP_STATUS) at http://${SSH_HOST}:8011"
               rm -f "$SSH_KEY_FILE"
               exit 0
             fi
 
             if [ "$attempt" -lt "$max_attempts" ]; then
-              echo "⚠️  Not ready yet — retrying in 15 s..."
+              echo "⚠️  Not ready yet — fetching container logs and retrying in 15 s..."
               echo "--- App container logs (last 100 lines) ---"
               ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" \
-                "docker logs --tail 100 madeena_profile_app 2>&1 || true" || true
+                "docker logs --tail 100 madeena_profile_app 2>&1" \
+                || echo "⚠️  SSH log retrieval failed; will retry next attempt."
               sleep 15
             fi
           done
@@ -683,4 +656,4 @@ jobs:
           echo "- **Branch**: ${{ github.ref_name }}"
           echo "- **Commit**: ${{ github.sha }}"
           echo "- **Status**: ${{ steps.status.outputs.status }}"
-          echo "- **Application URL**: http://${{ secrets.SSH_HOST }}:8011 (or 8012/8013 if port fallback was triggered)"
+          echo "- **Application URL**: http://${{ secrets.SSH_HOST }}:8011"
