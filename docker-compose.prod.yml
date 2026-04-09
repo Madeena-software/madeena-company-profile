@@ -19,6 +19,7 @@ services:
   app:
     image: ${DOCKER_IMAGE:-docker.io/${DOCKERHUB_USERNAME:-your-dockerhub-username}/madeena-company-profile:latest}
     container_name: madeena_profile_app
+    user: "33:33"
     restart: unless-stopped
     working_dir: /var/www/app
     env_file:
