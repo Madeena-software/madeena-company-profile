@@ -3,14 +3,14 @@
 #
 # Required environment variables (supply via .env on the server):
 #   APP_KEY              Laravel application key
-#   APP_URL              Public URL (http://<SSH_HOST>:8011)
+#   APP_URL              Public URL (https://<SSH_HOST>:8011)
 #   DB_DATABASE          MySQL database name
 #   DB_USERNAME          MySQL application user
 #   DB_PASSWORD          MySQL application password
 #   DB_ROOT_PASSWORD     MySQL root password
 #
 # Deployment model:
-#   App   — Laravel PHP-FPM + nginx container exposed on host port 8011
+#   App   — Laravel PHP-FPM + nginx container exposed on host port 8011 (HTTPS)
 #   DB    — MySQL 8.4 with persistent named volume
 # ─────────────────────────────────────────────────────────────────────────────
 services:
@@ -26,7 +26,7 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: 'false'
-      APP_URL: ${APP_URL:-http://127.0.0.1:8011}
+      APP_URL: ${APP_URL:-https://127.0.0.1:8011}
       APP_VERSION: ${APP_VERSION:-latest}
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -45,13 +45,15 @@ services:
     volumes:
       - ./storage:/var/www/app/storage
       - ./bootstrap/cache:/var/www/app/bootstrap/cache
+      - /etc/ssl/certs/madeena-profile.crt:/etc/ssl/certs/madeena-profile.crt:ro
+      - /etc/ssl/private/madeena-profile.key:/etc/ssl/private/madeena-profile.key:ro
     depends_on:
       mysql:
         condition: service_healthy
     ports:
-      - "8011:80"
+      - "8011:443"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-k", "-f", "https://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
