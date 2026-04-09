@@ -418,7 +418,6 @@ jobs:
               exit 1
             fi
             echo "==> Port 8011 is available."
-            export APP_PORT=8011
 
             # Bring up services — force-recreate ensures Docker DNS is refreshed
             # and stale internal IPs (e.g. nginx → app) are resolved correctly.
@@ -621,8 +620,8 @@ jobs:
               echo "⚠️  Not ready yet — fetching container logs and retrying in 15 s..."
               echo "--- App container logs (last 100 lines) ---"
               ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" \
-                "docker logs --tail 100 madeena_profile_app 2>&1 || true" \
-                || echo "⚠️  SSH log retrieval timed out; will retry connection next attempt."
+                "docker logs --tail 100 madeena_profile_app 2>&1" \
+                || echo "⚠️  SSH log retrieval failed; will retry next attempt."
               sleep 15
             fi
           done
