@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->trustProxies(
-            at: '*',
+            at: ['127.0.0.1', '::1'],
             headers: SymfonyRequest::HEADER_X_FORWARDED_FOR
                 | SymfonyRequest::HEADER_X_FORWARDED_HOST
                 | SymfonyRequest::HEADER_X_FORWARDED_PORT

@@ -422,6 +422,7 @@ jobs:
 
             echo "$SUDO_PASSWORD" | sudo -S rm -f /etc/nginx/sites-enabled/madeena-demo-company-profile.conf || true
             echo "$SUDO_PASSWORD" | sudo -S rm -f /etc/nginx/sites-available/madeena-demo-company-profile.conf || true
+            echo "$SUDO_PASSWORD" | sudo -S bash -c 'find /etc/nginx/sites-enabled -maxdepth 1 -type l ! -exec test -e {} \; -delete'
             echo "$SUDO_PASSWORD" | sudo -S cp "$HOST_NGINX_CONF" /etc/nginx/sites-available/madeena-demo-company-profile.conf
             echo "$SUDO_PASSWORD" | sudo -S ln -sf /etc/nginx/sites-available/madeena-demo-company-profile.conf /etc/nginx/sites-enabled/madeena-demo-company-profile.conf
             echo "$SUDO_PASSWORD" | sudo -S nginx -t
