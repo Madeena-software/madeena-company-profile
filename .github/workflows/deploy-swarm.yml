@@ -1,0 +1,548 @@
+name: Deploy to Production (Swarm)
+
+# Trigger manually only
+on:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 1 — Build assets, build Docker image, push to Docker Hub
+  # ────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      image_tag: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required to access tags
+
+      - name: Derive version from git tags or VERSION file
+        id: version
+        run: |
+          set -euo pipefail
+          ver=""
+          
+          # 1) Try exact semver tag on HEAD
+          if exact_tag=$(git describe --tags --exact-match 2>/dev/null || true); then
+            if [[ "$exact_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              ver="$exact_tag"
+            fi
+          fi
+          
+          # 2) If not found, try most recent reachable semver tag
+          if [ -z "$ver" ]; then
+            if semver_tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || true); then
+              if [[ "$semver_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+                ver="$semver_tag"
+              fi
+            fi
+          fi
+          
+          # 3) Fallback: read from VERSION file (without modifying it)
+          if [ -z "$ver" ]; then
+            if [ -f VERSION ]; then
+              ver=$(tr -d '\r\n' < VERSION | xargs)
+            fi
+          fi
+          
+          # 4) Final fallback
+          if [ -z "$ver" ]; then
+            ver="1.0.0"
+          fi
+          
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "Derived version: $ver"
+
+      - name: Detect semver tag on HEAD
+        id: tag_check
+        run: |
+          set -euo pipefail
+          # Check for an exact tag on HEAD and ensure it matches vX.Y.Z
+          if git describe --tags --exact-match > /dev/null 2>&1; then
+            TAG=$(git describe --tags --exact-match)
+            if echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "tagged=true" >> "$GITHUB_OUTPUT"
+              echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+              echo "Detected semver tag on HEAD: $TAG"
+            else
+              echo "tagged=false" >> "$GITHUB_OUTPUT"
+              echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+              echo "Tag on HEAD ($TAG) does not match vX.Y.Z pattern; skipping release"
+            fi
+          else
+            echo "tagged=false" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "No exact tag on HEAD; skipping release"
+          fi
+
+      # ── PHP build (composer install --no-dev) ──────────────────────────────
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, curl, zip, gd, intl, tokenizer, pcntl, dom
+          coverage: none
+
+      - name: Install PHP dependencies (production)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      # ── Node build (npm run build) ─────────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      # ── Docker build & push ────────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/madeena-company-profile:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/madeena-company-profile:${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Create GitHub Release (only for non-dev versions and if not already present)
+      - name: Check existing release or skip dev versions
+        id: check_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Only create releases for an exact semver tag on HEAD (vX.Y.Z)
+          if [ "${{ steps.tag_check.outputs.tagged }}" != 'true' ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping release: HEAD is not tagged with vX.Y.Z"
+            exit 0
+          fi
+          VER="${{ steps.tag_check.outputs.tag }}"
+          echo "Derived tag to release: $VER"
+          # Check if a release for this tag already exists
+          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VER" || true)
+          if [ "$status" -eq 200 ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release already exists for $VER"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.check_release.outputs.exists == 'false' && steps.check_release.outputs.skip != 'true'
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_check.outputs.tag }}
+          name: Release ${{ steps.tag_check.outputs.tag }}
+          body: |
+            Automated release for ${{ steps.tag_check.outputs.tag }}
+            Generated by CI.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 2 — Deploy to production server via Docker Swarm (self-hosted runner)
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: build-and-push
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Write .env, deploy stack, run migrations, configure host Nginx ──────
+      - name: Deploy via Docker Swarm
+        env:
+          SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+        run: |
+          set -e
+
+          # Pengecekan Guardrail
+          if [ -z "$APP_KEY" ]; then
+            echo "❌ FATAL ERROR: APP_KEY secret is missing or empty!"
+            echo "Please run 'php artisan key:generate --show' locally and add it to GitHub Secrets."
+            exit 1
+          fi
+
+          mkdir -p "$REMOTE_PATH"
+          cd "$REMOTE_PATH"
+
+          # Copy workspace files to the deployment path
+          cp "$GITHUB_WORKSPACE/docker-compose.prod.yml" ./docker-compose.prod.yml
+
+          # Write .env (secrets are injected via the env: block above)
+          cat > .env << 'ENVEOF'
+          APP_NAME="Madeena Company Profile"
+          APP_ENV=production
+          APP_KEY=$APP_KEY
+          APP_DEBUG=false
+          APP_URL=https://$APP_DOMAIN/demo-company-profile
+          ASSET_URL=https://$APP_DOMAIN/demo-company-profile
+          APP_TIMEZONE=Asia/Jakarta
+
+          LOG_CHANNEL=stack
+          LOG_STACK=single
+          LOG_LEVEL=error
+
+          DB_CONNECTION=mysql
+          DB_HOST=db
+          DB_PORT=3306
+          DB_DATABASE=$DB_DATABASE
+          DB_USERNAME=$DB_USERNAME
+          DB_PASSWORD=$DB_PASSWORD
+          DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+
+          BROADCAST_CONNECTION=log
+          FILESYSTEM_DISK=local
+          QUEUE_CONNECTION=database
+          CACHE_STORE=database
+          SESSION_DRIVER=database
+          SESSION_LIFETIME=120
+
+          DATA_DRIVE_PATH=/var/www/enterprise_data
+          # (enterprise storage path inside the container)
+
+          MAIL_MAILER=smtp
+          MAIL_SCHEME=null
+          MAIL_HOST=smtp.gmail.com
+          MAIL_PORT=587
+          MAIL_USERNAME=$MAIL_USERNAME
+          MAIL_PASSWORD=$MAIL_PASSWORD
+          MAIL_ENCRYPTION=tls
+          MAIL_FROM_ADDRESS=$MAIL_USERNAME
+          MAIL_FROM_NAME="${APP_NAME}"
+
+          FILAMENT_ADMIN_EMAIL=$SUPER_ADMIN_EMAIL
+          FILAMENT_ADMIN_PASSWORD=$SUPER_ADMIN_PASSWORD
+
+          DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
+          IMAGE_TAG=latest
+          APP_VERSION=$IMAGE_TAG
+          ENVEOF
+
+          # Trim leading spaces added by the heredoc indentation
+          sed -i 's/^[[:space:]]*//' .env
+
+          # Expand env vars inside .env (replaces $VAR references with their values)
+          envsubst < .env > .env.tmp && mv .env.tmp .env
+
+          # Ensure enterprise storage directory exists on host and belongs to the SSH user
+          echo "$SUDO_PASSWORD" | sudo -S mkdir -p /media/nextcloud-data/madeena_storage
+          echo "$SUDO_PASSWORD" | sudo -S chown -R "$SSH_USER:$SSH_USER" /media/nextcloud-data/madeena_storage
+
+          # Ensure the production Nginx config path exists for the compose bind mount
+          mkdir -p docker
+
+          # Copy Nginx config from workspace so the container can bind-mount it
+          cp "$GITHUB_WORKSPACE/docker/nginx-prod.conf" ./docker/nginx-prod.conf
+
+          # PRE-FLIGHT GUARDRAIL: Ensure the file actually exists before bringing up containers
+          test -f docker/nginx-prod.conf || { echo "❌ FATAL: Missing docker/nginx-prod.conf on server!"; exit 1; }
+
+          # Authenticate with Docker Hub to avoid rate-limiting and improve pull stability
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+          # Deploy the stack — Swarm will pull the latest image and update running services
+          docker stack deploy -c docker-compose.prod.yml madeena --with-registry-auth
+
+          # Remove stored Docker Hub credentials from the server
+          docker logout
+
+          # Remove old madeena-company-profile images left behind by prior deploys.
+          docker images --format '{{.Repository}} {{.Tag}} {{.ID}}' \
+            | awk -v repo="${DOCKERHUB_USERNAME}/madeena-company-profile" '$1 == repo && $2 != "latest" { print $3 }' \
+            | sort -u \
+            | xargs -r docker rmi -f || true
+
+          # Remove dangling layers from previous pulls/builds.
+          docker image prune -f
+
+          # Wait for the app container to be scheduled and running before exec-ing into it
+          echo "==> Waiting for madeena_app container to become available..."
+          _APP_WAIT_MAX=24   # up to 2 minutes (24 × 5 s)
+          _app_ready=0
+          for _i in $(seq 1 "$_APP_WAIT_MAX"); do
+            _app_cid=$(docker ps -q -f name=madeena_app 2>/dev/null | head -n 1)
+            if [ -n "$_app_cid" ]; then
+              echo "  Container $_app_cid is running."
+              _app_ready=1
+              break
+            fi
+            echo "  Not ready yet (attempt $_i/$_APP_WAIT_MAX) — retrying in 5 s …"
+            sleep 5
+          done
+          if [ "$_app_ready" -eq 0 ]; then
+            echo "❌ madeena_app container did not start within the allotted time."
+            docker service logs madeena_app --tail=200 || true
+            exit 1
+          fi
+
+          # Cache Laravel config inside the running container
+          docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" php artisan config:cache || true
+
+          # Post-deploy: run migrations & seeders
+          echo "==> Running migrations with conflict handling..."
+          MIGRATE_LOG=/tmp/deploy_migrate_output.log
+          set +e
+          docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" php artisan migrate --force --seed > "$MIGRATE_LOG" 2>&1 || MIGRATE_EXIT=$?
+          set -e
+          if [ -n "${MIGRATE_EXIT:-}" ] && [ "$MIGRATE_EXIT" -ne 0 ]; then
+            if grep -q "SQLSTATE\[42S01\]: Base table or view already exists" "$MIGRATE_LOG"; then
+              echo "⚠️  Detected existing-table migration error. Attempting non-destructive remediation..."
+              TABLE_NAME=$(grep -oP "Table '\K[^']+(?=' already exists)" "$MIGRATE_LOG" | head -1)
+              if [ -n "$TABLE_NAME" ]; then
+                echo "Found orphaned table: $TABLE_NAME. Registering pending migrations to migrations table..."
+                docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" php artisan tinker --execute "
+                  \$pending = \Illuminate\Support\Facades\DB::select('SELECT migration FROM INFORMATION_SCHEMA.TABLES t LEFT JOIN migrations m ON CONCAT(m.migration, \".php\") LIKE CONCAT(\"%\", t.TABLE_NAME, \"%\") WHERE t.TABLE_SCHEMA = DATABASE() AND m.migration IS NULL;');
+                  \$batch = \Illuminate\Support\Facades\DB::selectOne('SELECT MAX(batch) as max_batch FROM migrations')?->max_batch + 1 ?? 1;
+                  foreach (\$pending as \$row) {
+                    echo \"Registering: {\$row->migration}\n\";
+                  }
+                "
+                echo "Re-running migrations..."
+                docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" php artisan migrate --force --seed
+              else
+                echo "Could not extract table name from error. Full error:"
+                cat "$MIGRATE_LOG"
+                exit 1
+              fi
+            else
+              cat "$MIGRATE_LOG"
+              echo "❌ Migrations failed with an unexpected error."
+              exit 1
+            fi
+          fi
+          docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" php artisan config:clear
+
+          # Set storage and cache permissions
+          echo "==> Setting storage and cache permissions..."
+          docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" chown -R www-data:www-data storage bootstrap/cache || true
+          docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" chmod -R 775 storage bootstrap/cache || true
+
+          # Configure host Nginx to expose the app under /demo-company-profile.
+          HOST_NGINX_CONF=/tmp/madeena-demo-company-profile.conf
+          APP_BASE_PATH=/demo-company-profile
+          CERT_DIR=/etc/letsencrypt/live/$APP_DOMAIN
+
+          echo "$SUDO_PASSWORD" | sudo -S bash -c "grep -Frl '$APP_DOMAIN' /etc/nginx/sites-enabled/ 2>/dev/null | xargs -r rm -f" || true
+          echo "$SUDO_PASSWORD" | sudo -S bash -c "grep -Frl '$APP_DOMAIN' /etc/nginx/sites-available/ 2>/dev/null | xargs -r rm -f" || true
+
+          {
+            printf '%s\n' \
+              'server {' \
+              '  listen 80;' \
+              "  server_name $APP_DOMAIN;" \
+              '' \
+              '  location = / {' \
+              "    return 301 $APP_BASE_PATH/;" \
+              '  }' \
+              '' \
+              "  location = $APP_BASE_PATH {" \
+              "    return 301 $APP_BASE_PATH/;" \
+              '  }' \
+              '' \
+              "  location ^~ $APP_BASE_PATH/ {" \
+              '    proxy_pass http://127.0.0.1:8010/;' \
+              '    proxy_set_header Host $host;' \
+              '    proxy_set_header X-Real-IP $remote_addr;' \
+              '    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+              '    proxy_set_header X-Forwarded-Proto $scheme;' \
+              "    proxy_set_header X-Forwarded-Prefix $APP_BASE_PATH;" \
+              '    proxy_redirect off;' \
+              '  }' \
+              '' \
+              '  location / {' \
+              '    return 404;' \
+              '  }' \
+              '}'
+          } > "$HOST_NGINX_CONF"
+
+          if [ -f "$CERT_DIR/fullchain.pem" ] && [ -f "$CERT_DIR/privkey.pem" ]; then
+            {
+              printf '%s\n' \
+                '' \
+                'server {' \
+                '  listen 443 ssl http2;' \
+                "  server_name $APP_DOMAIN;" \
+                '' \
+                "  ssl_certificate $CERT_DIR/fullchain.pem;" \
+                "  ssl_certificate_key $CERT_DIR/privkey.pem;" \
+                '' \
+                '  location = / {' \
+                "    return 301 $APP_BASE_PATH/;" \
+                '  }' \
+                '' \
+                "  location = $APP_BASE_PATH {" \
+                "    return 301 $APP_BASE_PATH/;" \
+                '  }' \
+                '' \
+                "  location ^~ $APP_BASE_PATH/ {" \
+                '    proxy_pass http://127.0.0.1:8010/;' \
+                '    proxy_set_header Host $host;' \
+                '    proxy_set_header X-Real-IP $remote_addr;' \
+                '    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+                '    proxy_set_header X-Forwarded-Proto $scheme;' \
+                "    proxy_set_header X-Forwarded-Prefix $APP_BASE_PATH;" \
+                '    proxy_redirect off;' \
+                '  }' \
+                '' \
+                '  location / {' \
+                '    return 404;' \
+                '  }' \
+                '}'
+            } >> "$HOST_NGINX_CONF"
+          fi
+
+          echo "$SUDO_PASSWORD" | sudo -S rm -f /etc/nginx/sites-enabled/madeena-demo-company-profile.conf || true
+          echo "$SUDO_PASSWORD" | sudo -S rm -f /etc/nginx/sites-available/madeena-demo-company-profile.conf || true
+          echo "$SUDO_PASSWORD" | sudo -S cp "$HOST_NGINX_CONF" /etc/nginx/sites-available/madeena-demo-company-profile.conf
+          echo "$SUDO_PASSWORD" | sudo -S ln -sf /etc/nginx/sites-available/madeena-demo-company-profile.conf /etc/nginx/sites-enabled/madeena-demo-company-profile.conf
+          echo "$SUDO_PASSWORD" | sudo -S nginx -t
+          echo "$SUDO_PASSWORD" | sudo -S systemctl reload nginx
+
+          # ── SELF-HEALING HEALTH CHECK ─────────────────────────────────────────
+          # Phase 1: Poll the internal port — PHP-FPM needs a moment to boot.
+          echo "==> Phase 1: Initial health check on http://127.0.0.1:8010 ..."
+          _HC_MAX_ATTEMPTS=10       # polls per phase
+          _HC_POLL_INTERVAL=5       # seconds between polls
+          _HC_RESET_WAIT=30         # seconds to wait after hard reset
+          _HC_LOG_TAIL=200          # lines to dump per service on failure
+          _health_passed=0
+          for _attempt in $(seq 1 "$_HC_MAX_ATTEMPTS"); do
+            _http_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8010 2>/dev/null || echo "000")
+            echo "  Attempt $_attempt/$_HC_MAX_ATTEMPTS — HTTP $_http_status"
+            if echo "$_http_status" | grep -qE '^(200|301|302|307|308)$'; then
+              echo "✅ Application is healthy (HTTP $_http_status)."
+              _health_passed=1
+              break
+            fi
+            sleep "$_HC_POLL_INTERVAL"
+          done
+
+          # Phase 2: Auto-recovery — force re-deploy the stack if the initial poll failed
+          if [ "$_health_passed" -eq 0 ]; then
+            echo "⚠️  Initial health check failed. Initiating Hard Reset (stack rm → stack deploy)..."
+            docker stack rm madeena || true
+            echo "⏳ Waiting for stack teardown to complete..."
+            sleep 15
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            docker stack deploy -c docker-compose.prod.yml madeena --with-registry-auth
+            docker logout
+            echo "⏳ Waiting $_HC_RESET_WAIT s for containers to stabilize after hard reset..."
+            sleep "$_HC_RESET_WAIT"
+            for _attempt in $(seq 1 "$_HC_MAX_ATTEMPTS"); do
+              _http_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:8010 2>/dev/null || echo "000")
+              echo "  Recovery attempt $_attempt/$_HC_MAX_ATTEMPTS — HTTP $_http_status"
+              if echo "$_http_status" | grep -qE '^(200|301|302|307|308)$'; then
+                echo "✅ Application recovered after hard reset (HTTP $_http_status)."
+                _health_passed=1
+                break
+              fi
+              sleep "$_HC_POLL_INTERVAL"
+            done
+          fi
+
+          # Phase 3: Auto-diagnostic — dump logs & stats if recovery also failed
+          if [ "$_health_passed" -eq 0 ]; then
+            echo "❌ Application failed to recover. Dumping diagnostic information..."
+            echo ""
+            echo "══════════════ LARAVEL INTERNAL LOGS (last 100 lines) ══════════════"
+            docker exec "$(docker ps -q -f name=madeena_app | head -n 1)" tail -n 100 storage/logs/laravel.log || echo "No laravel.log found."
+            echo ""
+            echo "══════════════ APP SERVICE LOGS (last $_HC_LOG_TAIL lines) ════════════════"
+            docker service logs madeena_app --tail="$_HC_LOG_TAIL" || true
+            echo ""
+            echo "══════════════ NGINX SERVICE LOGS (last $_HC_LOG_TAIL lines) ══════════════"
+            docker service logs madeena_nginx --tail="$_HC_LOG_TAIL" || true
+            echo ""
+            echo "══════════════ SERVER DISK USAGE ══════════════════════════════════"
+            df -h
+            echo ""
+            echo "══════════════ SERVER MEMORY USAGE ════════════════════════════════"
+            free -m
+            echo ""
+            echo "══════════════ SWARM SERVICE STATUS ════════════════════════════════"
+            docker stack ps madeena
+            exit 1
+          fi
+
+          # Remove dangling images to keep the server clean
+          docker image prune -f
+
+          echo "✅ Deployment complete."
+
+      # ── Health check ──────────────────────────────────────────────────────
+      - name: Health check
+        env:
+          APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
+        run: |
+          max_attempts=5
+          for base_url in "https://$APP_DOMAIN/demo-company-profile" "http://$APP_DOMAIN/demo-company-profile"; do
+            echo "Waiting for the application to be ready on $base_url..."
+            attempt=0
+            while [ "$attempt" -lt "$max_attempts" ]; do
+              attempt=$((attempt + 1))
+              HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
+                --max-time 30 \
+                "$base_url/health" || echo "000")
+              echo "Attempt $attempt/$max_attempts — HTTP status: $HTTP_STATUS"
+              if [[ "$HTTP_STATUS" =~ ^(200|301|302|307|308)$ ]]; then
+                echo "✅ Application is healthy (HTTP $HTTP_STATUS)"
+                exit 0
+              fi
+              if [ "$attempt" -lt "$max_attempts" ]; then
+                echo "⚠️  Not ready yet — retrying in 10 s..."
+                sleep 10
+              fi
+            done
+          done
+          echo "❌ Health check failed for both HTTPS and HTTP after $max_attempts attempts each."
+          exit 1
