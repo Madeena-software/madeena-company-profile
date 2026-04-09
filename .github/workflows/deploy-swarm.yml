@@ -250,8 +250,6 @@ jobs:
           DATA_DRIVE_PATH=/var/www/enterprise_data
           # (enterprise storage path inside the container)
 
-          MAIL_MAILER=log
-
           MAIL_MAILER=smtp
           MAIL_SCHEME=null
           MAIL_HOST=smtp.gmail.com
