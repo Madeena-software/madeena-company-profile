@@ -238,17 +238,6 @@ jobs:
             mkdir -p "${{ secrets.REMOTE_PATH }}"
             cd "${{ secrets.REMOTE_PATH }}"
 
-            # Set MTU untuk interface VPN secara otomatis agar koneksi stabil
-            # Script ini akan mencari interface yang berawalan 'tun' atau 'wg' (WireGuard)
-            VPN_IFACE=$(ls /sys/class/net | grep -E '^tun|^wg' | head -n 1)
-            
-            if [ -n "$VPN_IFACE" ]; then
-                echo "==> VPN Terdeteksi. Mengatur MTU 1200 untuk interface ($VPN_IFACE)..."
-                echo "$SUDO_PASSWORD" | sudo -S ip link set dev "$VPN_IFACE" mtu 1200 || true
-            else
-                echo "==> Tidak ada interface VPN (tun/wg) aktif, melewati pengaturan MTU."
-            fi
-
             # Restore docker-compose.prod.yml from base64-encoded runner output
             printf '%s' "$COMPOSE_B64" | base64 -d > docker-compose.prod.yml
 
