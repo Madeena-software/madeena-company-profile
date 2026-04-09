@@ -94,5 +94,5 @@ volumes:
   app_public:
 
 networks:
-  madeena_network:
+  madeena_cp_network:
     driver: bridge
