@@ -375,6 +375,14 @@ jobs:
             # Trim leading spaces added by the heredoc indentation
             sed -i 's/^[[:space:]]*//' .env
 
+            # Ensure volume-mounted directories exist and are writable by the container user.
+            # Without this, Laravel crashes on boot with "Please provide a valid cache path."
+            # which causes the app container to restart-loop before migrations can run.
+            mkdir -p storage/app/public storage/framework/cache/data \
+                     storage/framework/sessions storage/framework/views \
+                     storage/logs bootstrap/cache
+            chmod -R ug+rwX storage bootstrap/cache
+
             # Authenticate with Docker Hub to avoid rate-limiting and improve pull stability
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
@@ -399,8 +407,44 @@ jobs:
             # and stale internal IPs (e.g. nginx → app) are resolved correctly.
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
 
+            # Show current container status and early logs so the real crash reason
+            # (e.g. missing env var, bad permissions) is visible immediately.
+            docker compose -f docker-compose.prod.yml ps
             echo "==> Container logs (tail 100) ..."
             docker logs --tail 100 madeena_profile_app || true
+
+            # Wait until the app container is Running+Healthy (or just Running if no
+            # healthcheck). docker compose exec fails if the container is still
+            # restarting, so we must not proceed to migrations until it stabilises.
+            echo "==> Waiting for app container to be ready..."
+            max_wait=120
+            elapsed=0
+            until [ "$elapsed" -ge "$max_wait" ]; do
+              state=$(docker inspect -f '{{.State.Status}}' madeena_profile_app 2>/dev/null || echo "unknown")
+              health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' madeena_profile_app 2>/dev/null || echo "unknown")
+
+              echo "  app state=$state health=$health (t=${elapsed}s)"
+
+              if [ "$health" = "healthy" ] || { [ "$health" = "none" ] && [ "$state" = "running" ]; }; then
+                echo "✅ App container is ready."
+                break
+              fi
+
+              if [ "$state" = "restarting" ] || [ "$state" = "exited" ]; then
+                echo "⚠️  App is in $state state; recent logs:"
+                docker logs --tail 50 madeena_profile_app || true
+              fi
+
+              sleep 1
+              elapsed=$((elapsed+1))
+            done
+
+            if [ "$elapsed" -ge "$max_wait" ]; then
+              echo "❌ App container did not become ready within ${max_wait}s."
+              docker logs --tail 300 madeena_profile_app || true
+              docker compose -f docker-compose.prod.yml ps || true
+              exit 1
+            fi
 
             # Remove old madeena-company-profile images left behind by prior deploys.
             docker images --format '{{.Repository}} {{.Tag}} {{.ID}}' \
@@ -462,7 +506,7 @@ jobs:
       - name: Health check
         run: |
           echo "Waiting for the application to be ready..."
-          max_attempts=5
+          max_attempts=10
           attempt=0
           while [ "$attempt" -lt "$max_attempts" ]; do
             attempt=$((attempt + 1))
@@ -475,8 +519,8 @@ jobs:
               exit 0
             fi
             if [ $attempt -lt $max_attempts ]; then
-              echo "⚠️  Not ready yet — retrying in 10 s..."
-              sleep 10
+              echo "⚠️  Not ready yet — retrying in 15 s..."
+              sleep 15
             fi
           done
           echo "❌ Health check failed after $max_attempts attempts (last HTTP status: $HTTP_STATUS)"
