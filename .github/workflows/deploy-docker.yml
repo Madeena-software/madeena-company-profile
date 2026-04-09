@@ -247,14 +247,15 @@ jobs:
             #
             # Required environment variables (supply via .env on the server):
             #   APP_KEY              Laravel application key
-            #   APP_URL              Public URL (https://<SSH_HOST>:8011)
+            #   APP_URL              Public URL (http://<SSH_HOST>:8011)
             #   DB_DATABASE          MySQL database name
             #   DB_USERNAME          MySQL application user
             #   DB_PASSWORD          MySQL application password
             #   DB_ROOT_PASSWORD     MySQL root password
             #
             # Deployment model:
-            #   App   — Laravel PHP-FPM + nginx container exposed on host port 8011 (HTTPS)
+            #   App   — Laravel PHP-FPM + nginx container exposed on host port 8011 (HTTP)
+            #           APP_PORT env var overrides 8011 when a fallback port is selected.
             #   DB    — MySQL 8.4 with persistent named volume
             # ─────────────────────────────────────────────────────────────────────────────
             services:
@@ -270,7 +271,7 @@ jobs:
                 environment:
                   APP_ENV: production
                   APP_DEBUG: 'false'
-                  APP_URL: ${APP_URL:-https://127.0.0.1:8011}
+                  APP_URL: ${APP_URL:-http://127.0.0.1:8011}
                   APP_VERSION: ${APP_VERSION:-latest}
                   DB_CONNECTION: mysql
                   DB_HOST: mysql
@@ -289,19 +290,17 @@ jobs:
                 volumes:
                   - ./storage:/var/www/app/storage
                   - ./bootstrap/cache:/var/www/app/bootstrap/cache
-                  - /etc/ssl/certs/madeena-profile.crt:/etc/ssl/certs/madeena-profile.crt:ro
-                  - /etc/ssl/private/madeena-profile.key:/etc/ssl/private/madeena-profile.key:ro
                 depends_on:
                   mysql:
                     condition: service_healthy
                 ports:
-                  - "8011:443"
+                  - "${APP_PORT:-8011}:80"
                 healthcheck:
-                  test: ["CMD", "curl", "-k", "-f", "https://localhost/health"]
+                  test: ["CMD", "curl", "-f", "http://localhost/health"]
                   interval: 30s
                   timeout: 10s
                   retries: 3
-                  start_period: 40s
+                  start_period: 60s
 
               # ── MySQL 8.4 database ──────────────────────────────────────────────────────
               mysql:
@@ -334,7 +333,7 @@ jobs:
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
             APP_DOMAIN=${{ secrets.APP_DOMAIN }}
-            APP_URL=https://${{ secrets.SSH_HOST }}:8011
+            APP_URL=http://${{ secrets.SSH_HOST }}:8011
             APP_TIMEZONE=Asia/Jakarta
 
             LOG_CHANNEL=stack
@@ -405,35 +404,39 @@ jobs:
             # Remove stored Docker Hub credentials from the server
             docker logout
 
-            # Open port 8011 on firewall
-            echo "==> Opening port 8011 on firewall..."
-            echo "$SUDO_PASSWORD" | sudo -S ufw allow 8011/tcp || true
+            # Stop existing containers to free their ports before port selection.
+            # --remove-orphans cleans up any containers from a previous compose config.
+            echo "==> Stopping existing containers to free ports..."
+            docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 
-            # Generate self-signed SSL certificate for HTTPS on port 8011
-            # Certs are mounted read-only into the app container so Nginx can serve HTTPS.
-            CERT_KEY=/etc/ssl/private/madeena-profile.key
-            CERT_CRT=/etc/ssl/certs/madeena-profile.crt
-            if [ ! -f "$CERT_KEY" ] || [ ! -f "$CERT_CRT" ]; then
-              if ! command -v openssl >/dev/null 2>&1; then
-                echo "$SUDO_PASSWORD" | sudo -S apt-get update -y
-                echo "$SUDO_PASSWORD" | sudo -S apt-get install -y openssl || true
+            # Dynamic port selection: try 8011, 8012, 8013, … until a free port is found.
+            # A port is considered free if nothing else (non-madeena service) is listening on it.
+            APP_PORT=8011
+            MAX_PORT=8020
+            while [ "$APP_PORT" -le "$MAX_PORT" ]; do
+              if ! ss -tlnp 2>/dev/null | grep -qE ":${APP_PORT}([[:space:]]|$)"; then
+                echo "==> Port ${APP_PORT} is available."
+                break
               fi
-              echo "$SUDO_PASSWORD" | sudo -S mkdir -p /etc/ssl/private /etc/ssl/certs
-              echo "Generating self-signed certificate for ${{ secrets.SSH_HOST }}..."
-              echo "$SUDO_PASSWORD" | sudo -S openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout "$CERT_KEY" -out "$CERT_CRT" \
-                -subj "/CN=${{ secrets.SSH_HOST }}" || true
-              # NOTE: Certificate expires after 365 days. Re-run the workflow or delete
-              # $CERT_KEY / $CERT_CRT on the server to regenerate before expiry.
-              echo "$SUDO_PASSWORD" | sudo -S chmod 600 "$CERT_KEY"
-              echo "$SUDO_PASSWORD" | sudo -S chmod 644 "$CERT_CRT"
-              echo "✅ Self-signed SSL certificate generated."
-            else
-              echo "✅ SSL certificates already exist — skipping generation."
+              echo "==> Port ${APP_PORT} is busy (in use by another service), trying next port..."
+              APP_PORT=$((APP_PORT + 1))
+            done
+            if [ "$APP_PORT" -gt "$MAX_PORT" ]; then
+              echo "❌ No available port found in range 8011-${MAX_PORT}."
+              exit 1
             fi
+            export APP_PORT
+
+            # Dynamically update APP_URL in .env to match the selected port and HTTP scheme.
+            sed -i "s|APP_URL=.*|APP_URL=http://${{ secrets.SSH_HOST }}:${APP_PORT}|" .env
+
+            # Open the selected port on the firewall.
+            echo "==> Opening port ${APP_PORT}/tcp on firewall..."
+            echo "$SUDO_PASSWORD" | sudo -S ufw allow "${APP_PORT}/tcp" || true
 
             # Bring up services — force-recreate ensures Docker DNS is refreshed
             # and stale internal IPs (e.g. nginx → app) are resolved correctly.
+            # APP_PORT is exported so docker-compose substitutes ${APP_PORT:-8011} in ports:.
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
 
             # Show current container status and early logs so the real crash reason
@@ -536,16 +539,15 @@ jobs:
             docker compose -f docker-compose.prod.yml ps
 
             # ── SELF-HEALING HEALTH CHECK ─────────────────────────────────────────
-            # Phase 1: Poll https://127.0.0.1:8011 — PHP-FPM needs a moment to boot.
-            echo "==> Phase 1: Initial health check on https://127.0.0.1:8011 ..."
+            # Phase 1: Poll http://127.0.0.1:${APP_PORT} — PHP-FPM needs a moment to boot.
+            echo "==> Phase 1: Initial health check on http://127.0.0.1:${APP_PORT} ..."
             _HC_MAX_ATTEMPTS=10       # polls per phase
             _HC_POLL_INTERVAL=5       # seconds between polls
             _HC_RESET_WAIT=30         # seconds to wait after hard reset
             _HC_LOG_TAIL=200          # lines to dump per container on failure
             _health_passed=0
             for _attempt in $(seq 1 "$_HC_MAX_ATTEMPTS"); do
-              # -k is required because Nginx uses the self-signed certificate generated above.
-              _http_status=$(curl -k -s -o /dev/null -w "%{http_code}" --max-time 10 https://127.0.0.1:8011/health 2>/dev/null || echo "000")
+              _http_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "http://127.0.0.1:${APP_PORT}/health" 2>/dev/null || echo "000")
               echo "  Attempt $_attempt/$_HC_MAX_ATTEMPTS — HTTP $_http_status"
               if echo "$_http_status" | grep -qE '^(200|301|302|307|308)$'; then
                 echo "✅ Application is healthy (HTTP $_http_status)."
@@ -563,8 +565,7 @@ jobs:
               echo "⏳ Waiting $_HC_RESET_WAIT s for containers to stabilize after hard reset..."
               sleep "$_HC_RESET_WAIT"
               for _attempt in $(seq 1 "$_HC_MAX_ATTEMPTS"); do
-                # -k is required because Nginx uses the self-signed certificate generated above.
-                _http_status=$(curl -k -s -o /dev/null -w "%{http_code}" --max-time 10 https://127.0.0.1:8011/health 2>/dev/null || echo "000")
+                _http_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "http://127.0.0.1:${APP_PORT}/health" 2>/dev/null || echo "000")
                 echo "  Recovery attempt $_attempt/$_HC_MAX_ATTEMPTS — HTTP $_http_status"
                 if echo "$_http_status" | grep -qE '^(200|301|302|307|308)$'; then
                   echo "✅ Application recovered after hard reset (HTTP $_http_status)."
@@ -596,31 +597,67 @@ jobs:
               exit 1
             fi
 
-            echo "✅ Deployment complete."
+            echo "✅ Deployment complete. Application available at http://${{ secrets.SSH_HOST }}:${APP_PORT}"
 
       # ── Health check ──────────────────────────────────────────────────────
       - name: Health check
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY || secrets.VPS_SSH_KEY }}
         run: |
+          SSH_HOST="${{ secrets.SSH_HOST || secrets.VPS_HOST }}"
+          SSH_PORT="${{ secrets.SSH_PORT || secrets.VPS_PORT || 22 }}"
+          SSH_USER="${{ secrets.SSH_USER || secrets.VPS_USER }}"
+
+          # Write SSH key to a temp file for log retrieval on failed attempts
+          SSH_KEY_FILE=$(mktemp)
+          echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
+          chmod 600 "$SSH_KEY_FILE"
+          SSH_OPTS="-i $SSH_KEY_FILE -p $SSH_PORT -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"
+
           echo "Waiting for the application to be ready..."
           max_attempts=10
           attempt=0
+          FOUND_URL=""
           while [ "$attempt" -lt "$max_attempts" ]; do
             attempt=$((attempt + 1))
-            HTTP_STATUS=$(curl -k -o /dev/null -s -w "%{http_code}" \
-              --max-time 30 \
-                "https://${{ secrets.SSH_HOST }}:8011/health" || echo "000")
-            # NOTE: -k (--insecure) skips certificate verification for the self-signed cert.
+            HTTP_STATUS="000"
+            # Try ports 8011–8013 (covers the default + two fallback levels).
+            # Mirrors the MAX_PORT range used in the server-side port selection above.
+            for PORT in 8011 8012 8013; do
+              STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
+                --max-time 30 \
+                "http://${SSH_HOST}:${PORT}/health" 2>/dev/null || echo "000")
+              if echo "$STATUS" | grep -qE '^(200|301|302|307|308)$'; then
+                HTTP_STATUS="$STATUS"
+                FOUND_URL="http://${SSH_HOST}:${PORT}"
+                break
+              fi
+              # Keep the last non-zero status for diagnostic logging
+              [ "$STATUS" != "000" ] && HTTP_STATUS="$STATUS"
+            done
+
             echo "Attempt $attempt/$max_attempts — HTTP status: $HTTP_STATUS"
-            if [[ "$HTTP_STATUS" =~ ^(200|301|302|307|308)$ ]]; then
-              echo "✅ Application is healthy (HTTP $HTTP_STATUS)"
+
+            if [ -n "$FOUND_URL" ]; then
+              echo "✅ Application is healthy (HTTP $HTTP_STATUS) at $FOUND_URL"
+              rm -f "$SSH_KEY_FILE"
               exit 0
             fi
-            if [ $attempt -lt $max_attempts ]; then
+
+            if [ "$attempt" -lt "$max_attempts" ]; then
               echo "⚠️  Not ready yet — retrying in 15 s..."
+              echo "--- App container logs (last 100 lines) ---"
+              ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" \
+                "docker logs --tail 100 madeena_profile_app 2>&1 || true" || true
               sleep 15
             fi
           done
+
           echo "❌ Health check failed after $max_attempts attempts (last HTTP status: $HTTP_STATUS)"
+          echo "--- Final app container logs ---"
+          ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" \
+            "docker logs --tail 100 madeena_profile_app 2>&1 || true" || true
+          rm -f "$SSH_KEY_FILE"
           exit 1
 
   notify:
@@ -646,4 +683,4 @@ jobs:
           echo "- **Branch**: ${{ github.ref_name }}"
           echo "- **Commit**: ${{ github.sha }}"
           echo "- **Status**: ${{ steps.status.outputs.status }}"
-          echo "- **Application URL**: https://${{ secrets.SSH_HOST }}:8011"
+          echo "- **Application URL**: http://${{ secrets.SSH_HOST }}:8011 (or 8012/8013 if port fallback was triggered)"
