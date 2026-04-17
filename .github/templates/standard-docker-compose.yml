@@ -1,0 +1,186 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Madeena Standard Template — Docker Compose (Swarm Mode)
+#
+# CUSTOMIZATION REQUIRED:
+#   1. Replace {{APP_NAME}} with your app name (lowercase)
+#   2. Replace {{APP_PORT}} with your assigned host port (e.g., 8020)
+#   3. Adjust resource limits based on your app's needs
+#   4. Add/remove services as needed (e.g., Redis)
+#
+# Most repos only need to edit the image name, host port, and host storage
+# paths. The stack/service names, health checks, and deploy ordering are already
+# wired for a standard Laravel + Docker Swarm app.
+#
+# Dependency chain (mirrors simulation; ignored in Swarm but documents intent):
+#   db (healthy) → app (healthy) → queue, nginx
+#
+# SIMULATION-PROVEN PATTERNS:
+#   ✅  DB health: CMD-SHELL + $$MYSQL_ROOT_PASSWORD (not CMD with ${VAR})
+#   ✅  App health: 15s interval, 8 retries, 120s start_period (migration time)
+#   ✅  depends_on: db → app → queue + nginx (prevents queue migration race)
+#   ✅  Queue depends on app:healthy (NOT db:healthy) — waits for migrations
+# ═══════════════════════════════════════════════════════════════════════════════
+services:
+
+  # ── MySQL database (starts first, all others depend on it) ──────────────────
+  db:
+    image: mysql:8.4
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin status -uroot --password=\"$$MYSQL_ROOT_PASSWORD\" 2>/dev/null | grep -q Uptime"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+
+  # ── PHP-FPM application ────────────────────────────────────────────────────
+  # entrypoint runs: migrate --force, config:cache, route:cache, then php-fpm.
+  # Queue MUST wait for app to be healthy (= migrations committed + PHP-FPM up).
+  app:
+    image: ${DOCKERHUB_USERNAME}/{{APP_NAME}}:${IMAGE_TAG:-latest}
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    environment:
+      PHP_FPM_ONLY: "1"
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_public:/var/www/public-files
+    env_file: .env
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$s=@fsockopen(\"127.0.0.1\",9000);if(!$$s)exit(1);fclose($$s);'"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 120s
+    depends_on:
+      - db
+    networks:
+      - app_network
+
+  # ── Laravel queue worker ─────────────────────────────────────────────────────
+  # Depends on APP (not DB) so queue starts only after migrations are committed.
+  # Without this, queue hits SQLSTATE[42S02] "cache table not found" on cold start.
+  queue:
+    image: ${DOCKERHUB_USERNAME}/{{APP_NAME}}:${IMAGE_TAG:-latest}
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=90", "--max-jobs=500", "--memory=128"]
+    stop_grace_period: 120s
+    volumes:
+      - app_storage:/var/www/html/storage
+    env_file: .env
+    depends_on:
+      - app
+    networks:
+      - app_network
+
+  # ── Nginx web server ───────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+        failure_action: rollback
+        monitor: 10s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
+    ports:
+      - "{{APP_PORT}}:80"
+    volumes:
+      - ./nginx/conf.d/app.conf:/etc/nginx/conf.d/default.conf:ro
+      - app_public:/var/www/html/public:ro
+    depends_on:
+      - app
+    networks:
+      - app_network
+
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /media/nextcloud-data/{{APP_NAME}}_mysql
+  app_storage:
+  app_public:
+
+networks:
+  app_network:
+    driver: overlay
