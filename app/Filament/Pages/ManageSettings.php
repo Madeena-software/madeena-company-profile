@@ -5,18 +5,18 @@ namespace App\Filament\Pages;
 use App\Models\User;
 use App\Models\Setting;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
 
 class ManageSettings extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-    protected static string $view = 'filament.pages.manage-settings';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
+    protected string $view = 'filament.pages.manage-settings';
     protected static ?string $navigationLabel = 'Pengaturan';
     protected static ?string $title = 'Pengaturan Website';
-    protected static ?string $navigationGroup = 'Konten Website';
+    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
     protected static ?int $navigationSort = 4;
 
     public static function shouldRegisterNavigation(): bool
@@ -38,9 +38,9 @@ class ManageSettings extends Page
         $this->form->fill($settings);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Forms\Components\Section::make('Informasi Kontak')->schema([
                 Forms\Components\TextInput::make('company_name')->label('Nama Perusahaan'),
                 Forms\Components\TextInput::make('tagline')->label('Tagline'),

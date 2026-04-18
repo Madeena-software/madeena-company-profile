@@ -4,8 +4,9 @@ Website company profile untuk PT Madeena Karya Indonesia, produsen alat Digital 
 
 ## Tech Stack
 
-- **Framework**: Laravel 12
-- **Admin Panel**: Filament PHP v3
+- **Framework**: Laravel 13
+- **Admin Panel**: Filament PHP v5
+- **PHP Engine**: PHP 8.4
 - **CSS Framework**: Tailwind CSS v3
 - **JS**: Alpine.js
 - **Build Tool**: Vite

@@ -24,6 +24,16 @@ services:
     restart: always
     environment:
       PHP_FPM_ONLY: "1"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "php -r 'exit(PHP_VERSION_ID>=80400?0:1);' && php artisan --version | grep -Eq '^Laravel Framework 13\\.' && php -r 'require \"vendor/autoload.php\"; $v=\\Composer\\InstalledVersions::getPrettyVersion(\"filament/filament\") ?? \"\"; exit(preg_match(\"/^v?5\\./\", $v)?0:1);'"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     volumes:
       # Enterprise storage — HDD physically mounted on host
       - /media/nextcloud-data/madeena_storage:/var/www/enterprise_data

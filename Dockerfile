@@ -1,12 +1,16 @@
+# syntax=docker/dockerfile:1.7
 # ─────────────────────────────────────────────────────────────────────────────
 # Madeena Company Profile — Production Dockerfile
-# PHP 8.3 FPM + Nginx served by Supervisor in a single container.
+# PHP 8.4 FPM (Alpine, digest-pinned) + Nginx served by Supervisor.
 #
 # The CI runner pre-builds assets (composer install --no-dev, npm run build)
 # before calling `docker build`, so vendor/ and public/build/ are available
-# in the build context.  The image itself therefore has no build-tool overhead.
+# in the build context. The image itself therefore has no build-tool overhead.
 # ─────────────────────────────────────────────────────────────────────────────
-FROM php:8.3-fpm
+# Digest pin guards against runtime drift; update this ARG only after validating
+# the new digest in CI and production parity checks.
+ARG PHP_BASE=php:8.4.5-fpm-alpine3.21@sha256:5682435e64a0b2bd03337f2b9a92eacb8e095295377f3e2fa65eea15eae447b2
+FROM ${PHP_BASE} AS base
 
 LABEL maintainer="Madeena Software"
 LABEL description="Madeena Company Profile — Laravel"
@@ -16,51 +20,58 @@ ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
 # ── System packages ───────────────────────────────────────────────────────────
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN set -eux; \
+    apk add --no-cache \
         nginx \
         supervisor \
         curl \
         zip \
         unzip \
         git \
+        icu-libs \
+        libzip \
+        libpng \
+        libjpeg-turbo \
+        freetype \
+        oniguruma \
+        zlib; \
+    apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        icu-dev \
         libzip-dev \
         libpng-dev \
-        libjpeg62-turbo-dev \
-        libfreetype6-dev \
-        libonig-dev \
-        libicu-dev \
-        libxml2-dev \
-        libcurl4-openssl-dev \
-        zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+        libjpeg-turbo-dev \
+        freetype-dev \
+        oniguruma-dev \
+        zlib-dev \
+        linux-headers
 
 # ── PHP extensions ────────────────────────────────────────────────────────────
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
-        dom \
         gd \
         intl \
-        mbstring \
         opcache \
-        pcntl \
-        pdo \
         pdo_mysql \
-        xml \
-        zip
+        zip \
+    && pecl install igbinary redis \
+    && docker-php-ext-enable igbinary redis opcache \
+    && apk del .build-deps \
+    && rm -rf /tmp/pear
 
 # ── PHP configuration ─────────────────────────────────────────────────────────
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/php.ini "$PHP_INI_DIR/conf.d/99-custom.ini"
 
 # ── Nginx configuration ───────────────────────────────────────────────────────
-COPY docker/nginx.conf /etc/nginx/sites-available/default
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
-    && rm -f /etc/nginx/sites-enabled/000-default 2>/dev/null || true
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 
 # ── Supervisor configuration ──────────────────────────────────────────────────
 RUN mkdir -p /var/log/supervisor
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+FROM base AS production
 
 # ── Application ───────────────────────────────────────────────────────────────
 WORKDIR /var/www/html
