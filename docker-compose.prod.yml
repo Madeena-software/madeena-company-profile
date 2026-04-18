@@ -182,5 +182,5 @@ volumes:
   app_public:
 
 networks:
-  app_network:
+  madeena_cp_network:
     driver: overlay

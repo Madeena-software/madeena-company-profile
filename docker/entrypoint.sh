@@ -3,6 +3,25 @@ set -e
 
 cd /var/www/html
 
+# ── Database readiness check (all modes: web, queue, scheduler) ────────────
+# Moved before the argument check so queue workers also wait for the DB
+# before attempting to process jobs.
+if [ -n "$DB_HOST" ]; then
+    echo "[entrypoint] Waiting for database at $DB_HOST:${DB_PORT:-3306}..."
+    _DB_WAIT=0
+    until php -r "\$h=getenv('DB_HOST');\$p=getenv('DB_PORT')?:'3306';\$d=getenv('DB_DATABASE');\$u=getenv('DB_USERNAME');\$pw=getenv('DB_PASSWORD');new PDO(\"mysql:host=\$h;port=\$p;dbname=\$d\",\$u,\$pw);" 2>/dev/null; do
+        _DB_WAIT=$((_DB_WAIT + 3))
+        if [ "$_DB_WAIT" -ge 120 ]; then
+            echo "[entrypoint] ❌ Database not ready after 120s — aborting."
+            echo "[entrypoint]   DB_HOST=$DB_HOST DB_PORT=${DB_PORT:-3306} DB_DATABASE=$DB_DATABASE DB_USERNAME=$DB_USERNAME"
+            exit 1
+        fi
+        echo "[entrypoint]   … waiting (${_DB_WAIT}s elapsed)"
+        sleep 3
+    done
+    echo "[entrypoint] ✅ Database is ready."
+fi
+
 # If arguments are provided, run them directly (used for queue worker, scheduler, etc.)
 if [ $# -gt 0 ]; then
     exec "$@"
@@ -10,15 +29,6 @@ fi
 
 # ── Web server bootstrap ──────────────────────────────────────────────────────
 echo "[entrypoint] Running Laravel bootstrap..."
-
-# Wait briefly for DB to be ready (useful when containers start simultaneously)
-if [ -n "$DB_HOST" ]; then
-    echo "[entrypoint] Waiting for database at $DB_HOST:${DB_PORT:-3306}..."
-    until php -r "new PDO('mysql:host=${DB_HOST};port=${DB_PORT:-3306};dbname=${DB_DATABASE}', '${DB_USERNAME}', '${DB_PASSWORD}');" 2>/dev/null; do
-        sleep 2
-    done
-    echo "[entrypoint] Database is ready."
-fi
 
 # Create storage symlink
 php artisan storage:link --force 2>/dev/null || true
