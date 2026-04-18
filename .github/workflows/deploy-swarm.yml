@@ -212,8 +212,19 @@ jobs:
           cd "$REMOTE_PATH"
           cp "$GITHUB_WORKSPACE/docker-compose.prod.yml" docker-compose.prod.yml
           mkdir -p nginx/conf.d
-          cp "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" nginx/conf.d/app.conf
-          test -f nginx/conf.d/app.conf || { echo "❌ FATAL: nginx/conf.d/app.conf missing!"; exit 1; }
+          if [ -f "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" ]; then
+            cp "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" nginx/conf.d/app.conf
+          elif [ -f "$GITHUB_WORKSPACE/docker/nginx.conf" ]; then
+            cp "$GITHUB_WORKSPACE/docker/nginx.conf" nginx/conf.d/app.conf
+          else
+            echo "❌ FATAL: nginx config not found."
+            echo "Expected one of:"
+            echo "  - nginx/conf.d/app.conf"
+            echo "  - docker/nginx.conf"
+            exit 1
+          fi
+
+          test -f nginx/conf.d/app.conf || { echo "❌ FATAL: nginx/conf.d/app.conf missing after copy!"; exit 1; }
 
           # ── Write .env file ──────────────────────────────────────────────────
           # printf '%s' for every line — safe for YAML indentation, safe for
