@@ -447,6 +447,12 @@ jobs:
               if [ "$_WAIT_REPL" -ge 180 ]; then
                 echo "❌ Timed out waiting for ${svc} replicas to settle."
                 docker service ls --format '{{.Name}} {{.Replicas}}' --filter "name=${svc}" 2>/dev/null || true
+                echo ""
+                echo "=== ${svc} service logs ==="
+                docker service logs "${svc}" --tail=200 2>/dev/null || true
+                echo ""
+                echo "=== ${svc} task states ==="
+                docker service ps "${svc}" --no-trunc 2>/dev/null || true
                 exit 1
               fi
               echo "  ${svc} not settled yet — waiting 5s... (${_WAIT_REPL}s elapsed)"
