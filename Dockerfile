@@ -1,85 +1,93 @@
-# syntax=docker/dockerfile:1.7
-# ─────────────────────────────────────────────────────────────────────────────
-# Madeena Company Profile — Production Dockerfile
-# PHP 8.4 FPM (Alpine, digest-pinned) + Nginx served by Supervisor.
+# ═══════════════════════════════════════════════════════════════════════════════
+# Madeena Standard Template — Production Dockerfile (Multi-Stage)
+# PHP {{PHP_VERSION}} FPM + Nginx + Supervisor
 #
-# The CI runner pre-builds assets (composer install --no-dev, npm run build)
-# before calling `docker build`, so vendor/ and public/build/ are available
-# in the build context. The image itself therefore has no build-tool overhead.
-# ─────────────────────────────────────────────────────────────────────────────
-# Digest pin guards against runtime drift; update this ARG only after validating
-# the new digest in CI and production parity checks.
-ARG PHP_BASE=php:8.4.5-fpm-alpine3.21@sha256:5682435e64a0b2bd03337f2b9a92eacb8e095295377f3e2fa65eea15eae447b2
-FROM ${PHP_BASE} AS base
+# CUSTOMIZATION REQUIRED:
+#   1. Replace {{PHP_VERSION}} with your PHP version (e.g., 8.3)
+#   2. Adjust PHP extensions as needed for your app
+#   3. Copy this to your project root as "Dockerfile"
+#   4. Update docker/php.ini, docker/nginx.conf, and docker/supervisord.conf
+#      if your runtime needs different config
+#
+# Build stages:
+#   base  — System packages + PHP extensions (cached; only rebuilds when
+#           extensions change). ~120s on cold cache, 0s on warm cache.
+#   app   — Application code + config (~5s on every build).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Stage 1: Base image (system deps + PHP extensions) ────────────────────────
+# This layer is expensive (~120s) but ONLY rebuilds when you add/remove
+# system packages or PHP extensions. It is fully cached across app deploys.
+FROM php:8.4-fpm AS base
 
 LABEL maintainer="Madeena Software"
-LABEL description="Madeena Company Profile — Laravel"
-
-# Build-time argument for embedding version into the image
-ARG APP_VERSION=dev
-ENV APP_VERSION=${APP_VERSION}
 
 # ── System packages ───────────────────────────────────────────────────────────
-RUN set -eux; \
-    apk add --no-cache \
+RUN apt-get update -qq && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends \
         nginx \
         supervisor \
         curl \
         zip \
         unzip \
         git \
-        icu-libs \
-        libzip \
-        libpng \
-        libjpeg-turbo \
-        freetype \
-        oniguruma \
-        zlib; \
-    apk add --no-cache --virtual .build-deps \
-        $PHPIZE_DEPS \
-        icu-dev \
         libzip-dev \
         libpng-dev \
-        libjpeg-turbo-dev \
-        freetype-dev \
-        oniguruma-dev \
-        zlib-dev \
-        linux-headers
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
+        libonig-dev \
+        libicu-dev \
+        libxml2-dev \
+        libcurl4-openssl-dev \
+        zlib1g-dev \
+        > /dev/null 2>&1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # ── PHP extensions ────────────────────────────────────────────────────────────
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+# Note: dom and xml are already compiled into php:8.x-fpm — do NOT re-install.
+# Note: zip is in the main batch (no reason to compile separately).
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg > /dev/null 2>&1 \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
         gd \
         intl \
+        mbstring \
         opcache \
+        pcntl \
+        pdo \
         pdo_mysql \
         zip \
-    && pecl install igbinary redis \
-    && docker-php-ext-enable igbinary redis opcache \
-    && apk del .build-deps \
-    && rm -rf /tmp/pear
+        > /dev/null 2>&1
+
+
+# ── Stage 2: Application image ───────────────────────────────────────────────
+# This stage rebuilds on every deploy — but it's just file copies (~5s).
+# ARG APP_VERSION is declared HERE (not in base) so it never busts the
+# expensive extension cache above.
+FROM base AS app
+
+# Build-time argument for embedding version into the image
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 
 # ── PHP configuration ─────────────────────────────────────────────────────────
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/php.ini "$PHP_INI_DIR/conf.d/99-custom.ini"
 
 # ── Nginx configuration ───────────────────────────────────────────────────────
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
+    && rm -f /etc/nginx/sites-enabled/000-default 2>/dev/null || true
 
 # ── Supervisor configuration ──────────────────────────────────────────────────
 RUN mkdir -p /var/log/supervisor
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-FROM base AS production
-
 # ── Application ───────────────────────────────────────────────────────────────
 WORKDIR /var/www/html
-
-# Copy the full application (vendor/ and public/build/ are pre-built by CI)
 COPY --chown=www-data:www-data . .
 
-# Ensure required Laravel directories exist with correct permissions
+# Ensure required Laravel directories exist
 RUN mkdir -p \
         storage/framework/cache/data \
         storage/framework/sessions \
@@ -89,13 +97,16 @@ RUN mkdir -p \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Ensure the VERSION file matches the build-time argument so runtime can
-# read the baked-in version even when the repository's .git is absent.
+# Bake version into the image
 RUN if [ -n "${APP_VERSION}" ]; then printf '%s' "${APP_VERSION}" > /var/www/html/VERSION || true; fi
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# ── Health check ──────────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD php -r '$s=@fsockopen("127.0.0.1",9000);if(!$s)exit(1);fclose($s);' || exit 1
 
 EXPOSE 80
 
