@@ -6,8 +6,8 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
@@ -16,8 +16,8 @@ use Illuminate\Support\Str;
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
-    protected static ?string $navigationIcon = 'heroicon-o-beaker';
-    protected static ?string $navigationGroup = 'Konten Website';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-beaker';
+    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
     protected static ?int $navigationSort = 2;
 
     public static function shouldRegisterNavigation(): bool
@@ -31,9 +31,9 @@ class ProductResource extends Resource
         return $user->isAdmin();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Forms\Components\Section::make('Informasi Produk')->schema([
                 Forms\Components\TextInput::make('name')
                     ->label('Nama Produk')->required()->maxLength(255)

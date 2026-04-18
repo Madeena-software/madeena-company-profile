@@ -1,11 +1,11 @@
 # Docker Deployment Architecture for Madeena Company Profile
 
-This document describes the complete Docker-based production and local development setup for the Madeena Company Profile Laravel 12 application.
+This document describes the complete Docker-based production and local development setup for the Madeena Company Profile Laravel 13 application.
 
 ## 📋 Overview
 
 - **Production**: Docker Compose with Laravel app container, MySQL 8.4, Redis, and Nginx reverse proxy
-- **Local Development**: Native PHP 8.3 (WSL) + Dockerized MySQL and Nginx
+- **Local Development**: Native PHP 8.4 (WSL) + Dockerized MySQL and Nginx
 - **Subdirectory Routing**: Application served from `/company-profile` path
 - **CI/CD**: GitHub Actions workflow with automated build, push, and deployment
 
@@ -22,7 +22,7 @@ This document describes the complete Docker-based production and local developme
 │         Routes to /company-profile path                 │
 │                    ↓                                      │
 ├─────────────────────────────────────────────────────────┤
-│  Laravel App Container (PHP 8.3-FPM + Supervisor)       │
+│  Laravel App Container (PHP 8.4-FPM + Supervisor)       │
 │  - PHP-FPM listens on port 9000                         │
 │  - Supervisor manages PHP-FPM + Nginx                   │
 │                    ↓                                      │
@@ -39,7 +39,7 @@ This document describes the complete Docker-based production and local developme
 │   Routes to PHP-FPM on host          │
 │            ↓                         │
 ├─────────────────────────────────────┤
-│  PHP 8.3 (Native WSL, Port 9000)    │
+│  PHP 8.4 (Native WSL, Port 9000)    │
 │  Running: php artisan serve          │
 │            ↓                         │
 ├─────────────────────────────────────┤
@@ -53,9 +53,15 @@ This document describes the complete Docker-based production and local developme
 ## 🚀 Local Development Setup (WSL)
 
 ### Prerequisites
-- PHP 8.3 installed natively on WSL
+- PHP 8.4 installed natively on WSL
 - Docker and Docker Compose installed on WSL
 - Git, Composer, Node.js 20+
+
+### Standardize WSL runtime to PHP 8.4
+
+```bash
+./setup-environment-84.sh
+```
 
 ### Step 1: Clone and Setup
 
@@ -85,7 +91,7 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### Step 3: Configure PHP 8.3 Locally
+### Step 3: Configure PHP 8.4 Locally
 
 ```bash
 # Run migrations

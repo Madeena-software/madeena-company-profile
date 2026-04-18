@@ -6,8 +6,8 @@ use App\Filament\Resources\PageResource\Pages;
 use App\Models\Page;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
@@ -16,9 +16,9 @@ use Illuminate\Support\Str;
 class PageResource extends Resource
 {
     protected static ?string $model = Page::class;
-    protected static ?string $navigationIcon = 'heroicon-o-document';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document';
     protected static ?string $navigationLabel = 'Halaman';
-    protected static ?string $navigationGroup = 'Konten Website';
+    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
     protected static ?int $navigationSort = 5;
 
     public static function shouldRegisterNavigation(): bool
@@ -32,9 +32,9 @@ class PageResource extends Resource
         return $user->isAdmin();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Forms\Components\Section::make('Informasi Halaman')->schema([
                 Forms\Components\TextInput::make('title')
                     ->label('Judul Halaman')->required()->maxLength(255)

@@ -6,8 +6,8 @@ use App\Filament\Resources\HeroBannerResource\Pages;
 use App\Models\HeroBanner;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Auth;
 class HeroBannerResource extends Resource
 {
     protected static ?string $model = HeroBanner::class;
-    protected static ?string $navigationIcon = 'heroicon-o-photo';
-    protected static ?string $navigationGroup = 'Konten Website';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
+    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
     protected static ?int $navigationSort = 1;
 
     public static function shouldRegisterNavigation(): bool
@@ -30,9 +30,9 @@ class HeroBannerResource extends Resource
         return $user->isAdmin();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Forms\Components\Section::make('Informasi Banner')->schema([
                 Forms\Components\TextInput::make('title')
                     ->label('Judul')->required()->maxLength(255),
