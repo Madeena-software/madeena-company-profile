@@ -189,6 +189,13 @@ jobs:
             exit 1
           fi
 
+          if command -v ufw >/dev/null 2>&1; then
+            echo "===> Checking host firewall for preview port 8011..."
+            _sudo ufw status verbose || true
+          else
+            echo "===> ufw is not installed; skipping firewall audit"
+          fi
+
           if [ "$REMOTE_PATH" = "/var/www" ] || [ "$REMOTE_PATH" = "/srv" ] || [ "$REMOTE_PATH" = "/opt" ] || [ "$REMOTE_PATH" = "/var" ]; then
             echo "❌ FATAL: REMOTE_PATH must be a dedicated app directory, not a shared root."
             echo "Example: /var/www/tmp or /srv/tmp"
