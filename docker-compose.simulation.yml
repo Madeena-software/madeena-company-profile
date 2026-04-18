@@ -40,6 +40,7 @@ services:
         APP_VERSION: simulation
     environment:
       PHP_FPM_ONLY: "1"
+      CACHE_STORE: file
     volumes:
       - app_storage:/var/www/html/storage
       - app_public:/var/www/public-files
@@ -66,6 +67,8 @@ services:
       - app_storage:/var/www/html/storage
       - ./storage/enterprise_data_local:/var/www/enterprise_data
     env_file: .env.simulation
+    environment:
+      CACHE_STORE: file
     depends_on:
       - app
     networks:
