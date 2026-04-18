@@ -27,3 +27,4 @@ frankenphp
 frankenphp-worker.php
 
 .env.local
+.env.*
