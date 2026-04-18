@@ -1,0 +1,40 @@
+# =============================================================================
+# Madeena Standard — Local Development Infrastructure (Docker Compose)
+# =============================================================================
+# CUSTOMIZATION REQUIRED:
+#   1. Replace madeena_cp with your app slug (lowercase, e.g. "pbu50")
+#   2. Replace {{DB_PORT}} with your assigned local MySQL port (default: 3306)
+#
+# Only infrastructure services run in Docker.
+# PHP, Composer, and NPM run natively on the WSL host.
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d       # Start
+#   docker compose -f docker-compose.local.yml down         # Stop
+#   docker compose -f docker-compose.local.yml down -v      # Stop + delete data
+# =============================================================================
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: madeena_cp-mysql-local
+    environment:
+      MYSQL_DATABASE: madeena_cp
+      MYSQL_USER: madeena_cp
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: secret
+    ports:
+      # Bind to loopback only — PHP on WSL connects via 127.0.0.1
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - madeena_cp_mysql_local:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-psecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  madeena_cp_mysql_local:
