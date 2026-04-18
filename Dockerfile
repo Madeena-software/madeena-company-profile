@@ -7,6 +7,8 @@
 # before calling `docker build`, so vendor/ and public/build/ are available
 # in the build context. The image itself therefore has no build-tool overhead.
 # ─────────────────────────────────────────────────────────────────────────────
+# Digest pin guards against runtime drift; update this ARG only after validating
+# the new digest in CI and production parity checks.
 ARG PHP_BASE=php:8.4.5-fpm-alpine3.21@sha256:5682435e64a0b2bd03337f2b9a92eacb8e095295377f3e2fa65eea15eae447b2
 FROM ${PHP_BASE} AS base
 
