@@ -120,7 +120,8 @@ git push origin main
 The `.github/workflows/deploy-docker.yml` uses these secrets to create `.env` on VPS:
 
 ```env
-APP_NAME="Madeena Company Profile"
+APP_NAME="madeena_cp"
+APP_DISPLAY_NAME="Madeena Company Profile"
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=${{ secrets.APP_KEY }}
@@ -146,6 +147,8 @@ MAIL_PORT=${{ secrets.MAIL_PORT }}
 MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
 MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
 MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
+MAIL_FROM_NAME=${APP_DISPLAY_NAME}
+VITE_APP_NAME=${APP_DISPLAY_NAME}
 ```
 
 ---

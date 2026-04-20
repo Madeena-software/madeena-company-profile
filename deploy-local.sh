@@ -103,6 +103,7 @@ set_env() {
 
 sync_local_env() {
     set_env "APP_NAME" '"madeena_cp"'
+    set_env "APP_DISPLAY_NAME" '"Madeena Company Profile"'
     set_env "APP_ENV" "local"
     set_env "APP_URL" "http://localhost:8000"
     set_env "DB_CONNECTION" "mysql"
@@ -118,6 +119,8 @@ sync_local_env() {
     set_env "MAIL_MAILER" "log"
     set_env "MAIL_HOST" "127.0.0.1"
     set_env "MAIL_PORT" "2525"
+    set_env "MAIL_FROM_NAME" '"Madeena Company Profile"'
+    set_env "VITE_APP_NAME" '"Madeena Company Profile"'
 }
 
 # ─── HEADER ───────────────────────────────────────────────────────────────────

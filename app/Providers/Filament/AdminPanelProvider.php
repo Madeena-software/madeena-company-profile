@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->brandName(config('app.display_name', 'Madeena Company Profile'))
             ->login()
             ->profile()
             ->registration(Register::class)
