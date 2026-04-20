@@ -5,8 +5,17 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use App\Models\User;
-use Filament\Forms;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -34,24 +43,24 @@ class ProductResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Forms\Components\Section::make('Informasi Produk')->schema([
-                Forms\Components\TextInput::make('name')
+            Section::make('Informasi Produk')->schema([
+                TextInput::make('name')
                     ->label('Nama Produk')->required()->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('slug', Str::slug($state))),
-                Forms\Components\TextInput::make('slug')
+                    ->afterStateUpdated(fn($state, Set $set) => $set('slug', Str::slug($state))),
+                TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
-                Forms\Components\TextInput::make('tagline')
+                TextInput::make('tagline')
                     ->label('Tagline')->maxLength(255),
-                Forms\Components\RichEditor::make('description')
+                RichEditor::make('description')
                     ->label('Deskripsi')->columnSpanFull(),
-                Forms\Components\FileUpload::make('image_path')
+                FileUpload::make('image_path')
                     ->label('Gambar Produk')->image()->disk('public')->directory('products'),
-                Forms\Components\KeyValue::make('specifications')
+                KeyValue::make('specifications')
                     ->label('Spesifikasi')->columnSpanFull(),
-                Forms\Components\Toggle::make('is_featured')->label('Unggulan'),
-                Forms\Components\Toggle::make('is_active')->label('Aktif')->default(true),
-                Forms\Components\TextInput::make('sort_order')->label('Urutan')->numeric()->default(0),
+                Toggle::make('is_featured')->label('Unggulan'),
+                Toggle::make('is_active')->label('Aktif')->default(true),
+                TextInput::make('sort_order')->label('Urutan')->numeric()->default(0),
             ])->columns(2),
         ]);
     }
@@ -67,9 +76,9 @@ class ProductResource extends Resource
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),
         ])->defaultSort('sort_order')
             ->filters([])
-            ->actions([Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->actions([EditAction::make()])
+            ->bulkActions([BulkActionGroup::make([
+                DeleteBulkAction::make(),
             ])]);
     }
 

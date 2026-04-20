@@ -57,6 +57,13 @@ This file documents all required GitHub Secrets for the Docker deployment pipeli
 | `APP_DOMAIN` | Domain name for the application | `example.com` |
 | `APP_KEY` | Laravel encryption key (generate: `php artisan key:generate --show`) | `base64:xxxxx...` |
 
+### Admin Credentials
+
+| Secret Name | Description | Example |
+|-------------|-------------|---------|
+| `SUPER_ADMIN_EMAIL` | Production admin login email used by the admin reset workflow | `admin@example.com` |
+| `SUPER_ADMIN_PASSWORD` | Production admin login password used by the admin reset workflow | `strong_password_here` |
+
 ---
 
 ### Database Configuration

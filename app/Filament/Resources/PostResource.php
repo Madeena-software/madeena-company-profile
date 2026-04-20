@@ -5,8 +5,19 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PostResource\Pages;
 use App\Models\Post;
 use App\Models\User;
-use Filament\Forms;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -25,14 +36,14 @@ class PostResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Forms\Components\Section::make('Informasi Blog')->schema([
-                Forms\Components\TextInput::make('title')
+            Section::make('Informasi Blog')->schema([
+                TextInput::make('title')
                     ->label('Judul')->required()->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('slug', Str::slug($state))),
-                Forms\Components\TextInput::make('slug')
+                    ->afterStateUpdated(fn($state, Set $set) => $set('slug', Str::slug($state))),
+                TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
-                Forms\Components\Select::make('user_id')
+                Select::make('user_id')
                     ->label('Penulis')
                     ->options(User::pluck('name', 'id'))
                     ->required()
@@ -47,17 +58,17 @@ class PostResource extends Resource
                         return ! $user->isAdmin();
                     })
                     ->dehydrated(),
-                Forms\Components\TextInput::make('category')->label('Kategori'),
-                Forms\Components\Textarea::make('excerpt')->label('Ringkasan')->rows(2),
-                Forms\Components\FileUpload::make('cover_image')
+                TextInput::make('category')->label('Kategori'),
+                Textarea::make('excerpt')->label('Ringkasan')->rows(2),
+                FileUpload::make('cover_image')
                     ->label('Gambar Sampul')->image()->disk('public')->directory('posts'),
-                Forms\Components\RichEditor::make('body')
+                RichEditor::make('body')
                     ->label('Isi Blog')->columnSpanFull(),
-                Forms\Components\Toggle::make('is_published')->label('Publikasikan')
+                Toggle::make('is_published')->label('Publikasikan')
                     ->live()
-                    ->afterStateUpdated(fn($state, Forms\Set $set) =>
+                    ->afterStateUpdated(fn($state, Set $set) =>
                     $set('published_at', $state ? now() : null)),
-                Forms\Components\DateTimePicker::make('published_at')
+                DateTimePicker::make('published_at')
                     ->label('Tanggal Publikasi'),
             ])->columns(2),
         ]);
@@ -75,9 +86,9 @@ class PostResource extends Resource
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),
         ])->defaultSort('published_at', 'desc')
             ->filters([])
-            ->actions([Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->actions([EditAction::make()])
+            ->bulkActions([BulkActionGroup::make([
+                DeleteBulkAction::make(),
             ])])
             ->modifyQueryUsing(function (Builder $query) {
                 $user = Auth::user();

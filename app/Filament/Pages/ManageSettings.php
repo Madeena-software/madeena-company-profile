@@ -4,9 +4,11 @@ namespace App\Filament\Pages;
 
 use App\Models\User;
 use App\Models\Setting;
-use Filament\Forms;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
 
@@ -38,27 +40,33 @@ class ManageSettings extends Page
         $this->form->fill($settings);
     }
 
+    protected function defaultForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('data');
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            Forms\Components\Section::make('Informasi Kontak')->schema([
-                Forms\Components\TextInput::make('company_name')->label('Nama Perusahaan'),
-                Forms\Components\TextInput::make('tagline')->label('Tagline'),
-                Forms\Components\TextInput::make('email')->label('Email')->email(),
-                Forms\Components\TextInput::make('phone')->label('Telepon'),
-                Forms\Components\TextInput::make('whatsapp')->label('WhatsApp'),
-                Forms\Components\Textarea::make('address')->label('Alamat')->rows(3),
+            Section::make('Informasi Kontak')->schema([
+                TextInput::make('company_name')->label('Nama Perusahaan'),
+                TextInput::make('tagline')->label('Tagline'),
+                TextInput::make('email')->label('Email')->email(),
+                TextInput::make('phone')->label('Telepon'),
+                TextInput::make('whatsapp')->label('WhatsApp'),
+                Textarea::make('address')->label('Alamat')->rows(3),
             ])->columns(2),
-            Forms\Components\Section::make('Media Sosial')->schema([
-                Forms\Components\TextInput::make('instagram')->label('Instagram URL'),
-                Forms\Components\TextInput::make('linkedin')->label('LinkedIn URL'),
-                Forms\Components\TextInput::make('youtube')->label('YouTube URL'),
+            Section::make('Media Sosial')->schema([
+                TextInput::make('instagram')->label('Instagram URL'),
+                TextInput::make('linkedin')->label('LinkedIn URL'),
+                TextInput::make('youtube')->label('YouTube URL'),
             ])->columns(3),
-            Forms\Components\Section::make('SEO')->schema([
-                Forms\Components\TextInput::make('meta_title')->label('Meta Title'),
-                Forms\Components\Textarea::make('meta_description')->label('Meta Description')->rows(3),
+            Section::make('SEO')->schema([
+                TextInput::make('meta_title')->label('Meta Title'),
+                Textarea::make('meta_description')->label('Meta Description')->rows(3),
             ])->columns(1),
-        ])->statePath('data');
+        ]);
     }
 
     public function save(): void

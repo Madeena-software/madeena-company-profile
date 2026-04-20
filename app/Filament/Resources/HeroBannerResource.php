@@ -5,8 +5,15 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HeroBannerResource\Pages;
 use App\Models\HeroBanner;
 use App\Models\User;
-use Filament\Forms;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -33,22 +40,22 @@ class HeroBannerResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Forms\Components\Section::make('Informasi Banner')->schema([
-                Forms\Components\TextInput::make('title')
+            Section::make('Informasi Banner')->schema([
+                TextInput::make('title')
                     ->label('Judul')->required()->maxLength(255),
-                Forms\Components\TextInput::make('subtitle')
+                TextInput::make('subtitle')
                     ->label('Subjudul')->maxLength(255),
-                Forms\Components\Textarea::make('description')
+                Textarea::make('description')
                     ->label('Deskripsi')->rows(3),
-                Forms\Components\FileUpload::make('image_path')
+                FileUpload::make('image_path')
                     ->label('Gambar Banner')->image()->disk('public')->directory('banners'),
-                Forms\Components\TextInput::make('cta_text')
+                TextInput::make('cta_text')
                     ->label('Teks Tombol CTA'),
-                Forms\Components\TextInput::make('cta_url')
+                TextInput::make('cta_url')
                     ->label('URL Tombol CTA'),
-                Forms\Components\TextInput::make('sort_order')
+                TextInput::make('sort_order')
                     ->label('Urutan')->numeric()->default(0),
-                Forms\Components\Toggle::make('is_active')
+                Toggle::make('is_active')
                     ->label('Aktif')->default(true),
             ]),
         ]);
@@ -65,9 +72,9 @@ class HeroBannerResource extends Resource
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),
         ])->defaultSort('sort_order')->reorderable('sort_order')
             ->filters([])
-            ->actions([Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->actions([EditAction::make()])
+            ->bulkActions([BulkActionGroup::make([
+                DeleteBulkAction::make(),
             ])]);
     }
 
