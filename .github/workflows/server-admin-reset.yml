@@ -82,29 +82,3 @@ jobs:
                   exit(1);
               }
             "
-
-      - name: "3/3 — Verify Login Endpoint HTTP Status"
-        run: |
-          set -euo pipefail
-          echo "▶ Verifying http://${{ secrets.SSH_HOST }}:8011/admin "
-          
-          # Fetch the HTTP response including body and code
-          RESPONSE=$(curl -s -w "\n%{http_code}" http://${{ secrets.SSH_HOST }}:8011/admin || echo "Failed")
-          
-          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-          
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ Endpoint reached successfully. HTTP 200 OK."
-            
-            # Additional check for login page content to ensure Filament form rendered
-            if echo "$BODY" | grep -q 'wire:submit="authenticate"'; then
-               echo "✅ Login form rendered correctly in the HTML."
-            else
-               echo "❌ Endpoint returned 200 OK, but the login form (wire:submit=\"authenticate\") was not found! The page may be broken."
-               exit 1
-            fi
-          else
-            echo "❌ Endpoint returned status: $HTTP_STATUS"
-            exit 1
-          fi

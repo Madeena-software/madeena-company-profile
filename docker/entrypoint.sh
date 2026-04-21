@@ -36,6 +36,9 @@ php artisan storage:link --force 2>/dev/null || true
 # Run migrations
 php artisan migrate --force
 
+# Seed the CMS content only when the site tables are still empty.
+php artisan madeena:seed-cms --force
+
 # Optimise for production
 php artisan config:cache
 php artisan route:cache

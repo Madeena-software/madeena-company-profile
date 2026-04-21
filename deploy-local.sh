@@ -258,6 +258,8 @@ if [[ "${FRESH}" == "true" ]]; then
 else
     php artisan migrate --force
     info "Migrations applied."
+
+    php artisan madeena:seed-cms --force
 fi
 
 php artisan storage:link --force 2>/dev/null || true

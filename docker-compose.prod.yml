@@ -88,7 +88,6 @@ services:
           memory: 128M
     environment:
       PHP_FPM_ONLY: "1"
-      CACHE_STORE: file
     volumes:
       - app_storage:/var/www/html/storage
       - app_public:/var/www/public-files
@@ -142,7 +141,7 @@ services:
       - app_storage:/var/www/html/storage
     env_file: .env
     environment:
-      CACHE_STORE: file
+      CACHE_STORE: database
     depends_on:
       - app
     networks:

@@ -75,6 +75,16 @@ This file documents all required GitHub Secrets for the Docker deployment pipeli
 | `DB_PASSWORD` | MySQL user password | `secure_password_123` |
 | `DB_ROOT_PASSWORD` | MySQL root password | `root_password_456` |
 
+### Server Database Setup Workflow
+
+The manual workflow at `.github/workflows/server-setup-db.yml` uses this extra secret to create the backup directory, install the cron job, and write the backup script on the self-hosted runner:
+
+| Secret Name | Description | Example |
+|-------------|-------------|---------|
+| `SUDO_PASSWORD` | Password for the runner user to run `sudo` during DB setup and backup installation | `your_sudo_password` |
+
+Backup files are written to `/media/nextcloud-data/madeena_cp_backups`.
+
 ---
 
 ### Redis Configuration
