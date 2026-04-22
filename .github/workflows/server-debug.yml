@@ -1,0 +1,146 @@
+name: "Server - Swarm Debug"
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_name:
+        description: "Swarm service to inspect"
+        required: false
+        default: "madeena_cp_queue"
+      log_tail:
+        description: "Number of log lines to show"
+        required: false
+        default: "200"
+
+permissions:
+  contents: read
+
+env:
+  APP_SLUG: madeena_cp
+
+jobs:
+  debug:
+    name: "Collect Swarm Diagnostics"
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate runner access
+        run: |
+          set -euo pipefail
+
+          echo "Checking Docker access..."
+          docker version >/dev/null 2>&1 || {
+            echo "FATAL: runner cannot access Docker."
+            exit 1
+          }
+
+          echo "Checking Swarm state..."
+          docker info --format 'Swarm={{.Swarm.LocalNodeState}} NodeID={{.Swarm.NodeID}}' | sed 's/^/  /'
+
+      - name: Inspect stack services
+        run: |
+          set -euo pipefail
+
+          echo "=== Docker services ==="
+          docker service ls --format 'table {{.Name}}\t{{.Replicas}}\t{{.Image}}' | sed 's/^/  /'
+
+          echo ""
+          echo "=== Stack tasks ==="
+          for svc in "${APP_SLUG}_app" "${APP_SLUG}_db" "${APP_SLUG}_nginx" "${APP_SLUG}_queue"; do
+            echo "-- $svc --"
+            docker service ps "$svc" --no-trunc 2>/dev/null | sed 's/^/  /' || echo "  (service not found)"
+            echo ""
+          done
+
+      - name: Inspect target service
+        env:
+          SERVICE_NAME: ${{ inputs.service_name }}
+        run: |
+          set -euo pipefail
+
+          echo "=== Target service: ${SERVICE_NAME} ==="
+          if ! docker service inspect "$SERVICE_NAME" >/dev/null 2>&1; then
+            echo "FATAL: service '${SERVICE_NAME}' was not found."
+            echo "Available services:"
+            docker service ls --format '{{.Name}}' | sed 's/^/  /'
+            exit 1
+          fi
+
+          echo "-- Service inspect --"
+          docker service inspect "$SERVICE_NAME" --pretty | sed 's/^/  /'
+
+          echo ""
+          echo "-- Current task state --"
+          docker service ps "$SERVICE_NAME" --no-trunc | sed 's/^/  /'
+
+          echo ""
+          echo "-- Service command/args --"
+          docker service inspect "$SERVICE_NAME" \
+            --format '{{range .Spec.TaskTemplate.ContainerSpec.Args}}{{.}} {{end}}' | sed 's/^/  /'
+
+      - name: Show target logs
+        env:
+          SERVICE_NAME: ${{ inputs.service_name }}
+          LOG_TAIL: ${{ inputs.log_tail }}
+        run: |
+          set -euo pipefail
+
+          echo "=== Logs for ${SERVICE_NAME} (tail ${LOG_TAIL}) ==="
+          docker service logs "$SERVICE_NAME" --tail "$LOG_TAIL" 2>/dev/null | sed 's/^/  /' || {
+            echo "  (no logs available)"
+          }
+
+      - name: Inspect running container if present
+        env:
+          SERVICE_NAME: ${{ inputs.service_name }}
+        run: |
+          set -euo pipefail
+
+          CONTAINER_ID=$(docker ps -q -f name="$SERVICE_NAME" | head -n 1 || true)
+          if [ -z "$CONTAINER_ID" ]; then
+            echo "No running container found for ${SERVICE_NAME}."
+            exit 0
+          fi
+
+          echo "=== Container inspect ==="
+          docker inspect "$CONTAINER_ID" --format 'ID={{.Id}} Name={{.Name}} Status={{.State.Status}} Health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' | sed 's/^/  /'
+
+          echo ""
+          echo "=== Container health log ==="
+          docker inspect "$CONTAINER_ID" --format '{{json .State.Health}}' 2>/dev/null | sed 's/^/  /' || true
+
+          if [ "$SERVICE_NAME" = "${APP_SLUG}_queue" ]; then
+            echo ""
+            echo "=== Queue service command check ==="
+            docker service inspect "$SERVICE_NAME" \
+              --format '{{range .Spec.TaskTemplate.ContainerSpec.Args}}{{.}} {{end}}' \
+              | grep -q 'queue:work' \
+              && echo "  queue:work detected" \
+              || echo "  queue:work not detected"
+          fi
+
+      - name: Resource snapshot
+        run: |
+          set -euo pipefail
+
+          echo "=== System resources ==="
+          df -h | sed 's/^/  /'
+          echo ""
+          free -m | sed 's/^/  /'
+          echo ""
+          docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}' | sed 's/^/  /' || true
+
+      - name: Swarm summary
+        run: |
+          set -euo pipefail
+
+          echo "=== Stack summary ==="
+          docker stack ps "$APP_SLUG" --no-trunc 2>/dev/null | sed 's/^/  /' || true
+
+          echo ""
+          echo "=== Service replicas ==="
+          docker service ls --format 'table {{.Name}}\t{{.Replicas}}' --filter "name=${APP_SLUG}_" | sed 's/^/  /'
