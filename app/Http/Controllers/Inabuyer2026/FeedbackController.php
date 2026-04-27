@@ -20,7 +20,7 @@ class FeedbackController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'organization' => ['nullable', 'string', 'max:255'],
-            'kesan_dan_pesan' => ['required', 'string', 'min:20', 'max:5000'],
+            'kesan_dan_pesan' => ['required', 'string', 'max:5000'],
         ]);
 
         InabuyerMessage::create([
