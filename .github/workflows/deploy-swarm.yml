@@ -231,6 +231,7 @@ jobs:
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
           SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
           IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
           APP_VERSION: ${{ needs.build-and-push.outputs.image_tag }}
         run: |
@@ -259,10 +260,18 @@ jobs:
           }
 
           # ── Prepare host directories ────────────────────────────────────────
-          _sudo mkdir -p /media/nextcloud-data/madeena_cp_mysql
-          _sudo chown -R 999:999 /media/nextcloud-data/madeena_cp_mysql
-          _sudo mkdir -p /media/nextcloud-data/madeena_cp_storage
-          _sudo chown -R "$SSH_USER":"$SSH_USER" /media/nextcloud-data/madeena_cp_storage
+          # MySQL — SSD path (must NOT be inside Nextcloud data tree)
+          _sudo mkdir -p /var/lib/madeena_cp/mysql
+          _sudo chown -R 999:999 /var/lib/madeena_cp/mysql
+
+          # App storage — Nextcloud-namespaced path (HDD)
+          if [ -z "${NEXTCLOUD_USERNAME:-}" ]; then
+            echo "❌ FATAL: NEXTCLOUD_USERNAME secret is missing!"
+            exit 1
+          fi
+          NC_STORAGE="/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage"
+          _sudo mkdir -p "$NC_STORAGE"
+          _sudo chown -R "$SSH_USER":"$SSH_USER" "$NC_STORAGE"
 
           # ── Prepare deployment directory ─────────────────────────────────────
           echo "===> Preparing deployment root..."
@@ -364,6 +373,7 @@ jobs:
             printf 'MAIL_FROM_NAME=%s\n' "Madeena Company Profile"
             printf 'SUPER_ADMIN_EMAIL=%s\n' "$SUPER_ADMIN_EMAIL"
             printf 'SUPER_ADMIN_PASSWORD=%s\n' "$SUPER_ADMIN_PASSWORD"
+            printf 'NEXTCLOUD_USERNAME=%s\n' "$NEXTCLOUD_USERNAME"
             printf 'DOCKERHUB_USERNAME=%s\n' "$DOCKERHUB_USERNAME"
             printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG"
             printf 'APP_VERSION=%s\n' "$APP_VERSION"
@@ -491,6 +501,20 @@ jobs:
           NGINX_CONTAINER=$(docker ps -q -f name=madeena_cp_nginx | head -n 1)
           [ -n "$NGINX_CONTAINER" ] && docker exec "$NGINX_CONTAINER" nginx -t || true
           echo "✅ Deployment complete."
+
+          # ── Notify Nextcloud of new uploaded files (best-effort) ──────────────
+          echo "===> Triggering Nextcloud file scan for madeena_cp_storage..."
+          NC_CONTAINER=$(docker ps -q --filter status=running --filter name=nextcloud_app | head -n 1)
+          [ -z "$NC_CONTAINER" ] && NC_CONTAINER=$(docker ps -q --filter status=running --filter name=nextcloud | head -n 1)
+          if [ -n "$NC_CONTAINER" ]; then
+            docker exec --user www-data "$NC_CONTAINER" \
+              php /var/www/html/occ files:scan \
+              --path="${NEXTCLOUD_USERNAME}/files/madeena_cp_storage" 2>/dev/null \
+              && echo "✅ Nextcloud file scan complete." \
+              || echo "⚠️  Nextcloud file scan failed (non-fatal — run manually if needed)."
+          else
+            echo "⚠️  No running Nextcloud container found; skipping file scan."
+          fi
 
       - name: Cleanup old images
         if: always()

@@ -12,7 +12,7 @@ permissions:
 
 env:
   APP_SLUG: madeena_cp
-  BACKUP_DIR: /media/nextcloud-data/madeena_cp_backups
+  BACKUP_DIR: /media/nextcloud-data/data/${{ secrets.NEXTCLOUD_USERNAME }}/files/madeena_cp_backups
   BACKUP_SCRIPT: /opt/madeena-cp-db-backup.sh
   DB_ENV_FILE: /opt/madeena-cp-db-backup.env
   DB_DATABASE: ${{ secrets.DB_DATABASE }}
@@ -20,6 +20,7 @@ env:
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
   SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
+  NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
 
 jobs:
   db-setup:
@@ -190,7 +191,7 @@ jobs:
           fi
 
           APP_SLUG="${APP_SLUG:-madeena_cp}"
-          BACKUP_DIR="${BACKUP_DIR:-/media/nextcloud-data/madeena_cp_backups}"
+          BACKUP_DIR="${BACKUP_DIR:-/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups}"
           RETENTION_DAYS="${RETENTION_DAYS:-14}"
           DB_NAME="${DB_DATABASE:-}"
           DB_ROOT_PASS="${DB_ROOT_PASSWORD:-}"

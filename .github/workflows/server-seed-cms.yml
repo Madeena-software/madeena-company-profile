@@ -1,0 +1,86 @@
+name: "Server - Re-seed CMS Content"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Use this workflow to manually force-run specific seeders on the production
+# database WITHOUT doing a full deploy. Useful when:
+#   - A seeder was updated (e.g., image_path added) and the DB already has data
+#   - You need to reset/update a specific content type
+#   - The deploy already ran but the seed was skipped because tables weren't empty
+#
+# This workflow runs on the self-hosted runner (direct server access via Docker).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+on:
+  workflow_dispatch:
+    inputs:
+      seeder_class:
+        description: "Seeder class to run (leave empty to run all via DatabaseSeeder)"
+        required: false
+        default: ""
+        type: string
+      confirm:
+        description: "Type 'yes' to confirm — this updates production data"
+        required: true
+        default: "no"
+        type: string
+
+concurrency:
+  group: server-seed-madeena_cp
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    name: Re-seed CMS Content
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "yes" ]; then
+            echo "❌ Aborted: you must type 'yes' in the confirm field."
+            exit 1
+          fi
+          echo "✅ Confirmed."
+
+      - name: Locate app container
+        run: |
+          set -euo pipefail
+
+          CONTAINER=$(docker ps -q -f name=madeena_cp_app | head -n 1)
+          if [ -z "$CONTAINER" ]; then
+            echo "❌ FATAL: madeena_cp_app container is not running."
+            docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+            exit 1
+          fi
+
+          echo "CONTAINER=$CONTAINER" >> "$GITHUB_ENV"
+          echo "✅ Found container: $CONTAINER"
+
+      - name: Run seeder
+        run: |
+          set -euo pipefail
+
+          SEEDER_CLASS="${{ github.event.inputs.seeder_class }}"
+
+          if [ -n "$SEEDER_CLASS" ]; then
+            echo "===> Running: php artisan db:seed --class=$SEEDER_CLASS --force"
+            docker exec "$CONTAINER" php artisan db:seed \
+              --class="$SEEDER_CLASS" \
+              --force 2>&1
+          else
+            echo "===> Running: php artisan db:seed --force (all seeders)"
+            docker exec "$CONTAINER" php artisan db:seed \
+              --force 2>&1
+          fi
+
+          echo "✅ Seeder complete."
+
+      - name: Verify product image
+        run: |
+          echo "===> Checking product image_path in DB..."
+          docker exec "$CONTAINER" php artisan tinker --execute="\
+            \$p = App\Models\Product::where('slug','ddr-madeena-hf100b-mdn')->first();\
+            echo 'image_path: ' . (\$p->image_path ?? '(null)') . PHP_EOL;\
+            echo 'file exists: ' . (Storage::disk('public')->exists(\$p->image_path ?? '') ? 'yes' : 'no') . PHP_EOL;\
+          " 2>/dev/null || true

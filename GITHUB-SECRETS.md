@@ -82,8 +82,19 @@ The manual workflow at `.github/workflows/server-setup-db.yml` uses this extra s
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
 | `SUDO_PASSWORD` | Password for the runner user to run `sudo` during DB setup and backup installation | `your_sudo_password` |
+| `NEXTCLOUD_USERNAME` | Nextcloud username on the production server — used to build the correct storage and backup paths | `admin` |
 
-Backup files are written to `/media/nextcloud-data/madeena_cp_backups`.
+Backup files are written to `/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups`.
+
+---
+
+### Storage Paths Summary
+
+| Path | Purpose | Disk |
+|------|---------|------|
+| `/var/lib/madeena_cp/mysql` | MySQL data files | SSD |
+| `/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage` | App uploaded files (product images, etc.) — visible in Nextcloud | HDD |
+| `/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups` | Automated DB backups — visible in Nextcloud | HDD |
 
 ---
 

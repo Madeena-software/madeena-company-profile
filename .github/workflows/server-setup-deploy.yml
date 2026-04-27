@@ -32,6 +32,7 @@ jobs:
           SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
           SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
+          NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
         run: |
           set -euo pipefail
 
@@ -88,13 +89,20 @@ jobs:
           echo "  ✅ $REMOTE_PATH (owner: $SSH_USER)"
 
           echo "===> Pre-creating deployment directories..."
-          sudo mkdir -p /media/nextcloud-data/madeena_cp_storage
-          sudo chown -R "$SSH_USER":"$SSH_USER" /media/nextcloud-data/madeena_cp_storage
+          # MySQL — SSD path (must NOT be inside Nextcloud data tree)
+          sudo mkdir -p /var/lib/madeena_cp/mysql
+          sudo chown -R 999:999 /var/lib/madeena_cp/mysql
 
-          sudo mkdir -p /media/nextcloud-data/madeena_cp_mysql
-          sudo chown -R 999:999 /media/nextcloud-data/madeena_cp_mysql
+          # App storage — Nextcloud-namespaced path (HDD)
+          if [ -z "${NEXTCLOUD_USERNAME:-}" ]; then
+            echo "❌ FATAL: NEXTCLOUD_USERNAME secret is missing!"
+            exit 1
+          fi
+          sudo mkdir -p "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage"
+          sudo chown -R "$SSH_USER":"$SSH_USER" "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage"
 
-          sudo mkdir -p /media/nextcloud-data/madeena_cp_backups
-          sudo chown -R "$SSH_USER":"$SSH_USER" /media/nextcloud-data/madeena_cp_backups
+          # Backups — Nextcloud-namespaced path (HDD)
+          sudo mkdir -p "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups"
+          sudo chown -R "$SSH_USER":"$SSH_USER" "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups"
 
           echo "✅ Directories created."
