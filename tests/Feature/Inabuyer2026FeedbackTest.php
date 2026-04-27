@@ -1,0 +1,54 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\InabuyerMessage;
+use Tests\TestCase;
+
+class Inabuyer2026FeedbackTest extends TestCase
+{
+    public function test_feedback_page_is_accessible(): void
+    {
+        $response = $this->get(route('inabuyer2026.feedback'));
+
+        $response->assertOk();
+        $response->assertSee('Inabuyer 2026 Feedback');
+    }
+
+    public function test_feedback_submission_is_stored_successfully(): void
+    {
+        $payload = [
+            'name' => 'Aisyah Putri',
+            'organization' => 'PT Nusantara Export',
+            'kesan_dan_pesan' => 'Acara sangat bermanfaat dan saya berharap sesi networking ditambah pada tahun berikutnya.',
+        ];
+
+        $response = $this->post(route('inabuyer2026.feedback.store'), $payload);
+
+        $response->assertRedirect(route('inabuyer2026.feedback'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('inabuyer_messages', [
+            'name' => 'Aisyah Putri',
+            'organization' => 'PT Nusantara Export',
+            'kesan_dan_pesan' => 'Acara sangat bermanfaat dan saya berharap sesi networking ditambah pada tahun berikutnya.',
+        ]);
+    }
+
+    public function test_feedback_submission_requires_kesan_dan_pesan(): void
+    {
+        $payload = [
+            'name' => 'Bima Arta',
+            'organization' => 'PT Mitra Dagang',
+            'kesan_dan_pesan' => '',
+        ];
+
+        $response = $this->from(route('inabuyer2026.feedback'))
+            ->post(route('inabuyer2026.feedback.store'), $payload);
+
+        $response->assertRedirect(route('inabuyer2026.feedback'));
+        $response->assertSessionHasErrors(['kesan_dan_pesan']);
+
+        $this->assertSame(0, InabuyerMessage::query()->count());
+    }
+}
