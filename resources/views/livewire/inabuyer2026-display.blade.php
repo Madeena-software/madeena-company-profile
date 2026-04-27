@@ -21,38 +21,34 @@
                 Booth Madeena
             </h1>
             <p class="mt-2 text-xl font-medium tracking-wide text-madeena-teal">
-                Inabuyer 2026 | Live Impressions & Messages
+                Inabuyer 2026 | Live Impressions & Messages | <span class="text-white/50">{{ now()->format('H:i:s') }}</span>
             </p>
         </div>
     </div>
 
     <!-- Main Content Area (Messages List) -->
-    <div class="relative z-10 flex flex-1 flex-col justify-start gap-6 overflow-hidden px-8 py-8">
+    <div class="relative z-10 flex flex-1 flex-col justify-start gap-6 overflow-y-auto min-h-0 px-8 py-8 pb-32">
         @forelse ($messages as $message)
-            <div wire:key="{{ $message->id }}"
-                class="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 px-8 py-6 shadow-xl backdrop-blur-md transition-all duration-700 ease-in-out hover:bg-white/10">
-                <!-- Decorative Accent Line -->
-                <div
-                    class="absolute left-0 top-0 h-full w-1.5 bg-gradient-to-b from-madeena-teal to-madeena-blue opacity-80">
-                </div>
-
-                <div class="mb-4 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">{{ $message->name }}</h2>
-                        @if($message->organization)
-                            <p class="mt-1 text-lg font-medium text-madeena-teal">{{ $message->organization }}</p>
-                        @endif
-                    </div>
-                    <div class="text-right">
+            <div wire:key="{{ $message->id }}" class="bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl backdrop-blur-md">
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                        <h2 class="text-3xl font-bold text-white">
+                            {{ $message->name }}
+                            @if($message->organization)
+                                <span class="text-xl font-normal text-madeena-teal ml-2">dari {{ $message->organization }}</span>
+                            @endif
+                        </h2>
                         <span class="text-sm font-semibold tracking-wider text-white/40 uppercase">
                             {{ $message->created_at->diffForHumans() }}
                         </span>
                     </div>
-                </div>
 
-                <p class="text-2xl leading-relaxed text-slate-200 font-medium">
-                    "{{ $message->kesan_dan_pesan }}"
-                </p>
+                    <div class="pt-2">
+                        <p class="text-4xl leading-relaxed text-white font-black">
+                            {{ $message->kesan_dan_pesan }}
+                        </p>
+                    </div>
+                </div>
             </div>
         @empty
             <div class="flex h-full flex-col items-center justify-center text-center opacity-60">
