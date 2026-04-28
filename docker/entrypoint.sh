@@ -11,12 +11,13 @@ if [ -n "$DB_HOST" ]; then
     _DB_WAIT=0
     until php -r "\$h=getenv('DB_HOST');\$p=getenv('DB_PORT')?:'3306';\$d=getenv('DB_DATABASE');\$u=getenv('DB_USERNAME');\$pw=getenv('DB_PASSWORD');new PDO(\"mysql:host=\$h;port=\$p;dbname=\$d\",\$u,\$pw);" 2>/dev/null; do
         _DB_WAIT=$((_DB_WAIT + 3))
-        if [ "$_DB_WAIT" -ge 120 ]; then
-            echo "[entrypoint] ❌ Database not ready after 120s — aborting."
-            echo "[entrypoint]   DB_HOST=$DB_HOST DB_PORT=${DB_PORT:-3306} DB_DATABASE=$DB_DATABASE DB_USERNAME=$DB_USERNAME"
-            exit 1
+        if [ "$((_DB_WAIT % 30))" -eq 0 ]; then
+            echo "[entrypoint]   … waiting (${_DB_WAIT}s elapsed)"
         fi
-        echo "[entrypoint]   … waiting (${_DB_WAIT}s elapsed)"
+        if [ "$((_DB_WAIT % 60))" -eq 0 ]; then
+            echo "[entrypoint] ⚠️  Database not ready after ${_DB_WAIT}s — still waiting..."
+            echo "[entrypoint]   DB_HOST=$DB_HOST DB_PORT=${DB_PORT:-3306} DB_DATABASE=$DB_DATABASE DB_USERNAME=$DB_USERNAME"
+        fi
         sleep 3
     done
     echo "[entrypoint] ✅ Database is ready."
