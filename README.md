@@ -30,36 +30,39 @@ Website company profile untuk PT Madeena Karya Indonesia, produsen alat Digital 
 git clone <repo-url>
 cd website-company-profile-madeena
 
-# 2. Install PHP dependencies
+# 2. Standardize the WSL PHP 8.4 runtime
+./setup-environment-84.sh
+
+# 3. Install PHP dependencies
 composer install
 
-# 3. Install Node dependencies
+# 4. Install Node dependencies
 npm install
 
-# 4. Copy environment file
+# 5. Copy environment file
 cp .env.example .env
 php artisan key:generate
 
-# 5. Configure database in .env
+# 6. Configure database in .env
 DB_CONNECTION=mysql
 DB_DATABASE=madeena
 DB_USERNAME=root
 DB_PASSWORD=
 
-# 6. Run migrations & seeders
+# 7. Run migrations & seeders
 php artisan migrate
 php artisan db:seed
 
-# 7. Build frontend assets
+# 8. Build frontend assets
 npm run build
 
-# 8. Create storage link
+# 9. Create storage link
 php artisan storage:link
 
-# 9. Create admin user
+# 10. Create admin user
 php artisan make:filament-user
 
-# 10. Serve
+# 11. Serve
 php artisan serve
 ```
 

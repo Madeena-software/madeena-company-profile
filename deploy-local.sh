@@ -136,7 +136,11 @@ fi
 # ─── STEP 1: PREFLIGHT CHECKS ────────────────────────────────────────────────
 step "1/8 · Preflight checks"
 
-require_cmd php
+if ! command -v php &>/dev/null; then
+        die "Required command not found: 'php'. This setup expects PHP 8.4 on the WSL host.
+    Run: ./setup-environment-84.sh
+    Or install PHP 8.4 + required extensions, then rerun deploy-local.sh."
+fi
 require_cmd composer
 require_cmd node
 require_cmd npm
