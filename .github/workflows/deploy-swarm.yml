@@ -508,22 +508,23 @@ jobs:
           echo "✅ Deployment complete."
 
           # ── Notify Nextcloud of new uploaded files (best-effort) ──────────────
+          # NOTE: occ files:scan --path requires a leading "/" before the username.
           NC_CONTAINER=$(docker ps -q --filter status=running --filter name=nextcloud_app | head -n 1)
           [ -z "$NC_CONTAINER" ] && NC_CONTAINER=$(docker ps -q --filter status=running --filter name=nextcloud | head -n 1)
           if [ -n "$NC_CONTAINER" ]; then
             echo "===> Triggering Nextcloud file scan for madeena_cp_storage..."
             docker exec --user www-data "$NC_CONTAINER" \
               php /var/www/html/occ files:scan \
-              --path="${NEXTCLOUD_USERNAME}/files/madeena_cp_storage" 2>/dev/null \
+              --path="/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage" \
               && echo "✅ Nextcloud storage scan complete." \
-              || echo "⚠️  Nextcloud storage scan failed (non-fatal — run manually if needed)."
+              || echo "⚠️  Nextcloud storage scan failed (non-fatal — run 'server-nextcloud-scan' workflow manually if needed)."
 
             echo "===> Triggering Nextcloud file scan for madeena_cp_backups..."
             docker exec --user www-data "$NC_CONTAINER" \
               php /var/www/html/occ files:scan \
-              --path="${NEXTCLOUD_USERNAME}/files/madeena_cp_backups" 2>/dev/null \
+              --path="/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups" \
               && echo "✅ Nextcloud backups scan complete." \
-              || echo "⚠️  Nextcloud backups scan failed (non-fatal — run manually if needed)."
+              || echo "⚠️  Nextcloud backups scan failed (non-fatal — run 'server-nextcloud-scan' workflow manually if needed)."
           else
             echo "⚠️  No running Nextcloud container found; skipping file scan."
           fi
