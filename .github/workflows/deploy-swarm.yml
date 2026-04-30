@@ -260,9 +260,11 @@ jobs:
           }
 
           # ── Prepare host directories ────────────────────────────────────────
+          export MYSQL_DATA_HOST_PATH="/var/lib/madeena_cp/mysql"
+          
           # MySQL — SSD path (must NOT be inside Nextcloud data tree)
-          _sudo mkdir -p /var/lib/madeena_cp/mysql
-          _sudo chown -R 999:999 /var/lib/madeena_cp/mysql
+          _sudo mkdir -p "$MYSQL_DATA_HOST_PATH"
+          _sudo chown -R 999:999 "$MYSQL_DATA_HOST_PATH"
 
           # App storage — Nextcloud-namespaced path (HDD)
           if [ -z "${NEXTCLOUD_USERNAME:-}" ]; then
@@ -382,6 +384,7 @@ jobs:
             printf 'DOCKERHUB_USERNAME=%s\n' "$DOCKERHUB_USERNAME"
             printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG"
             printf 'APP_VERSION=%s\n' "$APP_VERSION"
+            printf 'MYSQL_DATA_HOST_PATH=%s\n' "$MYSQL_DATA_HOST_PATH"
           } >> .env
 
           # ── Docker Hub auth + image pull ────────────────────────────────────

@@ -189,7 +189,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /var/lib/madeena_cp/mysql
+      device: ${MYSQL_DATA_HOST_PATH:-/var/lib/madeena_cp/mysql}
   # App storage — bound to Nextcloud so uploads are visible in Nextcloud UI
   # Path expands from NEXTCLOUD_USERNAME written to .env by deploy-swarm.yml
   app_storage:
