@@ -124,8 +124,21 @@ jobs:
             echo "No exact tag on HEAD; skipping release"
           fi
 
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, curl, zip, gd, intl, pcntl, dom
+          coverage: none
+
       - name: Install PHP dependencies (production)
         run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --quiet
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
 
       - name: Install Node dependencies
         run: npm ci --no-audit --no-fund --loglevel=error
