@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: PHP 8.4
 
     steps:
