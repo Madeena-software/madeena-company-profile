@@ -91,6 +91,7 @@ services:
     volumes:
       - app_storage:/var/www/html/storage
       - app_public:/var/www/public-files
+      - ./VERSION-CURRENT:/var/www/html/VERSION-CURRENT:ro
     env_file: .env
     healthcheck:
       test: ["CMD-SHELL", "php -r '$$s=@fsockopen(\"127.0.0.1\",9000);if(!$$s)exit(1);fclose($$s);'"]
@@ -139,6 +140,7 @@ services:
     stop_grace_period: 120s
     volumes:
       - app_storage:/var/www/html/storage
+      - ./VERSION-CURRENT:/var/www/html/VERSION-CURRENT:ro
     env_file: .env
     environment:
       CACHE_STORE: database

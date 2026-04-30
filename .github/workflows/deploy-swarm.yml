@@ -32,6 +32,12 @@ name: Deploy to Production (Swarm)
 
 on:
   workflow_dispatch:
+    inputs:
+      semver:
+        description: 'Semantic version to deploy (e.g., v1.2.3). Defaults to latest.'
+        required: false
+        default: 'latest'
+        type: string
 
 concurrency:
   group: deploy-madeena_cp-production
@@ -153,13 +159,12 @@ jobs:
         with:
           context: .
           push: true
+          no-cache: true
           build-args: |
             APP_VERSION=${{ steps.version.outputs.version }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/madeena_cp:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/madeena_cp:${{ steps.version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
      # ── Create GitHub Release (only for non-dev versions and if not already present)
       - name: Check existing release or skip dev versions
@@ -232,8 +237,8 @@ jobs:
           SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
           SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
           NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
-          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
-          APP_VERSION: ${{ needs.build-and-push.outputs.image_tag }}
+          IMAGE_TAG: ${{ github.event.inputs.semver != 'latest' && github.event.inputs.semver != '' && github.event.inputs.semver || needs.build-and-push.outputs.image_tag }}
+          APP_VERSION: ${{ github.event.inputs.semver != 'latest' && github.event.inputs.semver != '' && github.event.inputs.semver || needs.build-and-push.outputs.image_tag }}
         run: |
           set -euo pipefail
 
@@ -330,6 +335,10 @@ jobs:
           fi
 
           test -f nginx/conf.d/app.conf || { echo "❌ FATAL: nginx/conf.d/app.conf missing after copy!"; exit 1; }
+
+          # ── Generate VERSION-CURRENT ──────────────────────────────────────────
+          echo "===> Generating VERSION-CURRENT..."
+          echo "$APP_VERSION" > VERSION-CURRENT
 
           # ── Write .env file ──────────────────────────────────────────────────
           # printf '%s' for every line — safe for YAML indentation, safe for

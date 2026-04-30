@@ -128,7 +128,7 @@
                         <i class="fas fa-envelope text-xl"></i>
                     </a>
                 </div>
-                <p class="text-white/50 text-sm">&copy; {{ date('Y') }} PT Madeena Karya Indonesia. Seluruh hak dilindungi.</p>
+                <p class="text-white/50 text-sm">v{{ config('app.version') }} &copy; {{ date('Y') }} PT Madeena Karya Indonesia. Seluruh hak dilindungi.</p>
             </div>
         </div>
     </footer>

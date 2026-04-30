@@ -17,6 +17,8 @@ return [
 
     'display_name' => env('APP_DISPLAY_NAME', 'Madeena Company Profile'),
 
+    'version' => file_exists(base_path('VERSION-CURRENT')) ? trim(file_get_contents(base_path('VERSION-CURRENT'))) : (file_exists(base_path('VERSION')) ? trim(file_get_contents(base_path('VERSION'))) : 'dev'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
