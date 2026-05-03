@@ -1,4 +1,4 @@
-name: "Server - Database Setup and Backup"
+name: "Server - Database Setup and WebDAV Backup"
 
 on:
   workflow_dispatch:
@@ -12,62 +12,63 @@ permissions:
 
 env:
   APP_SLUG: madeena_cp
-  BACKUP_DIR: /media/nextcloud-data/data/${{ secrets.NEXTCLOUD_USERNAME }}/files/madeena_cp_backups
   BACKUP_SCRIPT: /opt/madeena-cp-db-backup.sh
-  DB_ENV_FILE: /opt/madeena-cp-db-backup.env
+  BACKUP_ENV_FILE: /etc/madeena-cp-db-backup.env
   DB_DATABASE: ${{ secrets.DB_DATABASE }}
   DB_USERNAME: ${{ secrets.DB_USERNAME }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+  APP_KEY: ${{ secrets.APP_KEY }}
   SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
-  NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
+  NEXTCLOUD_WEBDAV_BASE_URI: ${{ secrets.NEXTCLOUD_WEBDAV_BASE_URI }}
+  NEXTCLOUD_WEBDAV_USERNAME: ${{ secrets.NEXTCLOUD_WEBDAV_USERNAME }}
+  NEXTCLOUD_WEBDAV_PASSWORD: ${{ secrets.NEXTCLOUD_WEBDAV_PASSWORD }}
+  NEXTCLOUD_WEBDAV_BACKUP_ROOT: madeena_cp_backups
 
 jobs:
   db-setup:
-    name: Configure DB and Backups
+    name: Configure DB and WebDAV Backups
     runs-on: self-hosted
     timeout-minutes: 20
 
     steps:
-      - name: Validate secrets and locate DB container
+      - name: Validate secrets and locate services
         run: |
           set -euo pipefail
 
-          echo "Checking required secrets..."
           missing=0
-          for var in DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD SUDO_PASSWORD; do
+          for var in DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD APP_KEY SUDO_PASSWORD NEXTCLOUD_WEBDAV_BASE_URI NEXTCLOUD_WEBDAV_USERNAME NEXTCLOUD_WEBDAV_PASSWORD; do
             if [ -z "${!var:-}" ]; then
-              echo "  missing: $var"
+              echo "missing: $var"
               missing=1
             else
-              echo "  ok: $var"
+              echo "ok: $var"
             fi
           done
+          [ "$missing" -eq 0 ] || exit 1
 
-          if [ "$missing" -ne 0 ]; then
-            echo "FATAL: one or more required secrets are missing."
-            exit 1
-          fi
-
-          echo "Checking Docker access..."
           docker ps >/dev/null 2>&1 || {
             echo "FATAL: runner cannot access Docker."
             exit 1
           }
 
-          DB_CONTAINER=$(docker ps -q --filter "label=com.docker.swarm.service.name=${APP_SLUG}_db" | head -n 1)
+          DB_CONTAINER="$(docker ps -q --filter "label=com.docker.swarm.service.name=${APP_SLUG}_db" | head -n 1)"
           if [ -z "$DB_CONTAINER" ]; then
-            DB_CONTAINER=$(docker ps -q --filter "name=${APP_SLUG}_db" | head -n 1)
+            DB_CONTAINER="$(docker ps -q --filter "name=${APP_SLUG}_db" | head -n 1)"
           fi
-
           if [ -z "$DB_CONTAINER" ]; then
             echo "FATAL: could not find the running ${APP_SLUG}_db container."
-            docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | sed 's/^/  /'
+            docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
             exit 1
           fi
 
+          docker image inspect madeena_cp:latest >/dev/null 2>&1 || {
+            echo "FATAL: madeena_cp:latest is required for WebDAV backup uploads."
+            exit 1
+          }
+
           echo "DB_CONTAINER=$DB_CONTAINER" >> "$GITHUB_ENV"
-          echo "  db container: $DB_CONTAINER"
+          echo "db container: $DB_CONTAINER"
 
       - name: Snapshot current DB state
         run: |
@@ -82,7 +83,6 @@ jobs:
           echo "Current databases:"
           db_query "SHOW DATABASES;" | sed 's/^/  /'
 
-          echo ""
           echo "Current grants for ${DB_USERNAME}:"
           docker exec "$DB_CONTAINER" \
             mysql -u root -p"${DB_ROOT_PASSWORD}" \
@@ -90,23 +90,9 @@ jobs:
             -e "SHOW GRANTS FOR '${DB_USERNAME}'@'%';" 2>/dev/null | sed 's/^/  /' || \
             echo "  (user not found or grants unavailable)"
 
-          echo ""
-          echo "Current backup directory:"
-          if [ -d "$BACKUP_DIR" ]; then
-            ls -lah "$BACKUP_DIR" | sed 's/^/  /'
-          else
-            echo "  (backup directory does not exist yet)"
-          fi
-
       - name: Fix app user grants
         run: |
           set -euo pipefail
-
-          db_query() {
-            docker exec "$DB_CONTAINER" \
-              mysql -u root -p"${DB_ROOT_PASSWORD}" \
-              --batch --silent -e "$1"
-          }
 
           db_exec() {
             docker exec "$DB_CONTAINER" \
@@ -114,45 +100,17 @@ jobs:
               -e "$1"
           }
 
-          echo "Current grants before fix:"
-          docker exec "$DB_CONTAINER" \
-            mysql -u root -p"${DB_ROOT_PASSWORD}" \
-            --batch --silent \
-            -e "SHOW GRANTS FOR '${DB_USERNAME}'@'%';" 2>/dev/null | sed 's/^/  /' || true
-
-          echo ""
-          echo "Granting privileges on the configured database..."
+          echo "Granting app user privileges on ${DB_DATABASE}..."
           db_exec "GRANT ALL PRIVILEGES ON \`${DB_DATABASE}\`.* TO '${DB_USERNAME}'@'%';"
           db_exec "FLUSH PRIVILEGES;"
 
-          echo ""
           echo "Verifying app user access..."
-          set +e
-          APP_CONN_OUT=$(docker exec "$DB_CONTAINER" \
+          docker exec "$DB_CONTAINER" \
             mysql -u "${DB_USERNAME}" -p"${DB_PASSWORD}" \
             --batch --silent --skip-column-names \
-            -e "USE \`${DB_DATABASE}\`; SHOW TABLES;" 2>&1)
-          APP_CONN_RC=$?
-          set -e
+            -e "USE \`${DB_DATABASE}\`; SHOW TABLES;" >/dev/null
 
-          if [ "$APP_CONN_RC" -ne 0 ]; then
-            echo "  FATAL: application user cannot read ${DB_DATABASE}."
-            echo "  mysql output:"
-            echo "$APP_CONN_OUT" | sed 's/^/    /'
-            exit 1
-          fi
-
-          APP_TABLES=$(printf '%s\n' "$APP_CONN_OUT" | sed '/^$/d' | wc -l | tr -d '[:space:]')
-          echo "  tables visible to app user: ${APP_TABLES:-0}"
-
-          echo ""
-          echo "Final grants after fix:"
-          docker exec "$DB_CONTAINER" \
-            mysql -u root -p"${DB_ROOT_PASSWORD}" \
-            --batch --silent \
-            -e "SHOW GRANTS FOR '${DB_USERNAME}'@'%';" 2>/dev/null | sed 's/^/  /'
-
-      - name: Install backup script and cron job
+      - name: Install WebDAV backup script and cron job
         run: |
           set -euo pipefail
 
@@ -160,71 +118,71 @@ jobs:
             echo "$SUDO_PASSWORD" | sudo -S -p '' "$@" 2>/dev/null
           }
 
-          echo "Creating backup directory..."
-          _sudo mkdir -p "$BACKUP_DIR"
-          _sudo chmod 750 "$BACKUP_DIR"
-
-          echo "Writing DB environment file..."
-          TMP_ENV=$(mktemp)
+          TMP_ENV="$(mktemp)"
           {
-            printf 'DB_DATABASE=%q\n' "$DB_DATABASE"
-            printf 'DB_USERNAME=%q\n' "$DB_USERNAME"
-            printf 'DB_PASSWORD=%q\n' "$DB_PASSWORD"
-            printf 'DB_ROOT_PASSWORD=%q\n' "$DB_ROOT_PASSWORD"
+            printf 'APP_ENV=%q\n' production
+            printf 'APP_DEBUG=%q\n' false
+            printf 'APP_KEY=%q\n' "$APP_KEY"
             printf 'APP_SLUG=%q\n' "$APP_SLUG"
-            printf 'BACKUP_DIR=%q\n' "$BACKUP_DIR"
+            printf 'DB_DATABASE=%q\n' "$DB_DATABASE"
+            printf 'DB_ROOT_PASSWORD=%q\n' "$DB_ROOT_PASSWORD"
+            printf 'ENTERPRISE_BACKUP_DRIVER=%q\n' webdav
+            printf 'ENTERPRISE_BACKUP_THROW=%q\n' true
+            printf 'NEXTCLOUD_WEBDAV_BASE_URI=%q\n' "$NEXTCLOUD_WEBDAV_BASE_URI"
+            printf 'NEXTCLOUD_WEBDAV_USERNAME=%q\n' "$NEXTCLOUD_WEBDAV_USERNAME"
+            printf 'NEXTCLOUD_WEBDAV_PASSWORD=%q\n' "$NEXTCLOUD_WEBDAV_PASSWORD"
+            printf 'NEXTCLOUD_WEBDAV_BACKUP_ROOT=%q\n' "$NEXTCLOUD_WEBDAV_BACKUP_ROOT"
+            printf 'NEXTCLOUD_WEBDAV_TIMEOUT=%q\n' 30
+            printf 'NEXTCLOUD_WEBDAV_VERIFY_SSL=%q\n' false
           } > "$TMP_ENV"
-          _sudo cp "$TMP_ENV" "$DB_ENV_FILE"
-          _sudo chmod 600 "$DB_ENV_FILE"
+          _sudo cp "$TMP_ENV" "$BACKUP_ENV_FILE"
+          _sudo chmod 600 "$BACKUP_ENV_FILE"
           rm -f "$TMP_ENV"
 
-          echo "Writing backup script..."
-          TMP_SCRIPT=$(mktemp)
-          cat > "$TMP_SCRIPT" <<'EOF'
+          TMP_SCRIPT="$(mktemp)"
+          cat > "$TMP_SCRIPT" <<'BACKUP_EOF'
           #!/usr/bin/env bash
           set -euo pipefail
 
-          ENV_FILE="/opt/madeena-cp-db-backup.env"
+          ENV_FILE="${MADEENA_CP_BACKUP_ENV_FILE:-/etc/madeena-cp-db-backup.env}"
           if [ -f "$ENV_FILE" ]; then
             # shellcheck disable=SC1090
+            set -a
             . "$ENV_FILE"
+            set +a
           fi
 
           APP_SLUG="${APP_SLUG:-madeena_cp}"
-          BACKUP_DIR="${BACKUP_DIR:-/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups}"
           RETENTION_DAYS="${RETENTION_DAYS:-14}"
           DB_NAME="${DB_DATABASE:-}"
           DB_ROOT_PASS="${DB_ROOT_PASSWORD:-}"
 
-          if [ -z "$DB_NAME" ] || [ -z "$DB_ROOT_PASS" ]; then
-            echo "[$(date -u)] ERROR: DB_DATABASE or DB_ROOT_PASSWORD is empty." >&2
+          if [ -z "$DB_NAME" ] || [ -z "$DB_ROOT_PASS" ] || \
+             [ -z "${NEXTCLOUD_WEBDAV_BASE_URI:-}" ] || \
+             [ -z "${NEXTCLOUD_WEBDAV_USERNAME:-}" ] || \
+             [ -z "${NEXTCLOUD_WEBDAV_PASSWORD:-}" ]; then
+            echo "[$(date -u)] ERROR: DB or WebDAV environment variables are missing." >&2
             exit 1
           fi
 
-          if ! mountpoint -q /media/nextcloud-data; then
-            echo "[$(date -u)] ERROR: /media/nextcloud-data is not mounted." >&2
-            exit 1
-          fi
-
-          if ! command -v docker >/dev/null 2>&1; then
-            echo "[$(date -u)] ERROR: docker is not available." >&2
-            exit 1
-          fi
-
-          DB_CONTAINER=$(docker ps -q --filter "label=com.docker.swarm.service.name=${APP_SLUG}_db" | head -n 1)
+          DB_CONTAINER="$(docker ps -q --filter "label=com.docker.swarm.service.name=${APP_SLUG}_db" | head -n 1)"
           if [ -z "$DB_CONTAINER" ]; then
-            DB_CONTAINER=$(docker ps -q --filter "name=${APP_SLUG}_db" | head -n 1)
+            DB_CONTAINER="$(docker ps -q --filter "name=${APP_SLUG}_db" | head -n 1)"
           fi
-
           if [ -z "$DB_CONTAINER" ]; then
             echo "[$(date -u)] ERROR: could not find ${APP_SLUG}_db container." >&2
             exit 1
           fi
 
-          mkdir -p "$BACKUP_DIR"
+          TMPDIR="$(mktemp -d)"
+          cleanup() {
+            rm -rf "$TMPDIR"
+          }
+          trap cleanup EXIT
 
-          TIMESTAMP=$(date -u +'%Y%m%d-%H%M%S')
-          BACKUP_FILE="${BACKUP_DIR}/${APP_SLUG}-${DB_NAME}-${TIMESTAMP}.sql.gz"
+          TIMESTAMP="$(date -u +'%Y%m%d-%H%M%S')"
+          BACKUP_NAME="${APP_SLUG}-${DB_NAME}-${TIMESTAMP}.sql.gz"
+          BACKUP_FILE="${TMPDIR}/${BACKUP_NAME}"
 
           echo "[$(date -u)] Starting backup of '${DB_NAME}'..."
           docker exec "$DB_CONTAINER" \
@@ -235,27 +193,50 @@ jobs:
             --events \
             --add-drop-table \
             "$DB_NAME" \
-            | gzip > "$BACKUP_FILE"
+            2>/dev/null | gzip > "$BACKUP_FILE"
 
           if [ ! -s "$BACKUP_FILE" ]; then
             echo "[$(date -u)] ERROR: backup file is empty." >&2
-            rm -f "$BACKUP_FILE"
             exit 1
           fi
 
-          SIZE=$(du -sh "$BACKUP_FILE" | awk '{print $1}')
-          echo "[$(date -u)] Backup complete: $BACKUP_FILE ($SIZE)"
+          gzip -t "$BACKUP_FILE"
+          TABLE_COUNT="$(gzip -dc "$BACKUP_FILE" 2>/dev/null | grep -c '^CREATE TABLE' || true)"
+          if [ "${TABLE_COUNT:-0}" -le 0 ]; then
+            echo "[$(date -u)] ERROR: backup has no CREATE TABLE statements." >&2
+            exit 1
+          fi
 
-          find "$BACKUP_DIR" -maxdepth 1 -type f -name "${APP_SLUG}-${DB_NAME}-*.sql.gz" -mtime +"$RETENTION_DAYS" -delete
+          echo "[$(date -u)] Local backup verified: ${BACKUP_NAME} (${TABLE_COUNT} tables)."
+          docker run --rm \
+            --network host \
+            --entrypoint php \
+            -e APP_ENV \
+            -e APP_DEBUG \
+            -e APP_KEY \
+            -e ENTERPRISE_BACKUP_DRIVER \
+            -e ENTERPRISE_BACKUP_THROW \
+            -e NEXTCLOUD_WEBDAV_BASE_URI \
+            -e NEXTCLOUD_WEBDAV_USERNAME \
+            -e NEXTCLOUD_WEBDAV_PASSWORD \
+            -e NEXTCLOUD_WEBDAV_BACKUP_ROOT \
+            -e NEXTCLOUD_WEBDAV_TIMEOUT \
+            -e NEXTCLOUD_WEBDAV_VERIFY_SSL \
+            -v "${TMPDIR}:/backup:ro" \
+            madeena_cp:latest \
+            artisan backup:webdav-upload "/backup/${BACKUP_NAME}" \
+              --remote-name="${BACKUP_NAME}" \
+              --retention-days="${RETENTION_DAYS}" \
+              --prefix="${APP_SLUG}-" \
+              --no-interaction
+          BACKUP_EOF
 
-          EOF
           _sudo cp "$TMP_SCRIPT" "$BACKUP_SCRIPT"
           _sudo chmod 700 "$BACKUP_SCRIPT"
           rm -f "$TMP_SCRIPT"
 
-          echo "Installing root crontab entry..."
-          CURRENT_CRON=$(_sudo crontab -l 2>/dev/null || true)
-          TMP_CRON=$(mktemp)
+          CURRENT_CRON="$(_sudo crontab -l 2>/dev/null || true)"
+          TMP_CRON="$(mktemp)"
           printf '%s\n' "$CURRENT_CRON" | awk '
             /# madeena-cp-db-backup-start/ {skip=1; next}
             /# madeena-cp-db-backup-end/ {skip=0; next}
@@ -271,7 +252,7 @@ jobs:
           rm -f "$TMP_CRON"
 
           echo "Backup script installed: $BACKUP_SCRIPT"
-          echo "Backup env file installed: $DB_ENV_FILE"
+          echo "Backup env file installed: $BACKUP_ENV_FILE"
 
       - name: Run first backup now
         run: |
@@ -281,10 +262,9 @@ jobs:
             echo "$SUDO_PASSWORD" | sudo -S -p '' "$@" 2>/dev/null
           }
 
-          echo "Running initial backup..."
-          BACKUP_LOG=$(mktemp)
+          BACKUP_LOG="$(mktemp)"
           set +e
-          _sudo env DB_DATABASE="$DB_DATABASE" DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD" bash "$BACKUP_SCRIPT" > "$BACKUP_LOG" 2>&1
+          _sudo bash "$BACKUP_SCRIPT" > "$BACKUP_LOG" 2>&1
           BACKUP_RC=$?
           set -e
 
@@ -292,13 +272,11 @@ jobs:
           rm -f "$BACKUP_LOG"
 
           if [ "$BACKUP_RC" -ne 0 ]; then
-            echo "FATAL: initial backup failed with exit code $BACKUP_RC."
+            echo "FATAL: initial WebDAV backup failed with exit code $BACKUP_RC."
             exit 1
           fi
 
-          echo "Initial backup completed successfully."
-
-      - name: Verify backup files
+      - name: Verify WebDAV backup disk
         run: |
           set -euo pipefail
 
@@ -306,19 +284,16 @@ jobs:
             echo "$SUDO_PASSWORD" | sudo -S -p '' "$@" 2>/dev/null
           }
 
-          echo "Latest backups in $BACKUP_DIR:"
-          _sudo find "$BACKUP_DIR" -maxdepth 1 -type f -name 'madeena_cp-*.sql.gz' -print | sort | tail -5 | sed 's/^/  /'
+          _sudo docker run --rm \
+            --network host \
+            --entrypoint php \
+            --env-file "$BACKUP_ENV_FILE" \
+            madeena_cp:latest \
+            artisan storage:webdav-check --disk=enterprise_backups --no-interaction
 
-          LATEST_BACKUP=$(_sudo find "$BACKUP_DIR" -maxdepth 1 -type f -name 'madeena_cp-*.sql.gz' -printf '%T@ %p\n' | sort -nr | head -n 1 | awk '{print $2}')
-          if [ -z "${LATEST_BACKUP:-}" ]; then
-            echo "FATAL: no backup file found."
+          CRON="$(_sudo crontab -l 2>/dev/null | grep 'madeena-cp-db-backup' || true)"
+          [ -n "$CRON" ] || {
+            echo "FATAL: backup cron is not installed."
             exit 1
-          fi
-
-          echo "Checking gzip integrity: $LATEST_BACKUP"
-          _sudo gzip -t "$LATEST_BACKUP"
-
-          TABLE_COUNT=$(_sudo sh -c "gzip -dc '$LATEST_BACKUP' | grep -c '^CREATE TABLE' || true")
-          echo "CREATE TABLE statements found: ${TABLE_COUNT:-0}"
-
-          echo "Backup workflow finished successfully."
+          }
+          echo "Backup cron: $CRON"

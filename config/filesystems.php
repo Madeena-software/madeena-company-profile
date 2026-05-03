@@ -1,13 +1,15 @@
 <?php
 
 $storageBasePath = env('STORAGE_BASE_PATH');
+$publicStorageDriver = env('PUBLIC_STORAGE_DRIVER', 'local');
+$enterpriseBackupDriver = env('ENTERPRISE_BACKUP_DRIVER', 'local');
 
 $privateRoot = $storageBasePath
-    ? rtrim($storageBasePath, '/') . '/app/private'
+    ? rtrim($storageBasePath, '/').'/app/private'
     : storage_path('app/private');
 
 $publicRoot = $storageBasePath
-    ? rtrim($storageBasePath, '/') . '/app/public'
+    ? rtrim($storageBasePath, '/').'/app/public'
     : storage_path('app/public');
 
 return [
@@ -34,7 +36,7 @@ return [
     | may even configure multiple disks for the same driver. Examples for
     | most supported storage drivers are configured here for reference.
     |
-    | Supported drivers: "local", "ftp", "sftp", "s3"
+    | Supported drivers: "local", "ftp", "sftp", "s3", "webdav"
     |
     */
 
@@ -43,18 +45,47 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => $privateRoot,
-            'serve' => true,
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
 
         'public' => [
-            'driver' => 'local',
-            'root' => $publicRoot,
-            'url' => env('APP_URL') . '/storage',
+            'driver' => $publicStorageDriver,
+            'root' => $publicStorageDriver === 'webdav'
+                ? env('NEXTCLOUD_WEBDAV_PUBLIC_ROOT', 'madeena_cp_media')
+                : $publicRoot,
+            'base_uri' => env('NEXTCLOUD_WEBDAV_BASE_URI'),
+            'username' => env('NEXTCLOUD_WEBDAV_USERNAME'),
+            'password' => env('NEXTCLOUD_WEBDAV_PASSWORD'),
+            'timeout' => env('NEXTCLOUD_WEBDAV_TIMEOUT', 30),
+            'low_speed_limit' => env('NEXTCLOUD_WEBDAV_LOW_SPEED_LIMIT', 1),
+            'low_speed_time' => env('NEXTCLOUD_WEBDAV_LOW_SPEED_TIME', 30),
+            'tcp_keepalive' => filter_var(env('NEXTCLOUD_WEBDAV_TCP_KEEPALIVE', true), FILTER_VALIDATE_BOOL),
+            'verify_ssl' => filter_var(env('NEXTCLOUD_WEBDAV_VERIFY_SSL', true), FILTER_VALIDATE_BOOL),
+            'require_server_checksum' => filter_var(env('NEXTCLOUD_WEBDAV_REQUIRE_SERVER_CHECKSUM', false), FILTER_VALIDATE_BOOL),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
-            'throw' => false,
-            'report' => false,
+            'throw' => filter_var(env('PUBLIC_STORAGE_THROW', false), FILTER_VALIDATE_BOOL),
+            'report' => filter_var(env('PUBLIC_STORAGE_REPORT', false), FILTER_VALIDATE_BOOL),
+        ],
+
+        'enterprise_backups' => [
+            'driver' => $enterpriseBackupDriver,
+            'root' => $enterpriseBackupDriver === 'webdav'
+                ? env('NEXTCLOUD_WEBDAV_BACKUP_ROOT', 'madeena_cp_backups')
+                : env('ENTERPRISE_BACKUP_LOCAL_ROOT', '/var/www/enterprise_backups'),
+            'base_uri' => env('NEXTCLOUD_WEBDAV_BASE_URI'),
+            'username' => env('NEXTCLOUD_WEBDAV_USERNAME'),
+            'password' => env('NEXTCLOUD_WEBDAV_PASSWORD'),
+            'timeout' => env('NEXTCLOUD_WEBDAV_TIMEOUT', 30),
+            'low_speed_limit' => env('NEXTCLOUD_WEBDAV_LOW_SPEED_LIMIT', 1),
+            'low_speed_time' => env('NEXTCLOUD_WEBDAV_LOW_SPEED_TIME', 30),
+            'tcp_keepalive' => filter_var(env('NEXTCLOUD_WEBDAV_TCP_KEEPALIVE', true), FILTER_VALIDATE_BOOL),
+            'verify_ssl' => filter_var(env('NEXTCLOUD_WEBDAV_VERIFY_SSL', true), FILTER_VALIDATE_BOOL),
+            'require_server_checksum' => filter_var(env('NEXTCLOUD_WEBDAV_REQUIRE_SERVER_CHECKSUM', false), FILTER_VALIDATE_BOOL),
+            'throw' => filter_var(env('ENTERPRISE_BACKUP_THROW', false), FILTER_VALIDATE_BOOL),
+            'report' => filter_var(env('ENTERPRISE_BACKUP_REPORT', false), FILTER_VALIDATE_BOOL),
         ],
 
         's3' => [

@@ -23,9 +23,13 @@ use Illuminate\Support\Str;
 class PageResource extends Resource
 {
     protected static ?string $model = Page::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document';
+
     protected static ?string $navigationLabel = 'Halaman';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+
     protected static ?int $navigationSort = 5;
 
     public static function shouldRegisterNavigation(): bool
@@ -46,7 +50,7 @@ class PageResource extends Resource
                 TextInput::make('title')
                     ->label('Judul Halaman')->required()->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn($state, Set $set) => $set('slug', Str::slug($state))),
+                    ->afterStateUpdated(fn ($state, Set $set) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
                 RichEditor::make('content')

@@ -1,33 +1,49 @@
-# ═══════════════════════════════════════════════════════════════════════════════
-# Madeena Standard Template — Production Dockerfile (Multi-Stage)
-# PHP {{PHP_VERSION}} FPM + Nginx + Supervisor
-#
-# CUSTOMIZATION REQUIRED:
-#   1. Replace {{PHP_VERSION}} with your PHP version (e.g., 8.3)
-#   2. Adjust PHP extensions as needed for your app
-#   3. Copy this to your project root as "Dockerfile"
-#   4. Update docker/php.ini, docker/nginx.conf, and docker/supervisord.conf
-#      if your runtime needs different config
-#
-# Build stages:
-#   base  — System packages + PHP extensions (cached; only rebuilds when
-#           extensions change). ~120s on cold cache, 0s on warm cache.
-#   app   — Application code + config (~5s on every build).
-# ═══════════════════════════════════════════════════════════════════════════════
+# syntax=docker/dockerfile:1
+# -----------------------------------------------------------------------------
+# Madeena Company Profile - Production Dockerfile
+# PHP 8.4 FPM + Nginx + Supervisor, with Composer and Vite builds inside Docker.
+# -----------------------------------------------------------------------------
 
-# ── Stage 1: Base image (system deps + PHP extensions) ────────────────────────
-# This layer is expensive (~120s) but ONLY rebuilds when you add/remove
-# system packages or PHP extensions. It is fully cached across app deploys.
+# Stage 0: Composer dependency builder
+FROM php:8.4-cli AS composer-deps
+
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends unzip git libzip-dev ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-install zip > /dev/null 2>&1
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN --mount=type=cache,target=/root/.composer/cache,sharing=locked \
+    composer install \
+        --no-dev \
+        --optimize-autoloader \
+        --no-interaction \
+        --prefer-dist \
+        --ignore-platform-reqs \
+        --no-scripts \
+        --quiet
+
+# Stage 1: Node / Vite asset builder
+FROM node:24-alpine AS node-builder
+
+WORKDIR /app
+COPY package.json package-lock.json vite.config.js tailwind.config.js postcss.config.js ./
+COPY resources/ ./resources/
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --no-audit --no-fund --loglevel=error \
+    && npm run build > /dev/null 2>&1
+
+# Stage 2: Base image (system deps + PHP extensions)
 FROM php:8.4-fpm AS base
 
-LABEL maintainer="Madeena Software"
-
-# ── System packages ───────────────────────────────────────────────────────────
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends \
         nginx \
         supervisor \
         curl \
+        ca-certificates \
         zip \
         unzip \
         git \
@@ -43,12 +59,10 @@ RUN apt-get update -qq && \
         > /dev/null 2>&1 \
     && rm -rf /var/lib/apt/lists/*
 
-# ── PHP extensions ────────────────────────────────────────────────────────────
-# Note: dom and xml are already compiled into php:8.x-fpm — do NOT re-install.
-# Note: zip is in the main batch (no reason to compile separately).
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg > /dev/null 2>&1 \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
+        curl \
         gd \
         intl \
         mbstring \
@@ -59,53 +73,52 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg > /dev/null 2>&1 \
         zip \
         > /dev/null 2>&1
 
-
-# ── Stage 2: Application image ───────────────────────────────────────────────
-# This stage rebuilds on every deploy — but it's just file copies (~5s).
-# ARG APP_VERSION is declared HERE (not in base) so it never busts the
-# expensive extension cache above.
+# Stage 3: Application image
 FROM base AS app
 
-# Build-time argument for embedding version into the image
+LABEL maintainer="Madeena Software"
+LABEL description="Madeena Company Profile - Laravel 13 + Filament v5"
+
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
-# ── PHP configuration ─────────────────────────────────────────────────────────
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/php.ini "$PHP_INI_DIR/conf.d/99-custom.ini"
 
-# ── Nginx configuration ───────────────────────────────────────────────────────
 COPY docker/nginx.conf /etc/nginx/sites-available/default
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
     && rm -f /etc/nginx/sites-enabled/000-default 2>/dev/null || true
 
-# ── Supervisor configuration ──────────────────────────────────────────────────
 RUN mkdir -p /var/log/supervisor
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# ── Application ───────────────────────────────────────────────────────────────
 WORKDIR /var/www/html
 COPY --chown=www-data:www-data . .
+COPY --from=composer-deps --chown=www-data:www-data /app/vendor ./vendor
+COPY --from=node-builder --chown=www-data:www-data /app/public/build ./public/build
 
-# Ensure required Laravel directories exist
+RUN rm -f bootstrap/cache/*.php
+
 RUN mkdir -p \
+        storage/app/private \
+        storage/app/public \
         storage/framework/cache/data \
         storage/framework/sessions \
         storage/framework/views \
+        storage/framework/testing \
         storage/logs \
         bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Bake version into the image
+RUN php artisan package:discover --ansi
+RUN php artisan filament:assets --ansi
 RUN if [ -n "${APP_VERSION}" ]; then printf '%s' "${APP_VERSION}" > /var/www/html/VERSION || true; fi
 
-# ── Entrypoint ────────────────────────────────────────────────────────────────
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# ── Health check ──────────────────────────────────────────────────────────────
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=150s --retries=3 \
     CMD php -r '$s=@fsockopen("127.0.0.1",9000);if(!$s)exit(1);fclose($s);' || exit 1
 
 EXPOSE 80

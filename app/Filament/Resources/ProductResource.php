@@ -25,8 +25,11 @@ use Illuminate\Support\Str;
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-beaker';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+
     protected static ?int $navigationSort = 2;
 
     public static function shouldRegisterNavigation(): bool
@@ -47,7 +50,7 @@ class ProductResource extends Resource
                 TextInput::make('name')
                     ->label('Nama Produk')->required()->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn($state, Set $set) => $set('slug', Str::slug($state))),
+                    ->afterStateUpdated(fn ($state, Set $set) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
                 TextInput::make('tagline')

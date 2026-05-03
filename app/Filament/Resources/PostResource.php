@@ -28,9 +28,13 @@ use Illuminate\Support\Str;
 class PostResource extends Resource
 {
     protected static ?string $model = Post::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-newspaper';
+
     protected static ?string $navigationLabel = 'Blog';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
@@ -40,7 +44,7 @@ class PostResource extends Resource
                 TextInput::make('title')
                     ->label('Judul')->required()->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn($state, Set $set) => $set('slug', Str::slug($state))),
+                    ->afterStateUpdated(fn ($state, Set $set) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
                 Select::make('user_id')
@@ -66,8 +70,7 @@ class PostResource extends Resource
                     ->label('Isi Blog')->columnSpanFull(),
                 Toggle::make('is_published')->label('Publikasikan')
                     ->live()
-                    ->afterStateUpdated(fn($state, Set $set) =>
-                    $set('published_at', $state ? now() : null)),
+                    ->afterStateUpdated(fn ($state, Set $set) => $set('published_at', $state ? now() : null)),
                 DateTimePicker::make('published_at')
                     ->label('Tanggal Publikasi'),
             ])->columns(2),

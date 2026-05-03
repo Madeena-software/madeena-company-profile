@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\User;
 use App\Models\Setting;
+use App\Models\User;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -15,10 +15,15 @@ use Illuminate\Support\Facades\Auth;
 class ManageSettings extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
+
     protected string $view = 'filament.pages.manage-settings';
+
     protected static ?string $navigationLabel = 'Pengaturan';
+
     protected static ?string $title = 'Pengaturan Website';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+
     protected static ?int $navigationSort = 4;
 
     public static function shouldRegisterNavigation(): bool

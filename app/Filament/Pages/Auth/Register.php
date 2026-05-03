@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages\Auth;
 
-use Filament\Forms\Components\TextInput;
 use Filament\Auth\Pages\Register as BaseRegister;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;

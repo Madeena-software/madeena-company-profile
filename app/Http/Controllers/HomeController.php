@@ -29,15 +29,17 @@ class HomeController extends Controller
         return view('blog', compact('posts'));
     }
 
-    public function post(\App\Models\Post $post)
+    public function post(Post $post)
     {
         abort_if(! $post->is_published, 404);
+
         return view('post', compact('post'));
     }
 
-    public function product(\App\Models\Product $product)
+    public function product(Product $product)
     {
         abort_if(! $product->is_active, 404);
+
         return view('product', compact('product'));
     }
 }

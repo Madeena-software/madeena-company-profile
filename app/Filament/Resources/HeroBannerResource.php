@@ -22,8 +22,11 @@ use Illuminate\Support\Facades\Auth;
 class HeroBannerResource extends Resource
 {
     protected static ?string $model = HeroBanner::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+
     protected static ?int $navigationSort = 1;
 
     public static function shouldRegisterNavigation(): bool

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Simama — Production Simulation Script
+# Madeena Company Profile - Production Simulation Script
 # =============================================================================
 set -euo pipefail
 
@@ -166,7 +166,7 @@ fi
 
 # ─── FULL SIMULATION ─────────────────────────────────────────────────────────
 echo ""
-echo -e "${BOLD}🧪  Simama — Production Simulation${RESET}"
+echo -e "${BOLD}Madeena Company Profile - Production Simulation${RESET}"
 echo "────────────────────────────────────────────────"
 
 # ── Preflight ────────────────────────────────────────────────────────────────
@@ -174,8 +174,7 @@ step "1/5 · Preflight checks"
 command -v docker &>/dev/null || die "Docker not found."
 docker info &>/dev/null 2>&1 || die "Docker daemon is not running."
 info "Docker $(docker --version | grep -oP '\d+\.\d+\.\d+')"
-[ -d "$PROJECT_DIR/vendor" ]     || die "vendor/ not found. Run: composer install --no-dev"
-[ -d "$PROJECT_DIR/public/build" ] || die "public/build/ not found. Run: npm run build"
+info "Docker build will install Composer dependencies and compile Vite assets."
 
 # ── Create simulation .env ────────────────────────────────────────────────────
 step "2/5 · Creating simulation environment"
@@ -183,11 +182,12 @@ step "2/5 · Creating simulation environment"
 # Fixed credentials — consistent across compose variable substitution + container env
 SIM_DB_PASS="sim_db_pass_2024"
 SIM_ROOT_PASS="sim_root_pass_2024"
-SIM_DB_NAME="simama_sim"
-SIM_DB_USER="simama_sim"
+SIM_DB_NAME="madeena_cp_sim"
+SIM_DB_USER="madeena_cp_sim"
 
 cat > "$ENV_FILE" <<EOF
-APP_NAME="Simama"
+APP_NAME="madeena_cp"
+APP_DISPLAY_NAME="Madeena Company Profile"
 APP_ENV=production
 APP_DEBUG=false
 APP_TIMEZONE=Asia/Jakarta
@@ -207,12 +207,14 @@ DB_ROOT_PASSWORD=${SIM_ROOT_PASS}
 
 BROADCAST_CONNECTION=log
 FILESYSTEM_DISK=local
+PUBLIC_STORAGE_DRIVER=local
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 SESSION_DRIVER=database
 SESSION_LIFETIME=120
 
-DATA_DRIVE_PATH=/var/www/enterprise_data
+ENTERPRISE_BACKUP_DRIVER=local
+ENTERPRISE_BACKUP_LOCAL_ROOT=/var/www/enterprise_backups
 
 MAIL_MAILER=log
 MAIL_SCHEME=null
@@ -221,7 +223,7 @@ MAIL_PORT=2525
 MAIL_USERNAME=null
 MAIL_PASSWORD=null
 MAIL_FROM_ADDRESS=test@example.com
-MAIL_FROM_NAME=Simama
+MAIL_FROM_NAME="Madeena Company Profile"
 MAIL_ENCRYPTION=null
 
 SUPER_ADMIN_EMAIL=admin@test.com
@@ -238,9 +240,6 @@ else
 fi
 
 info "Created .env.simulation (DB: $SIM_DB_NAME / $SIM_DB_USER)"
-
-# ── Ensure enterprise data dir exists ────────────────────────────────────────
-mkdir -p "$PROJECT_DIR/storage/enterprise_data_local"
 
 # ── Tear down any previous run cleanly ────────────────────────────────────────
 step "3/5 · Clean state — tearing down previous stack"

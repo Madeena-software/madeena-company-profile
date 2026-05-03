@@ -45,12 +45,14 @@ jobs:
 
           SUDOERS_FILE="/etc/sudoers.d/madeena-deploy-madeena_cp"
 
-          echo "$SUDO_PASSWORD" | sudo -S -p '' tee "$SUDOERS_FILE" > /dev/null <<'SUDOERS_EOF'
-          # Madeena CI/CD — madeena_cp passwordless sudo for deploy directory management
-          # Installed by: server-setup-deploy.yml
-          SUDOERS_EOF
-
-          echo "$SUDO_PASSWORD" | sudo -S -p '' sh -c "printf '%s ALL=(ALL) NOPASSWD: /usr/bin/mkdir, /usr/bin/chown\n' '$SSH_USER' >> '$SUDOERS_FILE'"
+          TMP_SUDOERS="$(mktemp)"
+          {
+            printf '%s\n' '# Madeena CI/CD - madeena_cp passwordless sudo for deploy directory management'
+            printf '%s\n' '# Installed by: server-setup-deploy.yml'
+            printf '%s ALL=(ALL) NOPASSWD: /usr/bin/mkdir, /usr/bin/chown, /usr/bin/chmod\n' "$SSH_USER"
+          } > "$TMP_SUDOERS"
+          echo "$SUDO_PASSWORD" | sudo -S -p '' cp "$TMP_SUDOERS" "$SUDOERS_FILE"
+          rm -f "$TMP_SUDOERS"
 
           echo "$SUDO_PASSWORD" | sudo -S -p '' chmod 0440 "$SUDOERS_FILE"
           echo "$SUDO_PASSWORD" | sudo -S -p '' visudo -c || {
@@ -68,6 +70,10 @@ jobs:
           }
           sudo -n chown --help >/dev/null 2>&1 || {
             echo "❌ chown passwordless sudo failed"
+            exit 1
+          }
+          sudo -n chmod --help >/dev/null 2>&1 || {
+            echo "❌ chmod passwordless sudo failed"
             exit 1
           }
 
@@ -93,16 +99,18 @@ jobs:
           sudo mkdir -p /var/lib/madeena_cp/mysql
           sudo chown -R 999:999 /var/lib/madeena_cp/mysql
 
-          # App storage — Nextcloud-namespaced path (HDD)
+          # App private storage — local SSD path. CMS media uses WebDAV.
+          sudo mkdir -p /var/lib/madeena_cp/storage/app/private /var/lib/madeena_cp/storage/app/public
+          sudo chown -R www-data:www-data /var/lib/madeena_cp/storage
+          sudo chmod -R 775 /var/lib/madeena_cp/storage
+
+          # Laravel logs — Nextcloud-namespaced path (HDD)
           if [ -z "${NEXTCLOUD_USERNAME:-}" ]; then
             echo "❌ FATAL: NEXTCLOUD_USERNAME secret is missing!"
             exit 1
           fi
-          sudo mkdir -p "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage"
-          sudo chown -R "$SSH_USER":"$SSH_USER" "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage"
+          sudo mkdir -p "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
+          sudo chown -R www-data:www-data "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
+          sudo chmod -R 775 "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
 
-          # Backups — Nextcloud-namespaced path (HDD)
-          sudo mkdir -p "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups"
-          sudo chown -R "$SSH_USER":"$SSH_USER" "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups"
-
-          echo "✅ Directories created."
+          echo "✅ Directories created. WebDAV media/backups folders are created by deploy-swarm.yml."

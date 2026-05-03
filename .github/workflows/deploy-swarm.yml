@@ -1,43 +1,7 @@
 name: Deploy to Production (Swarm)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Madeena Standard CI/CD Template — Docker Swarm Deployment
-#
-# CUSTOMIZATION REQUIRED:
-#   1. Replace {{APP_NAME}} with your app slug (lowercase, e.g., "pbu50")
-#   2. Replace {{APP_PORT}} with your assigned port (e.g., 8020)
-#   3. Replace {{PHP_VERSION}} with your PHP version (e.g., "8.3")
-#   4. Replace {{NODE_VERSION}} with your Node version (e.g., "20")
-#   5. Configure the required GitHub Secrets (see below)
-#
-# REQUIRED GITHUB SECRETS:
-#   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, APP_KEY, APP_DOMAIN
-#   DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_ROOT_PASSWORD, DB_HOST
-#   SSH_USER, REMOTE_PATH
-#
-# OPTIONAL GITHUB SECRETS:
-#   SUDO_PASSWORD (only needed before running server-setup-deploy.yml)
-#   MAIL_USERNAME, MAIL_PASSWORD, SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD
-#
-# SIMULATION-PROVEN FIXES INCLUDED:
-#   ✅  DB health: CMD-SHELL + $$MYSQL_ROOT_PASSWORD (not CMD with ${VAR})
-#   ✅  Wait order: DB healthy → App healthy → migrate (not existence-based)
-#   ✅  Queue race: queue stabilization wait after migrate completes
-#   ✅  --resolve-image changed (not always) to avoid digest rejection
-#   ✅  .env heredoc: no leading spaces, MAIL_FROM_NAME via printf
-#   ✅  Queue verify: service inspect Args (not container .Config.Cmd)
-#   ✅  Swarm convergence wait before verification (avoids transient 2/1 reads)
-#   ✅  Deploy root validation so a bad REMOTE_PATH fails fast
-# ═══════════════════════════════════════════════════════════════════════════════
-
 on:
   workflow_dispatch:
-    inputs:
-      semver:
-        description: 'Semantic version to deploy (e.g., v1.2.3). Defaults to latest.'
-        required: false
-        default: 'latest'
-        type: string
 
 concurrency:
   group: deploy-madeena_cp-production
@@ -48,168 +12,40 @@ env:
   NODE_OPTIONS: "--dns-result-order=ipv4first"
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────────
-  # Job 1 — Build assets, Docker image, push to Docker Hub
-  # ────────────────────────────────────────────────────────────────────────────
-  build-and-push:
-    name: Build & Push Docker Image
+  build:
+    name: Build Docker Image (Local)
     runs-on: self-hosted
-    permissions:
-      contents: write
+    timeout-minutes: 25
     outputs:
-      image_tag: ${{ steps.version.outputs.version }}
+      app_version: ${{ steps.version.outputs.app_version }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          fetch-tags: true
 
-      - name: Derive version from git tags or VERSION file
+      - name: Resolve app version
         id: version
         run: |
           set -euo pipefail
-          ver=""
-          
-          # 1) Try exact semver tag on HEAD
-          if exact_tag=$(git describe --tags --exact-match 2>/dev/null || true); then
-            if [[ "$exact_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-              ver="$exact_tag"
-            fi
-          fi
-          
-          # 2) If not found, try most recent reachable semver tag
-          if [ -z "$ver" ]; then
-            if semver_tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || true); then
-              if [[ "$semver_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-                ver="$semver_tag"
-              fi
-            fi
-          fi
-          
-          # 3) Fallback: read from VERSION file (without modifying it)
-          if [ -z "$ver" ]; then
-            if [ -f VERSION ]; then
-              ver=$(tr -d '\r\n' < VERSION | xargs)
-            fi
-          fi
-          
-          # 4) Final fallback
-          if [ -z "$ver" ]; then
-            ver="1.0.0"
-          fi
-          
-          echo "version=$ver" >> "$GITHUB_OUTPUT"
-          echo "Derived version: $ver"
+          APP_VERSION="$(cat VERSION 2>/dev/null || echo latest)"
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Deploy version: ${APP_VERSION}"
 
-      - name: Detect semver tag on HEAD
-        id: tag_check
+      - name: Build Docker image locally
         run: |
           set -euo pipefail
-          # Check for an exact tag on HEAD and ensure it matches vX.Y.Z
-          if git describe --tags --exact-match > /dev/null 2>&1; then
-            TAG=$(git describe --tags --exact-match)
-            if echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-              echo "tagged=true" >> "$GITHUB_OUTPUT"
-              echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-              echo "Detected semver tag on HEAD: $TAG"
-            else
-              echo "tagged=false" >> "$GITHUB_OUTPUT"
-              echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-              echo "Tag on HEAD ($TAG) does not match vX.Y.Z pattern; skipping release"
-            fi
-          else
-            echo "tagged=false" >> "$GITHUB_OUTPUT"
-            echo "tag=" >> "$GITHUB_OUTPUT"
-            echo "No exact tag on HEAD; skipping release"
-          fi
+          echo "===> Building madeena_cp:latest on local runner..."
+          docker build \
+            --build-arg APP_VERSION="${{ steps.version.outputs.app_version }}" \
+            --tag madeena_cp:latest \
+            --file ./Dockerfile \
+            .
+          docker image inspect madeena_cp:latest --format 'ID: {{.Id}} | Size: {{.Size}} bytes'
 
-      - name: Set up PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, curl, zip, gd, intl, pcntl, dom
-          coverage: none
-
-      - name: Install PHP dependencies (production)
-        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --quiet
-
-      - name: Set up Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install Node dependencies
-        run: npm ci --no-audit --no-fund --loglevel=error
-
-      - name: Build frontend assets
-        run: npm run build > /dev/null 2>&1
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          no-cache: true
-          build-args: |
-            APP_VERSION=${{ steps.version.outputs.version }}
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/madeena_cp:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/madeena_cp:${{ steps.version.outputs.version }}
-
-     # ── Create GitHub Release (only for non-dev versions and if not already present)
-      - name: Check existing release or skip dev versions
-        id: check_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          # Only create releases for an exact semver tag on HEAD (vX.Y.Z)
-          if [ "${{ steps.tag_check.outputs.tagged }}" != 'true' ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Skipping release: HEAD is not tagged with vX.Y.Z"
-            exit 0
-          fi
-          VER="${{ steps.tag_check.outputs.tag }}"
-          echo "Derived tag to release: $VER"
-          # Check if a release for this tag already exists
-          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VER" || true)
-          if [ "$status" -eq 200 ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release already exists for $VER"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Create GitHub Release
-        if: steps.check_release.outputs.exists == 'false' && steps.check_release.outputs.skip != 'true'
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ steps.tag_check.outputs.tag }}
-          name: Release ${{ steps.tag_check.outputs.tag }}
-          body: |
-            Automated release for ${{ steps.tag_check.outputs.tag }}
-            Generated by CI.
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # ────────────────────────────────────────────────────────────────────────────
-  # Job 2 — Deploy to production via Docker Swarm (self-hosted runner)
-  # ────────────────────────────────────────────────────────────────────────────
   deploy:
     name: Deploy to Production
     runs-on: self-hosted
-    needs: build-and-push
+    needs: build
     permissions:
       contents: read
 
@@ -221,8 +57,6 @@ jobs:
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           APP_KEY: ${{ secrets.APP_KEY }}
           APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
           REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
@@ -236,25 +70,36 @@ jobs:
           SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
           SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
           NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
-          IMAGE_TAG: ${{ github.event.inputs.semver != 'latest' && github.event.inputs.semver != '' && github.event.inputs.semver || needs.build-and-push.outputs.image_tag }}
-          APP_VERSION: ${{ github.event.inputs.semver != 'latest' && github.event.inputs.semver != '' && github.event.inputs.semver || needs.build-and-push.outputs.image_tag }}
+          NEXTCLOUD_WEBDAV_BASE_URI: ${{ secrets.NEXTCLOUD_WEBDAV_BASE_URI }}
+          NEXTCLOUD_WEBDAV_USERNAME: ${{ secrets.NEXTCLOUD_WEBDAV_USERNAME }}
+          NEXTCLOUD_WEBDAV_PASSWORD: ${{ secrets.NEXTCLOUD_WEBDAV_PASSWORD }}
+          APP_VERSION: ${{ needs.build.outputs.app_version }}
         run: |
           set -euo pipefail
 
-          # ── Guardrails ──────────────────────────────────────────────────────
-          [ -z "$APP_KEY" ] && { echo "❌ FATAL: APP_KEY secret is missing!"; exit 1; }
-          if [ -z "${DB_HOST:-}" ]; then
-            echo "❌ FATAL: DB_HOST secret is missing!"
-            echo "Set DB_HOST=db in GitHub Secrets (Docker service name, NOT 127.0.0.1)."
-            exit 1
-          fi
+          require_env() {
+            var="$1"
+            val="$(eval "printf '%s' \"\${${var}:-}\"")"
+            if [ -z "$val" ]; then
+              echo "FATAL: ${var} is missing or empty."
+              exit 1
+            fi
+          }
+
+          for var in APP_KEY APP_DOMAIN REMOTE_PATH DB_HOST DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD NEXTCLOUD_USERNAME NEXTCLOUD_WEBDAV_BASE_URI NEXTCLOUD_WEBDAV_USERNAME NEXTCLOUD_WEBDAV_PASSWORD; do
+            require_env "$var"
+          done
+
           if [ "$DB_HOST" = "127.0.0.1" ] || [ "$DB_HOST" = "localhost" ]; then
-            echo "❌ FATAL: DB_HOST is '$DB_HOST' — this is for local dev, not production."
-            echo "Set DB_HOST=db in GitHub Secrets (Docker service name in Swarm network)."
+            echo "FATAL: DB_HOST is '$DB_HOST'. Use the Swarm service name: db."
             exit 1
           fi
 
-          # ── Sudo helper ─────────────────────────────────────────────────────
+          if [ "$DB_HOST" != "db" ]; then
+            echo "FATAL: DB_HOST must be 'db' for the Swarm deployment."
+            exit 1
+          fi
+
           _sudo() {
             if [ -n "${SUDO_PASSWORD:-}" ]; then
               echo "$SUDO_PASSWORD" | sudo -S "$@" 2>/dev/null
@@ -263,85 +108,56 @@ jobs:
             fi
           }
 
-          # ── Prepare host directories ────────────────────────────────────────
+          export LIVE_VERSION="${APP_VERSION:-unknown}"
+          export APP_STORAGE_HOST_PATH="/var/lib/madeena_cp/storage"
+          export APP_LOGS_HOST_PATH="/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
           export MYSQL_DATA_HOST_PATH="/var/lib/madeena_cp/mysql"
-          
-          # MySQL — SSD path (must NOT be inside Nextcloud data tree)
-          _sudo mkdir -p "$MYSQL_DATA_HOST_PATH"
-          _sudo chown -R 999:999 "$MYSQL_DATA_HOST_PATH"
 
-          # App storage — Nextcloud-namespaced path (HDD)
-          if [ -z "${NEXTCLOUD_USERNAME:-}" ]; then
-            echo "❌ FATAL: NEXTCLOUD_USERNAME secret is missing!"
-            exit 1
-          fi
-          NC_STORAGE="/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage"
-          _sudo mkdir -p "$NC_STORAGE"
-          _sudo chown -R "$SSH_USER":"$SSH_USER" "$NC_STORAGE"
+          echo "===> Clearing exited containers from previous runs..."
+          docker container prune -f || true
 
-          # Backups — Nextcloud-namespaced path (HDD)
-          NC_BACKUPS="/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups"
-          _sudo mkdir -p "$NC_BACKUPS"
-          _sudo chown -R "$SSH_USER":"$SSH_USER" "$NC_BACKUPS"
+          echo "===> Preparing persistent host paths..."
+          _sudo mkdir -p \
+            "$APP_STORAGE_HOST_PATH/app/private" \
+            "$APP_STORAGE_HOST_PATH/app/public" \
+            "$APP_LOGS_HOST_PATH" \
+            "$MYSQL_DATA_HOST_PATH"
+          _sudo chown -R www-data:www-data "$APP_STORAGE_HOST_PATH" "$APP_LOGS_HOST_PATH" 2>/dev/null || true
+          _sudo chmod -R 775 "$APP_STORAGE_HOST_PATH" "$APP_LOGS_HOST_PATH" 2>/dev/null || true
+          _sudo chown 999:999 "$MYSQL_DATA_HOST_PATH" 2>/dev/null || true
+          _sudo chmod 750 "$MYSQL_DATA_HOST_PATH" 2>/dev/null || true
 
-          # ── Prepare deployment directory ─────────────────────────────────────
           echo "===> Preparing deployment root..."
-          if [ -z "${REMOTE_PATH:-}" ]; then
-            echo "❌ FATAL: REMOTE_PATH secret is missing or empty."
-            exit 1
-          fi
-
-          if command -v ufw >/dev/null 2>&1; then
-            echo "===> Checking host firewall for preview port 8011..."
-            _sudo ufw status verbose || true
-          else
-            echo "===> ufw is not installed; skipping firewall audit"
-          fi
-
           if [ "$REMOTE_PATH" = "/var/www" ] || [ "$REMOTE_PATH" = "/srv" ] || [ "$REMOTE_PATH" = "/opt" ] || [ "$REMOTE_PATH" = "/var" ]; then
-            echo "❌ FATAL: REMOTE_PATH must be a dedicated app directory, not a shared root."
-            echo "Example: /var/www/tmp or /srv/tmp"
+            echo "FATAL: REMOTE_PATH must be a dedicated app directory, not a shared root."
             exit 1
           fi
 
-          REMOTE_CHECK_DIR="$REMOTE_PATH"
-          while [ ! -e "$REMOTE_CHECK_DIR" ] && [ "$REMOTE_CHECK_DIR" != "/" ]; do
-            REMOTE_CHECK_DIR=$(dirname "$REMOTE_CHECK_DIR")
-          done
+          _sudo mkdir -p "$REMOTE_PATH"
+          _sudo chown -R "$(id -un):$(id -gn)" "$REMOTE_PATH"
 
-          echo "  Checking write access for $REMOTE_CHECK_DIR"
-          if [ ! -w "$REMOTE_CHECK_DIR" ]; then
-            echo "❌ FATAL: Runner user $(id -un) cannot write to $REMOTE_CHECK_DIR"
-            ls -ld "$REMOTE_CHECK_DIR" || true
-            id
+          if [ ! -w "$REMOTE_PATH" ]; then
+            echo "FATAL: Runner user $(id -un) cannot write to $REMOTE_PATH."
+            ls -ld "$REMOTE_PATH" || true
             exit 1
           fi
 
-          mkdir -p "$REMOTE_PATH"
           cd "$REMOTE_PATH"
           cp "$GITHUB_WORKSPACE/docker-compose.prod.yml" docker-compose.prod.yml
           mkdir -p nginx/conf.d
-          if [ -f "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" ]; then
-            cp "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" nginx/conf.d/app.conf
-          elif [ -f "$GITHUB_WORKSPACE/docker/nginx.conf" ]; then
-            cp "$GITHUB_WORKSPACE/docker/nginx.conf" nginx/conf.d/app.conf
+          cp "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" nginx/conf.d/app.conf
+          echo "$LIVE_VERSION" > VERSION-CURRENT
+
+          echo "===> Resolving WebDAV URI for containers..."
+          HOST_IP="$(hostname -I | awk '{print $1}')"
+          WEBDAV_HOSTNAME="$(echo "$NEXTCLOUD_WEBDAV_BASE_URI" | sed -n 's|^http[s]*://\([^:/]*\).*|\1|p')"
+          if [ "$WEBDAV_HOSTNAME" = "127.0.0.1" ] || [ "$WEBDAV_HOSTNAME" = "localhost" ]; then
+            FINAL_WEBDAV_URI="$(echo "$NEXTCLOUD_WEBDAV_BASE_URI" | sed "s|://127\.0\.0\.1:|://$HOST_IP:|g; s|://localhost:|://$HOST_IP:|g")"
+            echo "  Rewrote loopback WebDAV host to $HOST_IP for containers."
           else
-            echo "❌ FATAL: nginx config not found."
-            echo "Expected one of:"
-            echo "  - nginx/conf.d/app.conf"
-            echo "  - docker/nginx.conf"
-            exit 1
+            FINAL_WEBDAV_URI="$NEXTCLOUD_WEBDAV_BASE_URI"
           fi
 
-          test -f nginx/conf.d/app.conf || { echo "❌ FATAL: nginx/conf.d/app.conf missing after copy!"; exit 1; }
-
-          # ── Generate VERSION-CURRENT ──────────────────────────────────────────
-          echo "===> Generating VERSION-CURRENT..."
-          echo "$APP_VERSION" > VERSION-CURRENT
-
-          # ── Write .env file ──────────────────────────────────────────────────
-          # printf '%s' for every line — safe for YAML indentation, safe for
-          # special characters in passwords (no sed, no heredoc, no escaping bugs).
           echo "===> Writing environment file..."
           printf '%s\n' \
             'APP_NAME="madeena_cp"' \
@@ -358,13 +174,25 @@ jobs:
             'DB_PORT=3306' \
             '' \
             'BROADCAST_CONNECTION=log' \
-            'FILESYSTEM_DISK=local' \
+            'FILESYSTEM_DISK=public' \
+            'PUBLIC_STORAGE_DRIVER=webdav' \
+            'PUBLIC_STORAGE_THROW=true' \
             'QUEUE_CONNECTION=database' \
             'CACHE_STORE=database' \
             'SESSION_DRIVER=database' \
             'SESSION_LIFETIME=120' \
             '' \
-            'DATA_DRIVE_PATH=/var/www/enterprise_data' \
+            "APP_STORAGE_HOST_PATH=${APP_STORAGE_HOST_PATH}" \
+            "APP_LOGS_HOST_PATH=${APP_LOGS_HOST_PATH}" \
+            "MYSQL_DATA_HOST_PATH=${MYSQL_DATA_HOST_PATH}" \
+            '' \
+            'NEXTCLOUD_WEBDAV_PUBLIC_ROOT=madeena_cp_media' \
+            'NEXTCLOUD_WEBDAV_BACKUP_ROOT=madeena_cp_backups' \
+            'NEXTCLOUD_WEBDAV_TIMEOUT=30' \
+            'NEXTCLOUD_WEBDAV_VERIFY_SSL=false' \
+            'ENTERPRISE_BACKUP_DRIVER=webdav' \
+            'ENTERPRISE_BACKUP_THROW=true' \
+            'ENTERPRISE_BACKUP_LOCAL_ROOT=/var/www/enterprise_backups' \
             '' \
             'MAIL_MAILER=smtp' \
             'MAIL_SCHEME=null' \
@@ -389,333 +217,390 @@ jobs:
             printf 'SUPER_ADMIN_EMAIL=%s\n' "$SUPER_ADMIN_EMAIL"
             printf 'SUPER_ADMIN_PASSWORD=%s\n' "$SUPER_ADMIN_PASSWORD"
             printf 'NEXTCLOUD_USERNAME=%s\n' "$NEXTCLOUD_USERNAME"
-            printf 'DOCKERHUB_USERNAME=%s\n' "$DOCKERHUB_USERNAME"
-            printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG"
-            printf 'APP_VERSION=%s\n' "$APP_VERSION"
-            printf 'MYSQL_DATA_HOST_PATH=%s\n' "$MYSQL_DATA_HOST_PATH"
+            printf 'NEXTCLOUD_WEBDAV_BASE_URI=%s\n' "$FINAL_WEBDAV_URI"
+            printf 'NEXTCLOUD_WEBDAV_USERNAME=%s\n' "$NEXTCLOUD_WEBDAV_USERNAME"
+            printf 'NEXTCLOUD_WEBDAV_PASSWORD=%s\n' "$NEXTCLOUD_WEBDAV_PASSWORD"
+            printf 'APP_VERSION=%s\n' "$LIVE_VERSION"
           } >> .env
 
-          # ── Docker Hub auth + image pull ────────────────────────────────────
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-          # Retry transient registry/network failures before failing the deploy.
-          MAX_RETRIES=3
-          RETRY_DELAY=10
-          for attempt in $(seq 1 "$MAX_RETRIES"); do
-            echo "===> Pulling image (attempt $attempt/$MAX_RETRIES)..."
-            if docker pull "$DOCKERHUB_USERNAME/madeena_cp:$IMAGE_TAG"; then
-              echo "✅ Image pulled successfully"
-              break
-            fi
+          echo "===> Swarm manager preflight..."
+          SWARM_STATE="$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo unknown)"
+          SWARM_MANAGER="$(docker info --format '{{.Swarm.ControlAvailable}}' 2>/dev/null || echo false)"
+          if [ "$SWARM_STATE" != "active" ] || [ "$SWARM_MANAGER" != "true" ]; then
+            echo "FATAL: Docker Swarm is not active or this node is not a manager."
+            echo "State: $SWARM_STATE | Manager: $SWARM_MANAGER"
+            exit 1
+          fi
 
-            if [ "$attempt" -lt "$MAX_RETRIES" ]; then
-              echo "⚠️ Pull failed, retrying in ${RETRY_DELAY}s..."
-              sleep "$RETRY_DELAY"
-              RETRY_DELAY=$((RETRY_DELAY * 2))
-            else
-              echo "❌ Failed to pull image after $MAX_RETRIES attempts"
+          echo "===> Verifying local image madeena_cp:latest..."
+          docker image inspect madeena_cp:latest >/dev/null 2>&1 || {
+            echo "FATAL: madeena_cp:latest is not available locally."
+            exit 1
+          }
+
+          WEBDAV_HOSTNAME="$(echo "$FINAL_WEBDAV_URI" | sed -n 's|^http[s]*://\([^:/]*\).*|\1|p')"
+          WEBDAV_PORT="$(echo "$FINAL_WEBDAV_URI" | sed -n 's|^http[s]*://[^:]*:\([0-9]*\).*|\1|p; t; s|^http://.*|80|p; s|^https://.*|443|p')"
+          RESOLVED_IP="$(getent hosts "$WEBDAV_HOSTNAME" | awk '{print $1; exit}' 2>/dev/null || true)"
+          RESOLVED_IP="${RESOLVED_IP:-$WEBDAV_HOSTNAME}"
+
+          echo "===> WebDAV host preflight: ${WEBDAV_HOSTNAME}:${WEBDAV_PORT} (${RESOLVED_IP})"
+          if ! timeout 5 bash -c "</dev/tcp/${RESOLVED_IP}/${WEBDAV_PORT}" 2>/dev/null; then
+            echo "FATAL: WebDAV endpoint is not reachable from the host."
+            exit 1
+          fi
+
+          echo "===> Ensuring WebDAV folders exist..."
+          for folder in madeena_cp_media madeena_cp_backups; do
+            code="$(curl -sS -w "%{http_code}" -o /dev/null -4 \
+              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
+              -X MKCOL "${FINAL_WEBDAV_URI%/}/${folder}" 2>/dev/null || echo "000")"
+            if [ "$code" != "201" ] && [ "$code" != "405" ]; then
+              echo "FATAL: MKCOL for ${folder} returned HTTP ${code}."
               exit 1
             fi
+            echo "  ${folder}: ready"
           done
 
-          # ── Deploy stack ────────────────────────────────────────────────────
-          # FIX: --resolve-image changed (not always) — avoids task rejection
-          #      when upstream base image digest changes between build and deploy.
+          webdav_probe() {
+            root="$1"
+            probe_name="deploy-preflight-$(date -u +%Y%m%d%H%M%S)-${RANDOM}.txt"
+            payload="madeena-cp-webdav-preflight:${root}:${probe_name}"
+            url="${FINAL_WEBDAV_URI%/}/${root}/${probe_name}"
+            tmp_get="$(mktemp)"
+            tmp_out="$(mktemp)"
+            trap 'rm -f "$tmp_get" "$tmp_out"' RETURN
+
+            set +e
+            put_code="$(printf '%s' "$payload" | curl -sS -w "%{http_code}" -o "$tmp_out" -4 \
+              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
+              --connect-timeout 5 --max-time 30 -T - "$url")"
+            put_rc=$?
+            set -e
+            if [ "$put_rc" -ne 0 ] || { [ "$put_code" != "200" ] && [ "$put_code" != "201" ] && [ "$put_code" != "204" ]; }; then
+              echo "FATAL: WebDAV PUT failed for ${root} (curl=${put_rc}, http=${put_code})."
+              cat "$tmp_out" 2>/dev/null || true
+              exit 1
+            fi
+
+            set +e
+            get_code="$(curl -sS -w "%{http_code}" -o "$tmp_get" -4 \
+              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
+              --connect-timeout 5 --max-time 30 "$url")"
+            get_rc=$?
+            set -e
+            if [ "$get_rc" -ne 0 ] || [ "$get_code" != "200" ] || [ "$(cat "$tmp_get")" != "$payload" ]; then
+              echo "FATAL: WebDAV GET/readback failed for ${root} (curl=${get_rc}, http=${get_code})."
+              exit 1
+            fi
+
+            delete_code="$(curl -sS -w "%{http_code}" -o /dev/null -4 \
+              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
+              --connect-timeout 5 --max-time 30 -X DELETE "$url" 2>/dev/null || echo "000")"
+            if [ "$delete_code" != "200" ] && [ "$delete_code" != "204" ]; then
+              echo "FATAL: WebDAV DELETE failed for ${root} (http=${delete_code})."
+              exit 1
+            fi
+            rm -f "$tmp_get" "$tmp_out"
+            trap - RETURN
+            echo "  ${root}: write/read/delete ok"
+          }
+
+          webdav_probe madeena_cp_media
+          webdav_probe madeena_cp_backups
+
+          echo "===> WebDAV container network preflight..."
+          docker run --rm \
+            --entrypoint php \
+            -e WEBDAV_HOST="$WEBDAV_HOSTNAME" \
+            -e WEBDAV_PORT="$WEBDAV_PORT" \
+            madeena_cp:latest \
+            -r '$s=@fsockopen(getenv("WEBDAV_HOST"), (int) getenv("WEBDAV_PORT"), $errno, $errstr, 5); if (! $s) { fwrite(STDERR, "connect failed: ".$errstr.PHP_EOL); exit(1); } fclose($s);'
+
+          echo "===> Laravel WebDAV disk preflight from container..."
+          docker run --rm \
+            --entrypoint php \
+            --env-file .env \
+            madeena_cp:latest \
+            artisan storage:webdav-check --disk=public --disk=enterprise_backups -v
+
           echo "===> Deploying stack..."
           docker stack deploy \
             --resolve-image changed \
-            --with-registry-auth \
             -c docker-compose.prod.yml madeena_cp
 
-          docker logout
-
-          # ── [1/3] Wait for DB to be healthy (FIRST) ─────────────────────────
-          # FIX: DB wait runs BEFORE app wait. This is the correct order:
-          #      DB must be healthy before app entrypoint can finish migration.
           echo "===> [1/3] Waiting for database to be healthy..."
           _WAIT_DB=0
-          until [ "$(docker ps -q -f name=madeena_cp_db | head -n 1 | xargs -I {} docker inspect --format='{{.State.Health.Status}}' {} 2>/dev/null)" = "healthy" ]; do
+          until [ "$(docker ps -q -f name=madeena_cp_db -f status=running | head -n 1 | xargs -I {} docker inspect --format='{{.State.Health.Status}}' {} 2>/dev/null)" = "healthy" ]; do
             if [ "$_WAIT_DB" -ge 300 ]; then
-              echo "❌ DB health check timed out (300s)."
-              echo ""
-              echo "=== DB Container Logs (last 50 lines) ==="
-              docker service logs madeena_cp_db --tail=50 2>/dev/null || true
-              echo ""
-              echo "=== DB Health Check History ==="
-              docker ps -q -f name=madeena_cp_db | head -n 1 | xargs -I {} docker inspect --format='{{json .State.Health}}' {} 2>/dev/null || true
+              echo "FATAL: DB health check timed out."
+              docker service logs madeena_cp_db --tail=80 2>/dev/null || true
               docker stack ps madeena_cp || true
               exit 1
             fi
-            echo "  DB not healthy yet — waiting 5s... (${_WAIT_DB}s elapsed)"
             sleep 5
             _WAIT_DB=$((_WAIT_DB + 5))
+            echo "  DB not healthy yet (${_WAIT_DB}s elapsed)"
           done
-          echo "✅ DB healthy."
+          echo "DB healthy."
 
-          # ── [2/3] Wait for app to be healthy (not just running) ─────────────
-          # FIX: Wait for HEALTH == healthy (not container existence).
-          #      App entrypoint runs `migrate --force` during startup.
-          #      health == healthy means PHP-FPM is up AND migrations are done.
-          echo "===> [2/3] Waiting for app to be healthy (PHP-FPM + migrations)..."
+          echo "===> [2/3] Waiting for app to be healthy..."
           _WAIT_APP=0
-          until [ "$(docker ps -q -f name=madeena_cp_app | head -n 1 | xargs -I {} docker inspect --format='{{.State.Health.Status}}' {} 2>/dev/null)" = "healthy" ]; do
+          until [ "$(docker ps -q -f name=madeena_cp_app -f status=running | head -n 1 | xargs -I {} docker inspect --format='{{.State.Health.Status}}' {} 2>/dev/null)" = "healthy" ]; do
             if [ "$_WAIT_APP" -ge 300 ]; then
-              echo "❌ App health check timed out (300s)."
-              docker service logs madeena_cp_app --tail=50 2>/dev/null || true
+              echo "FATAL: app health check timed out."
+              docker service logs madeena_cp_app --tail=100 2>/dev/null || true
               docker stack ps madeena_cp || true
               exit 1
             fi
-            echo "  App not healthy yet — waiting 5s... (${_WAIT_APP}s elapsed)"
             sleep 5
             _WAIT_APP=$((_WAIT_APP + 5))
+            echo "  App not healthy yet (${_WAIT_APP}s elapsed)"
           done
 
-          CONTAINER=$(docker ps -q -f name=madeena_cp_app | head -n 1)
-          echo "✅ App healthy: $CONTAINER"
+          CONTAINER="$(docker ps -q -f name=madeena_cp_app -f status=running | head -n 1)"
+          echo "App healthy: $CONTAINER"
 
-          # ── [3/3] Post-deploy: seeders (migrations already run in entrypoint) ─
-          # FIX: Run seeders separately after app is healthy.
-          # The queue worker also waits for DB, so by now cache/jobs tables exist.
-          echo "===> [3/3] Running post-deploy seeders..."
+          echo "===> [3/3] Running post-deploy migrations and seeders..."
           set +e
-          MIGRATE_OUTPUT=$(docker exec "$CONTAINER" php artisan migrate --force --seed 2>&1)
+          MIGRATE_OUTPUT="$(docker exec "$CONTAINER" php artisan migrate --force --seed 2>&1)"
           MIGRATE_EXIT=$?
           set -e
           if [ "$MIGRATE_EXIT" -ne 0 ]; then
             if echo "$MIGRATE_OUTPUT" | grep -q "SQLSTATE\[42S01\]"; then
-              echo "⚠️ Table conflict — retrying migrate only (no seed)..."
-              docker exec "$CONTAINER" php artisan migrate --force 2>&1 || {
-                echo "❌ Migrations failed."; echo "$MIGRATE_OUTPUT"; exit 1
-              }
+              echo "Existing-table conflict detected; retrying migrate only."
+              docker exec "$CONTAINER" php artisan migrate --force
             else
-              echo "❌ Migrations failed:"; echo "$MIGRATE_OUTPUT"; exit 1
+              echo "$MIGRATE_OUTPUT"
+              exit 1
             fi
           fi
-          echo "✅ Migrations complete."
 
-          # ── Wait for queue worker to stabilize ──────────────────────────────
-          # FIX: Queue race condition — queue now starts after DB is healthy
-          #      (entrypoint wait), but tables must be committed first.
-          #      With app healthy == migrations done, queue can start cleanly.
           echo "===> Waiting for queue worker..."
           _WAIT_Q=0
-          until docker ps -q -f name=madeena_cp_queue | head -n 1 | grep -q .; do
-            if [ "$_WAIT_Q" -ge 60 ]; then
-              echo "⚠️ Queue not running after 60s — check logs:"
-              docker service logs madeena_cp_queue --tail=30 2>/dev/null || true
-              break  # Don't fail; queue has restart_policy in Swarm
+          until docker ps -q -f name=madeena_cp_queue -f status=running | head -n 1 | grep -q .; do
+            if [ "$_WAIT_Q" -ge 120 ]; then
+              echo "FATAL: queue worker did not start."
+              docker service logs madeena_cp_queue --tail=80 2>/dev/null || true
+              exit 1
             fi
-            sleep 5; _WAIT_Q=$((_WAIT_Q + 5))
+            sleep 5
+            _WAIT_Q=$((_WAIT_Q + 5))
           done
-          docker ps -q -f name=madeena_cp_queue | head -n 1 | grep -q . && echo "✅ Queue running." || true
+          echo "Queue worker running."
 
-          # ── Permissions ─────────────────────────────────────────────────────
           docker exec "$CONTAINER" chown -R www-data:www-data storage bootstrap/cache || true
           docker exec "$CONTAINER" chmod -R 775 storage bootstrap/cache || true
 
-          # ── Final status ────────────────────────────────────────────────────
-          echo "===> Stack status:"; docker stack ps madeena_cp
-          NGINX_CONTAINER=$(docker ps -q -f name=madeena_cp_nginx | head -n 1)
-          [ -n "$NGINX_CONTAINER" ] && docker exec "$NGINX_CONTAINER" nginx -t || true
-          echo "✅ Deployment complete."
+          echo "===> Testing Nginx configuration..."
+          _WAIT_NGINX=0
+          until docker ps -q -f name=madeena_cp_nginx -f status=running | head -n 1 | grep -q .; do
+            if [ "$_WAIT_NGINX" -ge 120 ]; then
+              echo "FATAL: Nginx did not start."
+              docker service logs madeena_cp_nginx --tail=80 2>/dev/null || true
+              exit 1
+            fi
+            sleep 5
+            _WAIT_NGINX=$((_WAIT_NGINX + 5))
+          done
 
-          # ── Notify Nextcloud of new uploaded files (best-effort) ──────────────
-          # NOTE: occ files:scan --path requires a leading "/" before the username.
-          NC_CONTAINER=$(docker ps -q --filter status=running --filter name=nextcloud_app | head -n 1)
-          [ -z "$NC_CONTAINER" ] && NC_CONTAINER=$(docker ps -q --filter status=running --filter name=nextcloud | head -n 1)
-          if [ -n "$NC_CONTAINER" ]; then
-            echo "===> Triggering Nextcloud file scan for madeena_cp_storage..."
-            docker exec --user www-data "$NC_CONTAINER" \
-              php /var/www/html/occ files:scan \
-              --path="/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage" \
-              && echo "✅ Nextcloud storage scan complete." \
-              || echo "⚠️  Nextcloud storage scan failed (non-fatal — run 'server-nextcloud-scan' workflow manually if needed)."
+          NGINX_CONTAINER="$(docker ps -q -f name=madeena_cp_nginx -f status=running | head -n 1)"
+          docker exec "$NGINX_CONTAINER" sh -c "nginx -t && nginx -s reload"
+          docker stack ps madeena_cp
+          echo "Deployment complete."
 
-            echo "===> Triggering Nextcloud file scan for madeena_cp_backups..."
-            docker exec --user www-data "$NC_CONTAINER" \
-              php /var/www/html/occ files:scan \
-              --path="/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups" \
-              && echo "✅ Nextcloud backups scan complete." \
-              || echo "⚠️  Nextcloud backups scan failed (non-fatal — run 'server-nextcloud-scan' workflow manually if needed)."
-          else
-            echo "⚠️  No running Nextcloud container found; skipping file scan."
-          fi
-
-      - name: Cleanup old images
+      - name: Strict image cleanup
         if: always()
-        run: docker image prune -f --filter "until=24h" || true
+        run: |
+          set -euo pipefail
+          LEGACY_REFS="$(docker images --format '{{.Repository}}:{{.Tag}}' | awk '$0 ~ /^madeena_cp:/ && $0 != "madeena_cp:latest"' || true)"
+          if [ -n "${LEGACY_REFS:-}" ]; then
+            while IFS= read -r ref; do
+              [ -z "$ref" ] && continue
+              docker image rm -f "$ref" || true
+            done <<< "$LEGACY_REFS"
+          fi
+          docker container prune -f || true
+          docker image prune -f || true
+          docker builder prune --filter "until=24h" -f || true
 
       - name: Health check
         env:
           APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
         run: |
-          echo "Waiting for application..."
+          set -euo pipefail
           for attempt in $(seq 1 10); do
-            HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 30 "http://${{ secrets.SSH_HOST }}:8011" || echo "000")
-            echo "Attempt $attempt/10 — HTTP $HTTP_STATUS"
-            echo "$HTTP_STATUS" | grep -qE '^(200|301|302|307|308)$' && { echo "✅ Healthy"; exit 0; }
+            if wget -q --spider --timeout=3 http://127.0.0.1:8011/up 2>/dev/null; then
+              echo "Local /up is healthy."
+              if [ -n "${APP_DOMAIN:-}" ]; then
+                PUBLIC_STATUS="$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "https://${APP_DOMAIN}/up" || echo "000")"
+                echo "Public /up status: ${PUBLIC_STATUS}"
+                [ "$PUBLIC_STATUS" = "200" ] || { sleep 10; continue; }
+              fi
+              exit 0
+            fi
+            echo "Attempt ${attempt}/10 failed; waiting..."
             sleep 10
           done
-          echo "❌ Health check failed"
-          echo ""
-          echo "══ DIAGNOSTIC DUMP ══"
-          echo "── Laravel Log ──"
-          docker exec "$(docker ps -q -f name=madeena_cp_app | head -n 1)" \
-            tail -n 50 storage/logs/laravel.log 2>/dev/null || echo "(no log)"
-          echo "── App Service Logs ──"
+
+          echo "Health check failed."
+          docker exec "$(docker ps -q -f name=madeena_cp_app -f status=running | head -n 1)" tail -n 80 storage/logs/laravel.log 2>/dev/null || true
           docker service logs madeena_cp_app --tail=100 2>/dev/null || true
-          echo "── Nginx Service Logs ──"
-          docker service logs madeena_cp_nginx --tail=50 2>/dev/null || true
-          echo "── Stack Status ──"
+          docker service logs madeena_cp_nginx --tail=100 2>/dev/null || true
           docker stack ps madeena_cp 2>/dev/null || true
-          echo "── Resources ──"
-          df -h; free -m
           exit 1
 
       - name: Post-deploy verification
         run: |
           set -euo pipefail
-          PASS=0; FAIL=0; WARN=0
-          _pass() { PASS=$((PASS + 1)); echo "  ✅ PASS: $1"; }
-          _fail() { FAIL=$((FAIL + 1)); echo "  ❌ FAIL: $1"; }
-          _warn() { WARN=$((WARN + 1)); echo "  ⚠️  WARN: $1"; }
+          PASS=0
+          FAIL=0
+          WARN=0
+
+          _pass() { PASS=$((PASS + 1)); echo "  PASS: $1"; }
+          _fail() { FAIL=$((FAIL + 1)); echo "  FAIL: $1"; }
+          _warn() { WARN=$((WARN + 1)); echo "  WARN: $1"; }
 
           echo "===> Waiting for Swarm services to settle..."
-          for svc in madeena_cp_app madeena_cp_db madeena_cp_nginx; do
+          for svc in madeena_cp_app madeena_cp_db madeena_cp_nginx madeena_cp_queue; do
             _WAIT_REPL=0
             until [ "$(docker service ls --format '{{.Replicas}}' --filter "name=${svc}" 2>/dev/null | head -n 1)" = "1/1" ]; do
               if [ "$_WAIT_REPL" -ge 180 ]; then
-                echo "❌ Timed out waiting for ${svc} replicas to settle."
-                docker service ls --format '{{.Name}} {{.Replicas}}' --filter "name=${svc}" 2>/dev/null || true
-                echo ""
-                echo "=== ${svc} service logs ==="
-                docker service logs "${svc}" --tail=200 2>/dev/null || true
-                echo ""
-                echo "=== ${svc} task states ==="
-                docker service ps "${svc}" --no-trunc 2>/dev/null || true
+                docker service logs "$svc" --tail=120 2>/dev/null || true
+                docker service ps "$svc" --no-trunc 2>/dev/null || true
                 exit 1
               fi
-              echo "  ${svc} not settled yet — waiting 5s... (${_WAIT_REPL}s elapsed)"
               sleep 5
               _WAIT_REPL=$((_WAIT_REPL + 5))
             done
           done
-          echo "===> Waiting for queue worker to reach Running..."
-          _WAIT_Q=0
-          Q_TIMEOUT=300
-          while true; do
-            Q_STATE="$(docker service ps madeena_cp_queue --no-trunc \
-              --filter desired-state=running \
-              --format '{{.CurrentState}}' | head -n1 || true)"
 
-            echo "  madeena_cp_queue: ${Q_STATE:-<none>} (${_WAIT_Q}s elapsed)"
+          echo "===> Post-deploy verification report"
 
-            if echo "$Q_STATE" | grep -qi '^Running'; then
-              echo "✅ Queue worker is running."
-              break
-            fi
-
-            if [ "$_WAIT_Q" -ge "$Q_TIMEOUT" ]; then
-              echo "⚠️ Timed out waiting for madeena_cp_queue to reach Running."
-              docker service logs madeena_cp_queue --tail=200 2>/dev/null || true
-              docker service ps madeena_cp_queue --no-trunc 2>/dev/null || true
-              break
-            fi
-
-            sleep 5
-            _WAIT_Q=$((_WAIT_Q + 5))
-          done
-          echo "✅ Swarm replica counts settled."
-          echo ""
-
-          echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║  POST-DEPLOY VERIFICATION REPORT                           ║"
-          echo "╚══════════════════════════════════════════════════════════════╝"
-
-          # 1. Service replicas
-          echo "▶ 1/6 — SERVICE REPLICAS"
+          echo "1/8 Service replicas"
           for svc in madeena_cp_app madeena_cp_db madeena_cp_nginx madeena_cp_queue; do
-            REPLICAS=$(docker service ls --format '{{.Replicas}}' --filter "name=${svc}" 2>/dev/null || echo "")
-            if echo "$REPLICAS" | grep -qE '^[0-9]+/[0-9]+$'; then
-              DESIRED=$(echo "$REPLICAS" | cut -d/ -f2)
-              RUNNING=$(echo "$REPLICAS" | cut -d/ -f1)
-              if [ "$RUNNING" -eq "$DESIRED" ] && [ "$DESIRED" -gt 0 ]; then
-                _pass "$svc: $REPLICAS"
-              elif [ "$svc" = "madeena_cp_queue" ]; then
-                _warn "$svc: $REPLICAS"
-              else
-                _fail "$svc: $REPLICAS"
-              fi
+            replicas="$(docker service ls --format '{{.Replicas}}' --filter "name=${svc}" 2>/dev/null || echo "")"
+            if [ "$replicas" = "1/1" ]; then
+              _pass "$svc: $replicas"
             else
-              [ "$svc" = "madeena_cp_queue" ] && _warn "$svc: not found" || _fail "$svc: not found"
+              _fail "$svc: $replicas"
             fi
           done
-          echo ""
 
-          # 2. Health checks
-          echo "▶ 2/6 — HEALTH CHECKS"
+          echo "2/8 Health checks"
           for svc in madeena_cp_app madeena_cp_db; do
-            CONTAINER=$(docker ps -q -f name="${svc}" | head -n 1)
-            if [ -n "$CONTAINER" ]; then
-              HEALTH=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null || echo "none")
-              [ "$HEALTH" = "healthy" ] && _pass "$svc: $HEALTH" \
-                || { [ "$HEALTH" = "starting" ] && _warn "$svc: $HEALTH" || _fail "$svc: $HEALTH"; }
+            container="$(docker ps -q -f name="${svc}" -f status=running | head -n 1)"
+            health="$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo none)"
+            if [ "$health" = "healthy" ]; then
+              _pass "$svc health: $health"
             else
-              _fail "$svc: no container"
+              _fail "$svc health: $health"
             fi
           done
-          echo ""
 
-          # 3. Update & rollback config
-          echo "▶ 3/6 — UPDATE & ROLLBACK CONFIG"
+          echo "3/8 Update and rollback policy"
           for svc in madeena_cp_app madeena_cp_db madeena_cp_nginx madeena_cp_queue; do
-            UPDATE_ORDER=$(docker service inspect "$svc" --format='{{.Spec.UpdateConfig.Order}}' 2>/dev/null || echo "")
-            FAILURE_ACTION=$(docker service inspect "$svc" --format='{{.Spec.UpdateConfig.FailureAction}}' 2>/dev/null || echo "")
-            [ -n "$UPDATE_ORDER" ] && [ -n "$FAILURE_ACTION" ] \
-              && _pass "$svc: update=$UPDATE_ORDER, failure=$FAILURE_ACTION" \
-              || _fail "$svc: missing update_config"
+            update_order="$(docker service inspect "$svc" --format='{{.Spec.UpdateConfig.Order}}' 2>/dev/null || echo "")"
+            failure_action="$(docker service inspect "$svc" --format='{{.Spec.UpdateConfig.FailureAction}}' 2>/dev/null || echo "")"
+            rollback_order="$(docker service inspect "$svc" --format='{{.Spec.RollbackConfig.Order}}' 2>/dev/null || echo "")"
+            expected="stop-first"
+            if [ "$svc" = "madeena_cp_app" ] || [ "$svc" = "madeena_cp_nginx" ]; then
+              expected="start-first"
+            fi
+            if [ "$update_order" = "$expected" ] && [ "$failure_action" = "rollback" ] && [ "$rollback_order" = "$expected" ]; then
+              _pass "$svc: update=$update_order rollback=$rollback_order"
+            else
+              _fail "$svc: update=$update_order failure=$failure_action rollback=$rollback_order"
+            fi
           done
-          echo ""
 
-          # 4. Resource limits
-          echo "▶ 4/6 — RESOURCE LIMITS"
+          echo "4/8 Resource limits"
           for svc in madeena_cp_app madeena_cp_db madeena_cp_nginx madeena_cp_queue; do
-            MEM_LIMIT=$(docker service inspect "$svc" \
-              --format='{{.Spec.TaskTemplate.Resources.Limits.MemoryBytes}}' 2>/dev/null || echo "0")
-            [ "${MEM_LIMIT:-0}" -gt 0 ] 2>/dev/null \
-              && _pass "$svc: limit=$((MEM_LIMIT / 1048576))MB" \
-              || _fail "$svc: no memory limit"
+            mem_limit="$(docker service inspect "$svc" --format='{{.Spec.TaskTemplate.Resources.Limits.MemoryBytes}}' 2>/dev/null || echo 0)"
+            if [ "${mem_limit:-0}" -gt 0 ] 2>/dev/null; then
+              _pass "$svc memory limit set"
+            else
+              _fail "$svc memory limit missing"
+            fi
           done
-          echo ""
 
-          # 5. Queue worker — FIX: use service inspect Args (not container .Config.Cmd)
-          echo "▶ 5/6 — QUEUE WORKER"
-          QUEUE_STATE=$(docker service ps madeena_cp_queue --no-trunc --filter desired-state=running --format '{{.CurrentState}}' | head -n 1 2>/dev/null || echo "")
-          if echo "$QUEUE_STATE" | grep -qi '^Running'; then
-            QUEUE_CMD=$(docker service inspect madeena_cp_queue \
-              --format='{{join .Spec.TaskTemplate.ContainerSpec.Args " "}}' 2>/dev/null || echo "")
-            echo "$QUEUE_CMD" | grep -q "queue:work" \
-              && _pass "queue:work: $QUEUE_CMD" || _warn "queue:work not found: '$QUEUE_CMD'"
-            GRACE=$(docker service inspect madeena_cp_queue \
-              --format='{{.Spec.TaskTemplate.ContainerSpec.StopGracePeriod}}' 2>/dev/null || echo "")
-            [ -n "$GRACE" ] && _pass "stop_grace_period: $GRACE" || _warn "stop_grace_period not set"
-          elif echo "$QUEUE_STATE" | grep -qi '^Starting'; then
-            _warn "madeena_cp_queue is still starting: $QUEUE_STATE"
+          echo "5/8 Queue worker"
+          queue_cmd="$(docker service inspect madeena_cp_queue --format='{{join .Spec.TaskTemplate.ContainerSpec.Args " "}}' 2>/dev/null || echo "")"
+          if echo "$queue_cmd" | grep -q "queue:work"; then
+            _pass "queue:work command configured"
           else
-            _warn "madeena_cp_queue state=$QUEUE_STATE (expected Running)"
+            _fail "queue:work command missing"
           fi
-          echo ""
-
-          # 6. Storage write test
-          echo "▶ 6/6 — STORAGE WRITE TEST"
-          APP_CONTAINER=$(docker ps -q -f name=madeena_cp_app | head -n 1)
-          if [ -n "$APP_CONTAINER" ]; then
-            docker exec "$APP_CONTAINER" sh -c 'touch /var/www/html/storage/test_perm && rm -f /var/www/html/storage/test_perm' 2>/dev/null \
-              && _pass "storage is writable" || _fail "storage is NOT writable"
+          grace="$(docker service inspect madeena_cp_queue --format='{{.Spec.TaskTemplate.ContainerSpec.StopGracePeriod}}' 2>/dev/null || echo "")"
+          if [ -n "$grace" ]; then
+            _pass "queue stop grace period: $grace"
+          else
+            _warn "queue stop grace period missing"
           fi
-          echo ""
 
-          # Summary
-          echo "══════════════════════════════════════════════════════════════"
-          echo "  RESULTS: ✅ $PASS passed | ❌ $FAIL failed | ⚠️  $WARN warnings"
-          echo "══════════════════════════════════════════════════════════════"
-          [ "$FAIL" -gt 0 ] && { echo "❌ Verification FAILED"; exit 1; } || echo "✅ All checks passed."
+          echo "6/8 Storage mounts"
+          app_container="$(docker ps -q -f name=madeena_cp_app -f status=running | head -n 1)"
+          full_storage_mount="$(docker inspect "$app_container" --format='{{range .Mounts}}{{if eq .Destination "/var/www/html/storage"}}{{.Destination}}{{end}}{{end}}' 2>/dev/null || true)"
+          if [ -z "$full_storage_mount" ]; then
+            _pass "full storage tree is not shared"
+          else
+            _fail "full storage tree is mounted"
+          fi
+          storage_app_mount="$(docker inspect "$app_container" --format='{{range .Mounts}}{{if eq .Destination "/var/www/html/storage/app"}}{{.Type}}:{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+          if [ -n "$storage_app_mount" ]; then
+            _pass "storage/app mounted: $storage_app_mount"
+          else
+            _fail "storage/app mount missing"
+          fi
+          if docker exec "$app_container" sh -c 'test -d storage/framework/views && test -w storage/framework/views'; then
+            _pass "framework views path is container-local and writable"
+          else
+            _fail "framework views path is not writable"
+          fi
+
+          echo "7/8 WebDAV disks"
+          if docker exec "$app_container" php artisan storage:webdav-check --disk=public --disk=enterprise_backups -v; then
+            _pass "WebDAV public and backup disks verified"
+          else
+            _fail "WebDAV storage check failed"
+          fi
+
+          echo "8/8 /storage media streaming"
+          media_probe="deploy-check-$(date -u +%Y%m%d%H%M%S).txt"
+          media_payload="madeena-cp-media-${media_probe}"
+          docker exec -e MEDIA_PROBE="$media_probe" -e MEDIA_PAYLOAD="$media_payload" "$app_container" php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); Illuminate\Support\Facades\Storage::disk("public")->put(getenv("MEDIA_PROBE"), getenv("MEDIA_PAYLOAD"));'
+          fetched="$(curl -fsS --max-time 10 "http://127.0.0.1:8011/storage/${media_probe}" || true)"
+          docker exec -e MEDIA_PROBE="$media_probe" "$app_container" php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); Illuminate\Support\Facades\Storage::disk("public")->delete(getenv("MEDIA_PROBE"));' || true
+          if [ "$fetched" = "$media_payload" ]; then
+            _pass "/storage route streams public disk media"
+          else
+            _fail "/storage route did not return uploaded media"
+          fi
+
+          echo "Results: ${PASS} passed | ${FAIL} failed | ${WARN} warnings"
+          {
+            echo "# Deploy Summary"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| passed | ${PASS} |"
+            echo "| failed | ${FAIL} |"
+            echo "| warnings | ${WARN} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FAIL" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Failure Diagnostic Dump
+        if: failure()
+        run: |
+          set -uo pipefail
+          echo "Stack task history"
+          docker stack ps madeena_cp --no-trunc --format 'table {{.Name}}\t{{.CurrentState}}\t{{.Error}}' 2>/dev/null | head -30 || true
+          for svc in madeena_cp_app madeena_cp_db madeena_cp_queue madeena_cp_nginx; do
+            echo "Logs: $svc"
+            docker service logs "$svc" --tail=80 --no-task-ids 2>/dev/null || true
+          done
+          df -h / /var/lib/docker 2>/dev/null || true
+          free -h 2>/dev/null || true
+          docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
