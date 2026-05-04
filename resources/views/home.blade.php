@@ -120,7 +120,7 @@
                     @if($product->description)
                     <p class="text-gray-600 text-sm leading-relaxed line-clamp-3">{!! strip_tags($product->description) !!}</p>
                     @endif
-                    <a href="{{ route('product.show', $product->slug) }}"
+                    <a href="{{ route('product.show', ['product' => $product->slug ?: $product->id]) }}"
                         class="mt-4 inline-block text-madeena-teal font-semibold hover:text-madeena-blue transition-colors text-sm">
                         Selengkapnya <i class="fas fa-arrow-right ml-1"></i>
                     </a>
@@ -277,7 +277,7 @@
                     <span class="inline-block text-xs font-semibold text-madeena-teal bg-madeena-teal/10 px-2 py-1 rounded mb-3">{{ $post->category }}</span>
                     @endif
                     <h3 class="text-lg font-bold text-madeena-blue mb-2 group-hover:text-madeena-teal transition-colors">
-                        <a href="{{ route('post.show', $post->slug) }}">{{ $post->title }}</a>
+                        <a href="{{ route('post.show', ['post' => $post->slug ?: $post->id]) }}">{{ $post->title }}</a>
                     </h3>
                     @if($post->excerpt)
                     <p class="text-gray-600 text-sm leading-relaxed line-clamp-3">{{ $post->excerpt }}</p>
@@ -286,7 +286,7 @@
                         @if($post->published_at)
                         <span class="text-gray-400 text-xs">{{ $post->published_at->format('d M Y') }}</span>
                         @endif
-                        <a href="{{ route('post.show', $post->slug) }}"
+                        <a href="{{ route('post.show', ['post' => $post->slug ?: $post->id]) }}"
                             class="text-madeena-teal font-semibold text-sm hover:text-madeena-blue transition-colors">
                             Baca <i class="fas fa-arrow-right ml-1"></i>
                         </a>

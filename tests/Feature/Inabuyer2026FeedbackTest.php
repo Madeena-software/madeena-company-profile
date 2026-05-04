@@ -32,6 +32,7 @@ class Inabuyer2026FeedbackTest extends TestCase
             'name' => 'Aisyah Putri',
             'organization' => 'PT Nusantara Export',
             'kesan_dan_pesan' => 'Acara sangat bermanfaat dan saya berharap sesi networking ditambah pada tahun berikutnya.',
+            'is_visible' => true,
         ]);
     }
 

@@ -62,10 +62,33 @@
     <!-- Footer Section (Bottom Call to Action) -->
     <div class="relative z-10 shrink-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent pt-12 pb-8">
         <div
-            class="mx-8 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-lg flex items-center justify-between">
-            <div class="flex flex-col">
-                <span class="text-3xl font-black text-white">Bagikan Kesan untuk Booth Madeena!</span>
+            class="mx-8 grid gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-lg lg:grid-cols-[auto,1fr,auto] lg:items-center">
+            <div class="flex items-center gap-5">
+                <div class="rounded-2xl border border-white/10 bg-white p-3 shadow-2xl shadow-black/30">
+                    <img
+                        src="{{ asset('images/' . rawurlencode('qr_Kesan dan Pesan Booth Madeena Inabuyer 2026.png')) }}"
+                        alt="QR code feedback booth Madeena Inabuyer 2026"
+                        class="h-28 w-28 object-contain sm:h-32 sm:w-32">
+                </div>
+                <div class="space-y-2">
+                    <p class="text-sm font-semibold uppercase tracking-[0.35em] text-madeena-teal/80">Kesan dan pesan</p>
+                    <h2 class="text-3xl font-black text-white sm:text-4xl">Scan untuk kirim kesan dan pesan</h2>
+                    <p class="max-w-2xl text-lg text-white/75">Bantu kami meningkatkan pengalaman Booth Madeena. Buka link berikut atau scan QR code di samping.</p>
+                </div>
             </div>
+
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 px-5 py-4 shadow-inner shadow-black/20">
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/40">Kesan dan Pesan URL</p>
+                <a href="https://bit.ly/madeenafeedback" target="_blank" rel="noreferrer"
+                    class="mt-2 block break-all text-2xl font-black text-white transition hover:text-madeena-teal sm:text-3xl">
+                    https://bit.ly/madeenafeedback
+                </a>
+            </div>
+
+            <a href="https://bit.ly/madeenafeedback" target="_blank" rel="noreferrer"
+                class="inline-flex items-center justify-center rounded-full border border-madeena-teal/40 bg-madeena-teal/15 px-6 py-4 text-lg font-bold text-white transition hover:border-madeena-teal hover:bg-madeena-teal/25">
+                Buka Form Feedback
+            </a>
         </div>
     </div>
 </div>

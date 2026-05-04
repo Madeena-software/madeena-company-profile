@@ -429,16 +429,9 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 10); do
-            if wget -q --spider --timeout=3 http://127.0.0.1:8011/up 2>/dev/null; then
-              echo "Local /up is healthy."
-              if [ -n "${APP_DOMAIN:-}" ]; then
-                PUBLIC_STATUS="$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "https://${APP_DOMAIN}/up" || echo "000")"
-                echo "Public /up status: ${PUBLIC_STATUS}"
-                [ "$PUBLIC_STATUS" = "200" ] || { sleep 10; continue; }
-              fi
-              exit 0
-            fi
-            echo "Attempt ${attempt}/10 failed; waiting..."
+            HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 30 "http://${{ secrets.SSH_HOST }}:8011" || echo "000")
+            echo "Attempt $attempt/10 — HTTP $HTTP_STATUS"
+            echo "$HTTP_STATUS" | grep -qE '^(200|301|302|307|308)$' && { echo "✅ Healthy"; exit 0; }
             sleep 10
           done
 

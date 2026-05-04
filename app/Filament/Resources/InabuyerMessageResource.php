@@ -5,9 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InabuyerMessageResource\Pages;
 use App\Models\InabuyerMessage;
 use App\Models\User;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -15,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema as ResourceSchema;
 use Filament\Tables;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -60,7 +58,7 @@ class InabuyerMessageResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return static::isAdminUser();
+        return false;
     }
 
     public static function form(ResourceSchema $schema): ResourceSchema
@@ -87,10 +85,22 @@ class InabuyerMessageResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
+            ToggleColumn::make('is_visible')
+                ->label('Tampil')
+                ->onColor('success')
+                ->offColor('gray')
+                ->onIcon('heroicon-o-eye')
+                ->offIcon('heroicon-o-eye-slash'),
             Tables\Columns\TextColumn::make('name')
                 ->label('Nama')
                 ->searchable()
                 ->sortable(),
+            Tables\Columns\TextColumn::make('is_visible')
+                ->label('Status')
+                ->badge()
+                ->formatStateUsing(fn (bool $state): string => $state ? 'Visible' : 'Hidden')
+                ->color(fn (bool $state): string => $state ? 'success' : 'gray')
+                ->toggleable(),
             Tables\Columns\TextColumn::make('organization')
                 ->label('Organisasi')
                 ->searchable()
@@ -107,12 +117,6 @@ class InabuyerMessageResource extends Resource
         ])->defaultSort('created_at', 'desc')
             ->actions([
                 EditAction::make(),
-                DeleteAction::make(),
-            ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
             ]);
     }
 

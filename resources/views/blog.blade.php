@@ -21,7 +21,7 @@
                 <article class="pb-16 border-b border-gray-200 last:border-b-0">
                     @if($post->cover_image)
                     <div class="mb-8">
-                        <a href="{{ route('post.show', $post->slug) }}" class="block overflow-hidden rounded-lg hover:opacity-90 transition-opacity">
+                        <a href="{{ route('post.show', ['post' => $post->slug ?: $post->id]) }}" class="block overflow-hidden rounded-lg hover:opacity-90 transition-opacity">
                             <img src="{{ Storage::url($post->cover_image) }}"
                                 alt="{{ $post->title }}"
                                 class="w-full h-96 object-cover">
@@ -40,7 +40,7 @@
 
                     <!-- Title -->
                     <h2 class="text-3xl md:text-4xl font-bold text-madeena-blue mb-4 hover:text-madeena-teal transition-colors">
-                        <a href="{{ route('post.show', $post->slug) }}">{{ $post->title }}</a>
+                        <a href="{{ route('post.show', ['post' => $post->slug ?: $post->id]) }}">{{ $post->title }}</a>
                     </h2>
 
                     <!-- Metadata -->
@@ -68,7 +68,7 @@
                     @endif
 
                     <!-- Read More Link -->
-                    <a href="{{ route('post.show', $post->slug) }}"
+                    <a href="{{ route('post.show', ['post' => $post->slug ?: $post->id]) }}"
                         class="inline-flex items-center text-madeena-teal font-semibold hover:text-madeena-blue transition-colors group">
                         Baca Selengkapnya
                         <span class="ml-2 transform group-hover:translate-x-1 transition-transform">→</span>
