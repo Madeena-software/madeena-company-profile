@@ -12,7 +12,7 @@
         <article class="bg-white rounded-2xl shadow-lg overflow-hidden">
             @if($post->cover_image)
             <div class="aspect-video overflow-hidden">
-                <img src="{{ Storage::url($post->cover_image) }}" alt="{{ $post->title }}" class="w-full h-full object-cover">
+                <img src="{{ route('storage.public', ['path' => $post->cover_image]) }}" alt="{{ $post->title }}" class="w-full h-full object-cover">
             </div>
             @endif
             <div class="p-8">

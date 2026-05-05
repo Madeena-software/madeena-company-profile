@@ -12,7 +12,7 @@
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
             @if($product->image_path)
             <div class="aspect-video bg-gray-50">
-                <img src="{{ Storage::url($product->image_path) }}" alt="{{ $product->name }}" class="w-full h-full object-contain p-8">
+                <img src="{{ route('storage.public', ['path' => $product->image_path]) }}" alt="{{ $product->name }}" class="w-full h-full object-contain p-8">
             </div>
             @endif
             <div class="p-8">

@@ -22,7 +22,7 @@
                     @if($post->cover_image)
                     <div class="mb-8">
                         <a href="{{ route('post.show', ['post' => $post->slug ?: $post->id]) }}" class="block overflow-hidden rounded-lg hover:opacity-90 transition-opacity">
-                            <img src="{{ Storage::url($post->cover_image) }}"
+                            <img src="{{ route('storage.public', ['path' => $post->cover_image]) }}"
                                 alt="{{ $post->title }}"
                                 class="w-full h-96 object-cover">
                         </a>

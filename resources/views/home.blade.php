@@ -103,7 +103,7 @@
             <div class="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
                 @if($product->image_path)
                 <div class="aspect-video bg-gray-50 overflow-hidden">
-                    <img src="{{ Storage::url($product->image_path) }}"
+                    <img src="{{ route('storage.public', ['path' => $product->image_path]) }}"
                         alt="{{ $product->name }}"
                         class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300">
                 </div>
@@ -267,7 +267,7 @@
             <article class="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
                 @if($post->cover_image)
                 <div class="aspect-video overflow-hidden">
-                    <img src="{{ Storage::url($post->cover_image) }}"
+                    <img src="{{ route('storage.public', ['path' => $post->cover_image]) }}"
                         alt="{{ $post->title }}"
                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 </div>
