@@ -115,6 +115,8 @@ RUN php artisan package:discover --ansi
 RUN php artisan filament:assets --ansi
 RUN if [ -n "${APP_VERSION}" ]; then printf '%s' "${APP_VERSION}" > /var/www/html/VERSION || true; fi
 
+RUN rm -rf storage/framework/views/*.php storage/framework/cache/data/* bootstrap/cache/*.php
+
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
