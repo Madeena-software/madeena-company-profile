@@ -328,6 +328,11 @@ jobs:
             --resolve-image changed \
             -c docker-compose.prod.yml madeena_cp
 
+          echo "===> Force updating app and queue services with new image..."
+          sleep 5
+          docker service update --force --image madeena_cp:latest madeena_cp_app || true
+          docker service update --force --image madeena_cp:latest madeena_cp_queue || true
+
           echo "===> [1/3] Waiting for database to be healthy..."
           _WAIT_DB=0
           until [ "$(docker ps -q -f name=madeena_cp_db -f status=running | head -n 1 | xargs -I {} docker inspect --format='{{.State.Health.Status}}' {} 2>/dev/null)" = "healthy" ]; do
