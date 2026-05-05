@@ -2,16 +2,46 @@
     x-data="{
         interval: null,
         lastNewestId: null,
+        lastScrollHeight: 0,
         scrollStep: 1,
+        autoScroll: true,
+        storageKey: 'madeena.inabuyer2026.display.autoScroll',
         init() {
+            this.autoScroll = this.readAutoScrollPreference();
+            this.$watch('autoScroll', (value) => this.persistAutoScrollPreference(value));
+
             this.$nextTick(() => {
                 this.lastNewestId = this.currentNewestId();
+                this.lastScrollHeight = this.$refs.scroller?.scrollHeight ?? 0;
                 this.interval = window.setInterval(() => this.tick(), 45);
             });
         },
         destroy() {
             if (this.interval) {
                 window.clearInterval(this.interval);
+            }
+        },
+        readAutoScrollPreference() {
+            try {
+                const stored = window.localStorage.getItem(this.storageKey);
+
+                return stored === null ? true : stored === 'true';
+            } catch (error) {
+                return true;
+            }
+        },
+        persistAutoScrollPreference(value) {
+            try {
+                window.localStorage.setItem(this.storageKey, value ? 'true' : 'false');
+            } catch (error) {
+                return;
+            }
+        },
+        setAutoScroll(value) {
+            this.autoScroll = value;
+
+            if (value) {
+                this.$nextTick(() => this.tick());
             }
         },
         currentNewestId() {
@@ -25,10 +55,20 @@
             }
 
             const newestId = this.currentNewestId();
+            const scrollHeight = scroller.scrollHeight;
 
             if (this.lastNewestId && newestId && newestId !== this.lastNewestId) {
+                const heightDelta = scrollHeight - this.lastScrollHeight;
+
                 this.lastNewestId = newestId;
-                scroller.scrollTop = 0;
+
+                if (this.autoScroll) {
+                    scroller.scrollTop = 0;
+                } else if (heightDelta > 0 && scroller.scrollTop > 0) {
+                    scroller.scrollTop += heightDelta;
+                }
+
+                this.lastScrollHeight = scroller.scrollHeight;
 
                 return;
             }
@@ -37,115 +77,132 @@
                 this.lastNewestId = newestId;
             }
 
-            if (scroller.scrollHeight <= scroller.clientHeight + 1) {
-                scroller.scrollTop = 0;
+            if (! this.autoScroll) {
+                this.lastScrollHeight = scrollHeight;
 
                 return;
             }
 
-            const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+            if (scrollHeight <= scroller.clientHeight + 1) {
+                scroller.scrollTop = 0;
+                this.lastScrollHeight = scrollHeight;
+
+                return;
+            }
+
+            const maxScroll = scrollHeight - scroller.clientHeight;
 
             if (scroller.scrollTop >= maxScroll - 1) {
                 scroller.scrollTop = 0;
+                this.lastScrollHeight = scrollHeight;
 
                 return;
             }
 
             scroller.scrollTop += this.scrollStep;
+            this.lastScrollHeight = scrollHeight;
         },
     }"
-    class="relative flex h-screen w-full flex-col overflow-hidden bg-slate-950 font-sans text-white">
-    <!-- Ambient Background Effects -->
-    <div class="absolute inset-0 z-0 overflow-hidden opacity-40">
-        <div
-            class="absolute -top-[20%] left-1/2 h-[50vh] w-[80vw] -translate-x-1/2 rounded-[100%] bg-madeena-blue/20 blur-[120px]">
-        </div>
-        <div class="absolute top-[40%] -left-[20%] h-[40vh] w-[60vw] rounded-[100%] bg-madeena-teal/15 blur-[100px]">
-        </div>
-        <div class="absolute -bottom-[10%] -right-[10%] h-[50vh] w-[70vw] rounded-[100%] bg-indigo-500/10 blur-[120px]">
-        </div>
-    </div>
+    class="flex h-screen w-full flex-col overflow-hidden bg-slate-950 font-sans text-white">
+    <header class="shrink-0 border-b border-white/10 bg-madeena-blue px-4 py-3 shadow-lg sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-screen-2xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex min-w-0 items-center gap-3">
+                <div class="shrink-0 rounded-lg bg-white p-1.5 shadow-md">
+                    <img src="{{ asset('images/logo-current.png') }}" alt="Madeena Logo"
+                        class="h-10 w-auto object-contain sm:h-12">
+                </div>
+                <div class="min-w-0">
+                    <h1 class="truncate text-xl font-black text-white sm:text-2xl lg:text-3xl">Booth Madeena</h1>
+                    <p class="mt-0.5 text-sm font-semibold text-madeena-teal sm:text-base">
+                        Inabuyer 2026 | Live Impressions & Messages | <span
+                            class="text-white/65">{{ now()->format('H:i:s') }}</span>
+                    </p>
+                </div>
+            </div>
 
-    <!-- Header Section (Top) -->
-    <div
-        class="relative z-10 flex shrink-0 flex-col items-center justify-center gap-4 bg-white/5 px-8 py-10 shadow-2xl shadow-black/50 backdrop-blur-xl border-b border-white/10">
-        <img src="{{ asset('images/logo-current.png') }}" alt="Madeena Logo"
-            class="h-20 object-contain drop-shadow-2xl">
-        <div class="text-center">
-            <h1
-                class="text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-white/70">
-                Booth Madeena
-            </h1>
-            <p class="mt-2 text-xl font-medium tracking-wide text-madeena-teal">
-                Inabuyer 2026 | Live Impressions & Messages | <span class="text-white/50">{{ now()->format('H:i:s') }}</span>
-            </p>
+            <button type="button" @click="setAutoScroll(! autoScroll)" :aria-pressed="autoScroll.toString()"
+                class="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-left shadow-sm transition hover:bg-white/15 focus:outline-none focus:ring-4 focus:ring-madeena-teal/25 sm:w-auto"
+                aria-label="Toggle Auto Scroll">
+                <span class="text-sm font-bold text-white sm:text-base">Auto Scroll</span>
+                <span class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition"
+                    :class="autoScroll ? 'bg-madeena-teal' : 'bg-white/25'">
+                    <span class="inline-block h-5 w-5 rounded-full bg-white shadow transition"
+                        :class="autoScroll ? 'translate-x-5' : 'translate-x-0.5'"></span>
+                </span>
+            </button>
         </div>
-    </div>
+    </header>
 
-    <!-- Main Content Area (Messages List) -->
-    <div x-ref="scroller"
-        class="relative z-10 flex flex-1 flex-col justify-start gap-6 overflow-y-auto min-h-0 px-8 py-8 pb-32">
-        @forelse ($messages as $message)
-            <div wire:key="{{ $message->id }}" data-feedback-message-id="{{ $message->id }}" class="bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl backdrop-blur-md">
-                <div class="flex flex-col gap-4">
-                    <div class="flex items-center justify-between border-b border-white/10 pb-4">
-                        <h2 class="text-3xl font-bold text-white">
-                            {{ $message->name }}
-                            @if($message->organization)
-                                <span class="text-xl font-normal text-madeena-teal ml-2">dari {{ $message->organization }}</span>
+    <main x-ref="scroller"
+        class="min-h-0 flex-1 overflow-y-auto bg-slate-950 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div class="mx-auto flex max-w-screen-2xl flex-col gap-4 sm:gap-5">
+            @forelse ($messages as $message)
+                <article wire:key="{{ $message->id }}" data-feedback-message-id="{{ $message->id }}"
+                    class="rounded-lg border border-white/10 bg-white/[0.06] p-4 shadow-lg shadow-black/20 sm:p-6 lg:p-7">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div class="min-w-0">
+                            <h2 class="break-words text-xl font-black text-white sm:text-2xl lg:text-3xl">
+                                {{ $message->name }}
+                            </h2>
+                            @if ($message->organization)
+                                <p class="mt-1 break-words text-sm font-semibold text-madeena-teal sm:text-base lg:text-lg">
+                                    {{ $message->organization }}
+                                </p>
                             @endif
-                        </h2>
-                        <span class="text-sm font-semibold tracking-wider text-white/40 uppercase">
+                        </div>
+
+                        <time datetime="{{ $message->created_at->toIso8601String() }}"
+                            class="shrink-0 rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2 text-xs font-bold uppercase tracking-wide text-white/55">
                             {{ $message->created_at->diffForHumans() }}
-                        </span>
+                        </time>
                     </div>
 
-                    <div class="pt-2">
-                        <p class="text-4xl leading-relaxed text-white font-black">
-                            {{ $message->kesan_dan_pesan }}
-                        </p>
-                    </div>
+                    <p class="mt-4 break-words text-xl font-extrabold leading-relaxed text-white sm:text-2xl lg:text-3xl">
+                        {{ $message->kesan_dan_pesan }}
+                    </p>
+                </article>
+            @empty
+                <div
+                    class="flex min-h-[48vh] flex-col items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/[0.04] px-5 py-12 text-center">
+                    <i class="fas fa-comment-dots mb-5 text-5xl text-madeena-teal sm:text-6xl" aria-hidden="true"></i>
+                    <p class="text-2xl font-black text-white sm:text-3xl">Belum ada pesan yang masuk.</p>
+                    <p class="mt-3 max-w-xl text-base leading-7 text-white/70 sm:text-lg">Jadilah yang pertama untuk
+                        memberikan kesan dan pesan!</p>
                 </div>
-            </div>
-        @empty
-            <div class="flex h-full flex-col items-center justify-center text-center opacity-60">
-                <i class="fas fa-comment-dots mb-6 text-7xl text-madeena-teal"></i>
-                <p class="text-3xl font-semibold">Belum ada pesan yang masuk.</p>
-                <p class="mt-3 text-xl">Jadilah yang pertama untuk memberikan kesan dan pesan!</p>
-            </div>
-        @endforelse
-    </div>
+            @endforelse
+        </div>
+    </main>
 
-    <!-- Footer Section (Bottom Call to Action) -->
-    <div class="relative z-10 shrink-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent pt-12 pb-8">
-        <div
-            class="mx-8 grid gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-lg lg:grid-cols-[auto,1fr,auto] lg:items-center">
-            <div class="flex items-center gap-5">
-                <div class="rounded-2xl border border-white/10 bg-white p-3 shadow-2xl shadow-black/30">
-                    <img
-                        src="{{ asset('images/' . rawurlencode('qr_Kesan dan Pesan Booth Madeena Inabuyer 2026.png')) }}"
+    <footer class="shrink-0 border-t border-white/10 bg-slate-900 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
+        <div class="mx-auto grid max-w-screen-2xl gap-3 sm:grid-cols-[auto_1fr] sm:items-center lg:grid-cols-[auto_1fr_auto]">
+            <div class="flex items-center gap-3">
+                <div class="shrink-0 rounded-lg border border-slate-200 bg-white p-2 shadow-md">
+                    <img src="{{ asset('images/' . rawurlencode('qr_Kesan dan Pesan Booth Madeena Inabuyer 2026.png')) }}"
                         alt="QR code feedback booth Madeena Inabuyer 2026"
-                        class="h-28 w-28 object-contain sm:h-32 sm:w-32">
+                        class="h-16 w-16 object-contain sm:h-20 sm:w-20 lg:h-24 lg:w-24">
                 </div>
-                <div class="space-y-2">
-                    <p class="text-sm font-semibold uppercase tracking-[0.35em] text-madeena-teal/80">Kesan dan pesan</p>
-                    <h2 class="text-3xl font-black text-white sm:text-4xl">Scan untuk kirim kesan dan pesan</h2>
-                    <p class="max-w-2xl text-lg text-white/75">Bantu kami meningkatkan pengalaman Booth Madeena. Buka link berikut atau scan QR code di samping.</p>
+
+                <div class="min-w-0">
+                    <p class="text-xs font-bold uppercase tracking-wide text-madeena-teal">Kesan dan pesan</p>
+                    <h2 class="mt-1 text-lg font-black text-white sm:text-xl lg:text-2xl">Scan untuk kirim feedback</h2>
+                    <p class="mt-1 hidden max-w-2xl text-sm leading-6 text-white/65 md:block">
+                        Bantu kami meningkatkan pengalaman Booth Madeena.
+                    </p>
                 </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-slate-950/60 px-5 py-4 shadow-inner shadow-black/20">
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/40">Kesan dan Pesan URL</p>
+            <div class="min-w-0 rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 sm:px-4 sm:py-3">
+                <p class="text-xs font-bold uppercase tracking-wide text-white/45">Kesan dan Pesan URL</p>
                 <a href="https://bit.ly/madeenafeedback" target="_blank" rel="noreferrer"
-                    class="mt-2 block break-all text-2xl font-black text-white transition hover:text-madeena-teal sm:text-3xl">
+                    class="mt-1 block break-all text-base font-black text-white transition hover:text-madeena-teal sm:text-lg lg:text-2xl">
                     https://bit.ly/madeenafeedback
                 </a>
             </div>
 
             <a href="https://bit.ly/madeenafeedback" target="_blank" rel="noreferrer"
-                class="inline-flex items-center justify-center rounded-full border border-madeena-teal/40 bg-madeena-teal/15 px-6 py-4 text-lg font-bold text-white transition hover:border-madeena-teal hover:bg-madeena-teal/25">
+                class="inline-flex min-h-11 items-center justify-center rounded-lg border border-madeena-teal/60 bg-madeena-teal px-4 py-2 text-sm font-black text-white shadow-lg shadow-madeena-teal/10 transition hover:bg-madeena-teal/90 focus:outline-none focus:ring-4 focus:ring-madeena-teal/25 sm:col-span-2 lg:col-span-1">
                 Buka Form Feedback
             </a>
         </div>
-    </div>
+    </footer>
 </div>
