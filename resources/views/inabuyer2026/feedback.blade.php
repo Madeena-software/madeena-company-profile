@@ -22,10 +22,6 @@
                     <h1 class="max-w-2xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
                         Kesan dan Pesan Anda untuk booth Madeena di Inabuyer 2026
                     </h1>
-                    <p class="max-w-2xl text-base leading-8 text-white/80 sm:text-lg">
-                        Form ini dioptimalkan untuk perangkat mobile, termasuk keyboard bawaan, dictation, dan pengisian
-                        cepat dengan satu tangan.
-                    </p>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-3">
@@ -83,12 +79,47 @@
                         <div>
                             <label for="organization"
                                 class="mb-2 block text-sm font-semibold text-slate-700">Organisasi</label>
-                            <input id="organization" name="organization" type="text" value="{{ old('organization') }}"
+                            <input id="organization" name="organization" type="text" value="{{ old('organization') }}" required
                                 autocomplete="organization" autocapitalize="words" inputmode="text" enterkeyhint="next"
                                 spellcheck="false"
                                 class="h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition focus:border-madeena-teal focus:ring-4 focus:ring-madeena-teal/15"
                                 placeholder="Nama perusahaan atau instansi">
                             @error('organization')
+                                <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="position" class="mb-2 block text-sm font-semibold text-slate-700">Jabatan</label>
+                            <input id="position" name="position" type="text" value="{{ old('position') }}" required
+                                autocomplete="organization-title" autocapitalize="words" inputmode="text"
+                                enterkeyhint="next" spellcheck="false"
+                                class="h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition focus:border-madeena-teal focus:ring-4 focus:ring-madeena-teal/15"
+                                placeholder="Jabatan atau peran">
+                            @error('position')
+                                <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="phone" class="mb-2 block text-sm font-semibold text-slate-700">Nomor yang bisa
+                                dihubungi</label>
+                            <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required
+                                autocomplete="tel" inputmode="tel" enterkeyhint="next" spellcheck="false"
+                                class="h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition focus:border-madeena-teal focus:ring-4 focus:ring-madeena-teal/15"
+                                placeholder="Nomor WhatsApp atau telepon">
+                            @error('phone')
+                                <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="email" class="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+                            <input id="email" name="email" type="email" value="{{ old('email') }}" required
+                                autocomplete="email" inputmode="email" enterkeyhint="next" spellcheck="false"
+                                class="h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition focus:border-madeena-teal focus:ring-4 focus:ring-madeena-teal/15"
+                                placeholder="nama@email.com">
+                            @error('email')
                                 <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
                             @enderror
                         </div>

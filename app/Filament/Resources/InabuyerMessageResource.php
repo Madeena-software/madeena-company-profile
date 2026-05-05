@@ -80,6 +80,21 @@ class InabuyerMessageResource extends Resource
                     ->maxLength(255),
                 TextInput::make('organization')
                     ->label('Organisasi')
+                    ->required()
+                    ->maxLength(255),
+                TextInput::make('position')
+                    ->label('Jabatan')
+                    ->required()
+                    ->maxLength(255),
+                TextInput::make('phone')
+                    ->label('Nomor yang Bisa Dihubungi')
+                    ->tel()
+                    ->required()
+                    ->maxLength(50),
+                TextInput::make('email')
+                    ->label('Email')
+                    ->email()
+                    ->required()
                     ->maxLength(255),
                 Textarea::make('kesan_dan_pesan')
                     ->label('Kesan dan Pesan')
@@ -110,6 +125,18 @@ class InabuyerMessageResource extends Resource
                 ->offIcon('heroicon-o-eye-slash'),
             Tables\Columns\TextColumn::make('organization')
                 ->label('Organisasi')
+                ->searchable()
+                ->toggleable(),
+            Tables\Columns\TextColumn::make('position')
+                ->label('Jabatan')
+                ->searchable()
+                ->toggleable(),
+            Tables\Columns\TextColumn::make('phone')
+                ->label('Nomor')
+                ->searchable()
+                ->toggleable(),
+            Tables\Columns\TextColumn::make('email')
+                ->label('Email')
                 ->searchable()
                 ->toggleable(),
             Tables\Columns\TextColumn::make('kesan_dan_pesan')

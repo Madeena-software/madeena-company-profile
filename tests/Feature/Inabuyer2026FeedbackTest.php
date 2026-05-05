@@ -13,6 +13,9 @@ class Inabuyer2026FeedbackTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Inabuyer 2026 Feedback');
+        $response->assertSee('Jabatan');
+        $response->assertSee('Nomor yang bisa');
+        $response->assertSee('Email');
     }
 
     public function test_feedback_submission_is_stored_successfully(): void
@@ -20,6 +23,9 @@ class Inabuyer2026FeedbackTest extends TestCase
         $payload = [
             'name' => 'Aisyah Putri',
             'organization' => 'PT Nusantara Export',
+            'position' => 'Business Development Manager',
+            'phone' => '+62 812 3456 7890',
+            'email' => 'aisyah.putri@example.com',
             'kesan_dan_pesan' => 'Acara sangat bermanfaat dan saya berharap sesi networking ditambah pada tahun berikutnya.',
         ];
 
@@ -31,6 +37,9 @@ class Inabuyer2026FeedbackTest extends TestCase
         $this->assertDatabaseHas('inabuyer_messages', [
             'name' => 'Aisyah Putri',
             'organization' => 'PT Nusantara Export',
+            'position' => 'Business Development Manager',
+            'phone' => '+62 812 3456 7890',
+            'email' => 'aisyah.putri@example.com',
             'kesan_dan_pesan' => 'Acara sangat bermanfaat dan saya berharap sesi networking ditambah pada tahun berikutnya.',
             'is_visible' => true,
         ]);
@@ -41,6 +50,9 @@ class Inabuyer2026FeedbackTest extends TestCase
         $payload = [
             'name' => 'Bima Arta',
             'organization' => 'PT Mitra Dagang',
+            'position' => 'Purchasing Lead',
+            'phone' => '+62 813 5555 0000',
+            'email' => 'bima.arta@example.com',
             'kesan_dan_pesan' => '',
         ];
 

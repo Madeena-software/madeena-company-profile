@@ -19,13 +19,19 @@ class FeedbackController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'organization' => ['nullable', 'string', 'max:255'],
+            'organization' => ['required', 'string', 'max:255'],
+            'position' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:50'],
+            'email' => ['required', 'email', 'max:255'],
             'kesan_dan_pesan' => ['required', 'string', 'max:5000'],
         ]);
 
         InabuyerMessage::create([
             'name' => trim($validated['name']),
-            'organization' => isset($validated['organization']) ? trim($validated['organization']) : null,
+            'organization' => trim($validated['organization']),
+            'position' => trim($validated['position']),
+            'phone' => trim($validated['phone']),
+            'email' => trim($validated['email']),
             'kesan_dan_pesan' => trim($validated['kesan_dan_pesan']),
         ]);
 

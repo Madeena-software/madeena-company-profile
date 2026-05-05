@@ -1,4 +1,60 @@
-<div wire:poll.5s class="relative flex h-screen w-full flex-col overflow-hidden bg-slate-950 font-sans text-white">
+<div wire:poll.5s
+    x-data="{
+        interval: null,
+        lastNewestId: null,
+        scrollStep: 1,
+        init() {
+            this.$nextTick(() => {
+                this.lastNewestId = this.currentNewestId();
+                this.interval = window.setInterval(() => this.tick(), 45);
+            });
+        },
+        destroy() {
+            if (this.interval) {
+                window.clearInterval(this.interval);
+            }
+        },
+        currentNewestId() {
+            return this.$refs.scroller?.querySelector('[data-feedback-message-id]')?.dataset.feedbackMessageId ?? null;
+        },
+        tick() {
+            const scroller = this.$refs.scroller;
+
+            if (! scroller) {
+                return;
+            }
+
+            const newestId = this.currentNewestId();
+
+            if (this.lastNewestId && newestId && newestId !== this.lastNewestId) {
+                this.lastNewestId = newestId;
+                scroller.scrollTop = 0;
+
+                return;
+            }
+
+            if (! this.lastNewestId && newestId) {
+                this.lastNewestId = newestId;
+            }
+
+            if (scroller.scrollHeight <= scroller.clientHeight + 1) {
+                scroller.scrollTop = 0;
+
+                return;
+            }
+
+            const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+            if (scroller.scrollTop >= maxScroll - 1) {
+                scroller.scrollTop = 0;
+
+                return;
+            }
+
+            scroller.scrollTop += this.scrollStep;
+        },
+    }"
+    class="relative flex h-screen w-full flex-col overflow-hidden bg-slate-950 font-sans text-white">
     <!-- Ambient Background Effects -->
     <div class="absolute inset-0 z-0 overflow-hidden opacity-40">
         <div
@@ -27,9 +83,10 @@
     </div>
 
     <!-- Main Content Area (Messages List) -->
-    <div class="relative z-10 flex flex-1 flex-col justify-start gap-6 overflow-y-auto min-h-0 px-8 py-8 pb-32">
+    <div x-ref="scroller"
+        class="relative z-10 flex flex-1 flex-col justify-start gap-6 overflow-y-auto min-h-0 px-8 py-8 pb-32">
         @forelse ($messages as $message)
-            <div wire:key="{{ $message->id }}" class="bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl backdrop-blur-md">
+            <div wire:key="{{ $message->id }}" data-feedback-message-id="{{ $message->id }}" class="bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl backdrop-blur-md">
                 <div class="flex flex-col gap-4">
                     <div class="flex items-center justify-between border-b border-white/10 pb-4">
                         <h2 class="text-3xl font-bold text-white">

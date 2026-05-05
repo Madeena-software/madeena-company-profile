@@ -12,6 +12,9 @@ class InabuyerMessage extends Model
     protected $fillable = [
         'name',
         'organization',
+        'position',
+        'phone',
+        'email',
         'kesan_dan_pesan',
         'is_visible',
     ];
