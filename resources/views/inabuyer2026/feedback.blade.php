@@ -90,8 +90,10 @@
 
                     <div class="grid gap-5 md:grid-cols-2">
                         <div>
-                            <label for="name" class="mb-2 block text-sm font-semibold text-slate-700">Nama</label>
-                            <input id="name" name="name" type="text" value="{{ old('name') }}"
+                            <label for="name" class="mb-2 block text-sm font-semibold text-slate-700">Nama <span
+                                    class="text-rose-500" aria-hidden="true">*</span><span class="sr-only">
+                                    (required)</span></label>
+                            <input id="name" name="name" type="text" value="{{ old('name') }}" required
                                 autocomplete="name" autocapitalize="words" inputmode="text" enterkeyhint="next"
                                 spellcheck="false"
                                 class="min-h-12 w-full rounded-lg border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
@@ -103,9 +105,11 @@
 
                         <div>
                             <label for="organization"
-                                class="mb-2 block text-sm font-semibold text-slate-700">Organisasi</label>
+                                class="mb-2 block text-sm font-semibold text-slate-700">Organisasi <span
+                                    class="text-rose-500" aria-hidden="true">*</span><span class="sr-only">
+                                    (required)</span></label>
                             <input id="organization" name="organization" type="text" value="{{ old('organization') }}"
-                                autocomplete="organization" autocapitalize="words" inputmode="text"
+                                required autocomplete="organization" autocapitalize="words" inputmode="text"
                                 enterkeyhint="next" spellcheck="false"
                                 class="min-h-12 w-full rounded-lg border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
                                 placeholder="Nama perusahaan atau instansi">
@@ -150,8 +154,9 @@
                         </div>
 
                         <div class="md:col-span-2">
-                            <label for="kesan_dan_pesan" class="mb-2 block text-sm font-semibold text-slate-700">Kesan dan
-                                Pesan</label>
+                            <label for="kesan_dan_pesan" class="mb-2 block text-sm font-semibold text-slate-700">Kesan
+                                dan Pesan <span class="text-rose-500" aria-hidden="true">*</span><span
+                                    class="sr-only"> (required)</span></label>
                             <textarea id="kesan_dan_pesan" name="kesan_dan_pesan" rows="7" required maxlength="5000"
                                 autocomplete="off" autocapitalize="sentences" spellcheck="true" enterkeyhint="done"
                                 class="w-full rounded-lg border-slate-300 bg-white px-4 py-3 text-base leading-7 text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
