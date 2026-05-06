@@ -18,20 +18,20 @@ class FeedbackController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'organization' => ['required', 'string', 'max:255'],
-            'position' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:50'],
-            'email' => ['required', 'email', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'organization' => ['nullable', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255'],
             'kesan_dan_pesan' => ['required', 'string', 'max:5000'],
         ]);
 
         InabuyerMessage::create([
-            'name' => trim($validated['name']),
-            'organization' => trim($validated['organization']),
-            'position' => trim($validated['position']),
-            'phone' => trim($validated['phone']),
-            'email' => trim($validated['email']),
+            'name' => trim($validated['name'] ?? ''),
+            'organization' => isset($validated['organization']) ? trim($validated['organization']) : null,
+            'position' => isset($validated['position']) ? trim($validated['position']) : null,
+            'phone' => isset($validated['phone']) ? trim($validated['phone']) : null,
+            'email' => isset($validated['email']) ? trim($validated['email']) : null,
             'kesan_dan_pesan' => trim($validated['kesan_dan_pesan']),
         ]);
 

@@ -91,7 +91,7 @@
                     <div class="grid gap-5 md:grid-cols-2">
                         <div>
                             <label for="name" class="mb-2 block text-sm font-semibold text-slate-700">Nama</label>
-                            <input id="name" name="name" type="text" value="{{ old('name') }}" required
+                            <input id="name" name="name" type="text" value="{{ old('name') }}"
                                 autocomplete="name" autocapitalize="words" inputmode="text" enterkeyhint="next"
                                 spellcheck="false"
                                 class="min-h-12 w-full rounded-lg border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
@@ -105,7 +105,7 @@
                             <label for="organization"
                                 class="mb-2 block text-sm font-semibold text-slate-700">Organisasi</label>
                             <input id="organization" name="organization" type="text" value="{{ old('organization') }}"
-                                required autocomplete="organization" autocapitalize="words" inputmode="text"
+                                autocomplete="organization" autocapitalize="words" inputmode="text"
                                 enterkeyhint="next" spellcheck="false"
                                 class="min-h-12 w-full rounded-lg border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
                                 placeholder="Nama perusahaan atau instansi">
@@ -116,7 +116,7 @@
 
                         <div>
                             <label for="position" class="mb-2 block text-sm font-semibold text-slate-700">Jabatan</label>
-                            <input id="position" name="position" type="text" value="{{ old('position') }}" required
+                            <input id="position" name="position" type="text" value="{{ old('position') }}"
                                 autocomplete="organization-title" autocapitalize="words" inputmode="text"
                                 enterkeyhint="next" spellcheck="false"
                                 class="min-h-12 w-full rounded-lg border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
@@ -129,7 +129,7 @@
                         <div>
                             <label for="phone" class="mb-2 block text-sm font-semibold text-slate-700">Nomor yang bisa
                                 dihubungi</label>
-                            <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required
+                            <input id="phone" name="phone" type="tel" value="{{ old('phone') }}"
                                 autocomplete="tel" inputmode="tel" enterkeyhint="next" spellcheck="false"
                                 class="min-h-12 w-full rounded-lg border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
                                 placeholder="Nomor WhatsApp atau telepon">
@@ -140,7 +140,7 @@
 
                         <div class="md:col-span-2">
                             <label for="email" class="mb-2 block text-sm font-semibold text-slate-700">Email</label>
-                            <input id="email" name="email" type="email" value="{{ old('email') }}" required
+                            <input id="email" name="email" type="email" value="{{ old('email') }}"
                                 autocomplete="email" inputmode="email" enterkeyhint="next" spellcheck="false"
                                 class="min-h-12 w-full rounded-lg border-slate-300 bg-white px-4 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-madeena-teal focus:ring-madeena-teal/20"
                                 placeholder="nama@email.com">
