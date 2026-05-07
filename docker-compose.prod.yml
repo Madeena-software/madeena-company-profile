@@ -76,6 +76,7 @@ services:
           memory: 192M
     environment:
       PHP_FPM_ONLY: "1"
+      SESSION_DRIVER: database
     volumes:
       - ${APP_STORAGE_HOST_PATH}/app:/var/www/html/storage/app
       - ${APP_LOGS_HOST_PATH}:/var/www/html/storage/logs

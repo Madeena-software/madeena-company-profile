@@ -29,6 +29,8 @@ Route::prefix('inabuyer2026')
     ->name('inabuyer2026.')
     ->group(function (): void {
         Route::get('/feedback', [FeedbackController::class, 'create'])->name('feedback');
+        Route::get('/feedback/csrf-token', [FeedbackController::class, 'csrfToken'])
+            ->name('feedback.csrf-token');
         Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
         Route::get('/display', Inabuyer2026Display::class)->name('display');
     });

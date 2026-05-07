@@ -9,6 +9,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: 'true'
+      APP_KEY: ${APP_KEY}
       APP_URL: http://localhost:8000
       OCTANE_SERVER: frankenphp
       DB_CONNECTION: mysql
@@ -18,10 +19,10 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: secret
       CACHE_STORE: file
-      SESSION_DRIVER: file
+      SESSION_DRIVER: database
       QUEUE_CONNECTION: sync
     ports:
-      - "8000:8000"
+      - "8000:80"
     volumes:
       - ./:/app
     depends_on:

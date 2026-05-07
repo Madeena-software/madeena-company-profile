@@ -276,7 +276,7 @@ DB_DATABASE=madeena_company_profile
 DB_USERNAME=madeena
 DB_PASSWORD=madeena_pass
 CACHE_DRIVER=database
-SESSION_DRIVER=cookie
+SESSION_DRIVER=database
 ```
 
 ### Production (Docker)
@@ -287,7 +287,7 @@ The `docker-compose.prod.yml` provides internal service names:
 DB_HOST=mysql            # Internal service name
 DB_PORT=3306
 CACHE_DRIVER=redis
-SESSION_DRIVER=redis
+SESSION_DRIVER=database
 REDIS_HOST=redis
 QUEUE_CONNECTION=redis
 ```

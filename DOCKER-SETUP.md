@@ -136,7 +136,7 @@ DB_USERNAME=madeena
 DB_PASSWORD=madeena_pass
 
 CACHE_DRIVER=database
-SESSION_DRIVER=cookie
+SESSION_DRIVER=database
 QUEUE_CONNECTION=database
 ```
 

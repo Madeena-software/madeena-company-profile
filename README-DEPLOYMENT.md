@@ -66,6 +66,7 @@ php artisan key:generate
 # DB_DATABASE=madeena
 # DB_USERNAME=...
 # DB_PASSWORD=...
+# SESSION_DRIVER=database
 # STORAGE_BASE_PATH=/mnt/local_madeena_website_data/storage
 
 # 5. Database

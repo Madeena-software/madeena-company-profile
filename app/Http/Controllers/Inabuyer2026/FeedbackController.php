@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Inabuyer2026;
 
 use App\Http\Controllers\Controller;
 use App\Models\InabuyerMessage;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,6 +14,13 @@ class FeedbackController extends Controller
     public function create(): View
     {
         return view('inabuyer2026.feedback');
+    }
+
+    public function csrfToken(): JsonResponse
+    {
+        return response()
+            ->json(['token' => csrf_token()])
+            ->header('Cache-Control', 'no-store');
     }
 
     public function store(Request $request): RedirectResponse

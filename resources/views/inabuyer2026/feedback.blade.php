@@ -81,11 +81,12 @@
                         class="mb-6 flex gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium leading-6 text-rose-700"
                         role="alert">
                         <i class="fas fa-circle-exclamation mt-0.5 text-rose-600" aria-hidden="true"></i>
-                        <span>Mohon periksa kembali isian Anda sebelum mengirimkan formulir.</span>
+                        <span>{{ $errors->first('_token') ?: 'Mohon periksa kembali isian Anda sebelum mengirimkan formulir.' }}</span>
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('inabuyer2026.feedback.store') }}" class="space-y-5">
+                <form method="POST" action="{{ route('inabuyer2026.feedback.store') }}" class="space-y-5"
+                    data-feedback-form data-csrf-refresh-url="{{ route('inabuyer2026.feedback.csrf-token') }}">
                     @csrf
 
                     <div class="grid gap-5 md:grid-cols-2">
@@ -178,3 +179,62 @@
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('[data-feedback-form]');
+
+            if (!form) {
+                return;
+            }
+
+            form.addEventListener('submit', async (event) => {
+                if (form.dataset.csrfReady === 'true') {
+                    delete form.dataset.csrfReady;
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (form.dataset.csrfRefreshing === 'true') {
+                    return;
+                }
+
+                form.dataset.csrfRefreshing = 'true';
+
+                try {
+                    const response = await fetch(form.dataset.csrfRefreshUrl, {
+                        cache: 'no-store',
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const token = form.querySelector('input[name="_token"]');
+
+                        if (token && typeof data.token === 'string' && data.token.length > 0) {
+                            token.value = data.token;
+                        }
+                    }
+                } catch (error) {
+                    // Submit with the existing token if the refresh endpoint is temporarily unreachable.
+                }
+
+                form.dataset.csrfReady = 'true';
+                delete form.dataset.csrfRefreshing;
+
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit(event.submitter || undefined);
+                    return;
+                }
+
+                form.submit();
+            });
+        });
+    </script>
+@endpush
