@@ -1,0 +1,129 @@
+{
+  "project": {
+    "name": "Madeena Website Company Profile",
+    "description": "Company profile website for PT Madeena Karya Indonesia, a manufacturer of Digital Direct Radiography (DDR) equipment made in Indonesia.",
+    "version": "v1.0.1",
+    "repository": "Madeena-software/madeena-website-company-profile",
+    "locale": "id_ID",
+    "timezone": "Asia/Jakarta"
+  },
+  "tech_stack": {
+    "backend": {
+      "language": "PHP",
+      "language_version": "8.4",
+      "framework": "Laravel",
+      "framework_version": "13.x",
+      "admin_panel": "Filament PHP v5",
+      "web_server_engine": "FrankenPHP (Octane, dev) / Nginx + PHP-FPM (production)",
+      "queue": "sync (dev) / database (prod)"
+    },
+    "frontend": {
+      "css_framework": "Tailwind CSS v3.4",
+      "js_framework": "Alpine.js v3.15",
+      "build_tool": "Vite v6",
+      "template_engine": "Blade"
+    },
+    "database": {
+      "engine": "MySQL",
+      "engine_version": "8.4",
+      "testing_db": "SQLite :memory:"
+    },
+    "infrastructure": {
+      "containerization": "Docker (multi-stage build)",
+      "orchestration": "Docker Swarm",
+      "reverse_proxy": "Nginx (Alpine)",
+      "ci_cd": "GitHub Actions",
+      "storage_backend": "Nextcloud WebDAV (production) / Local (dev)",
+      "backup_system": "WebDAV-backed Laravel disk"
+    }
+  },
+  "modules": {
+    "models": [
+      "User",
+      "HeroBanner",
+      "Product",
+      "Post",
+      "Setting",
+      "Page",
+      "InabuyerMessage"
+    ],
+    "filament_resources": [
+      "UserResource",
+      "HeroBannerResource",
+      "ProductResource",
+      "PostResource",
+      "PageResource",
+      "InabuyerMessageResource"
+    ],
+    "filament_pages": [
+      "ManageSettings",
+      "Auth (Login/Register)"
+    ],
+    "controllers": [
+      "HomeController",
+      "PublicStorageController",
+      "Inabuyer2026/FeedbackController"
+    ],
+    "livewire_components": [
+      "Inabuyer2026Display"
+    ],
+    "artisan_commands": [
+      "CheckWebDavStorage",
+      "UploadDatabaseBackupToWebDav"
+    ],
+    "service_providers": [
+      "AppServiceProvider",
+      "WebDavFilesystemServiceProvider"
+    ],
+    "policies": [
+      "PostPolicy"
+    ],
+    "seeders": [
+      "DatabaseSeeder",
+      "AdminUserSeeder",
+      "HeroBannerSeeder",
+      "ProductSeeder",
+      "PostSeeder",
+      "SettingSeeder",
+      "PageSeeder"
+    ]
+  },
+  "routes": {
+    "public": [
+      "GET / (home)",
+      "GET /blog (blog.index)",
+      "GET /blog/{post:slug} (post.show)",
+      "GET /produk/{product:slug} (product.show)",
+      "GET /storage/{path} (storage.public)",
+      "GET /health (health check)"
+    ],
+    "inabuyer2026": [
+      "GET /inabuyer2026/feedback",
+      "GET /inabuyer2026/feedback/csrf-token",
+      "POST /inabuyer2026/feedback",
+      "GET /inabuyer2026/display"
+    ],
+    "admin": [
+      "/admin (Filament dashboard — auto-registered)"
+    ]
+  },
+  "github_workflows": [
+    "deploy-swarm.yml",
+    "tests.yml",
+    "server-setup-db.yml",
+    "server-setup-deploy.yml",
+    "server-admin-reset.yml",
+    "update-changelog.yml",
+    "issues.yml",
+    "pull-requests.yml"
+  ],
+  "testing": {
+    "framework": "PHPUnit 11.x",
+    "suites": ["Unit", "Feature"],
+    "config_file": "phpunit.xml",
+    "test_db": "SQLite :memory:"
+  },
+  "bugs_fixed_history": [],
+  "last_updated": "2026-06-04T11:30:00+07:00",
+  "ai_bootstrapped": true
+}
