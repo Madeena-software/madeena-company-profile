@@ -1,4 +1,4 @@
-name: "Server - Database Setup and WebDAV Backup"
+name: "Server - Database Setup and S3 Backup"
 
 on:
   workflow_dispatch:
@@ -20,14 +20,14 @@ env:
   DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
   APP_KEY: ${{ secrets.APP_KEY }}
   SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
-  NEXTCLOUD_WEBDAV_BASE_URI: ${{ secrets.NEXTCLOUD_WEBDAV_BASE_URI }}
-  NEXTCLOUD_WEBDAV_USERNAME: ${{ secrets.NEXTCLOUD_WEBDAV_USERNAME }}
-  NEXTCLOUD_WEBDAV_PASSWORD: ${{ secrets.NEXTCLOUD_WEBDAV_PASSWORD }}
-  NEXTCLOUD_WEBDAV_BACKUP_ROOT: madeena_cp_backups
+  AWS_ACCESS_KEY_ID: ${{ secrets.MINIO_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.MINIO_SECRET_ACCESS_KEY }}
+  AWS_BUCKET: ${{ secrets.MINIO_BUCKET }}
+  AWS_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
 
 jobs:
   db-setup:
-    name: Configure DB and WebDAV Backups
+    name: Configure DB and S3 Backups
     runs-on: self-hosted
     timeout-minutes: 20
 
@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
 
           missing=0
-          for var in DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD APP_KEY SUDO_PASSWORD NEXTCLOUD_WEBDAV_BASE_URI NEXTCLOUD_WEBDAV_USERNAME NEXTCLOUD_WEBDAV_PASSWORD; do
+          for var in DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD APP_KEY SUDO_PASSWORD AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_BUCKET AWS_ENDPOINT; do
             if [ -z "${!var:-}" ]; then
               echo "missing: $var"
               missing=1
@@ -63,7 +63,7 @@ jobs:
           fi
 
           docker image inspect madeena_cp:latest >/dev/null 2>&1 || {
-            echo "FATAL: madeena_cp:latest is required for WebDAV backup uploads."
+            echo "FATAL: madeena_cp:latest is required for S3 backup uploads."
             exit 1
           }
 
@@ -110,7 +110,7 @@ jobs:
             --batch --silent --skip-column-names \
             -e "USE \`${DB_DATABASE}\`; SHOW TABLES;" >/dev/null
 
-      - name: Install WebDAV backup script and cron job
+      - name: Install S3 backup script and cron job
         run: |
           set -euo pipefail
 
@@ -126,14 +126,12 @@ jobs:
             printf 'APP_SLUG=%q\n' "$APP_SLUG"
             printf 'DB_DATABASE=%q\n' "$DB_DATABASE"
             printf 'DB_ROOT_PASSWORD=%q\n' "$DB_ROOT_PASSWORD"
-            printf 'ENTERPRISE_BACKUP_DRIVER=%q\n' webdav
-            printf 'ENTERPRISE_BACKUP_THROW=%q\n' true
-            printf 'NEXTCLOUD_WEBDAV_BASE_URI=%q\n' "$NEXTCLOUD_WEBDAV_BASE_URI"
-            printf 'NEXTCLOUD_WEBDAV_USERNAME=%q\n' "$NEXTCLOUD_WEBDAV_USERNAME"
-            printf 'NEXTCLOUD_WEBDAV_PASSWORD=%q\n' "$NEXTCLOUD_WEBDAV_PASSWORD"
-            printf 'NEXTCLOUD_WEBDAV_BACKUP_ROOT=%q\n' "$NEXTCLOUD_WEBDAV_BACKUP_ROOT"
-            printf 'NEXTCLOUD_WEBDAV_TIMEOUT=%q\n' 30
-            printf 'NEXTCLOUD_WEBDAV_VERIFY_SSL=%q\n' false
+            printf 'AWS_ACCESS_KEY_ID=%q\n' "$AWS_ACCESS_KEY_ID"
+            printf 'AWS_SECRET_ACCESS_KEY=%q\n' "$AWS_SECRET_ACCESS_KEY"
+            printf 'AWS_DEFAULT_REGION=%q\n' "id"
+            printf 'AWS_BUCKET=%q\n' "$AWS_BUCKET"
+            printf 'AWS_ENDPOINT=%q\n' "$AWS_ENDPOINT"
+            printf 'AWS_USE_PATH_STYLE_ENDPOINT=%q\n' true
           } > "$TMP_ENV"
           _sudo cp "$TMP_ENV" "$BACKUP_ENV_FILE"
           _sudo chmod 600 "$BACKUP_ENV_FILE"
@@ -158,10 +156,11 @@ jobs:
           DB_ROOT_PASS="${DB_ROOT_PASSWORD:-}"
 
           if [ -z "$DB_NAME" ] || [ -z "$DB_ROOT_PASS" ] || \
-             [ -z "${NEXTCLOUD_WEBDAV_BASE_URI:-}" ] || \
-             [ -z "${NEXTCLOUD_WEBDAV_USERNAME:-}" ] || \
-             [ -z "${NEXTCLOUD_WEBDAV_PASSWORD:-}" ]; then
-            echo "[$(date -u)] ERROR: DB or WebDAV environment variables are missing." >&2
+             [ -z "${AWS_ACCESS_KEY_ID:-}" ] || \
+             [ -z "${AWS_SECRET_ACCESS_KEY:-}" ] || \
+             [ -z "${AWS_BUCKET:-}" ] || \
+             [ -z "${AWS_ENDPOINT:-}" ]; then
+            echo "[$(date -u)] ERROR: DB or S3/MinIO environment variables are missing." >&2
             exit 1
           fi
 
@@ -214,17 +213,15 @@ jobs:
             -e APP_ENV \
             -e APP_DEBUG \
             -e APP_KEY \
-            -e ENTERPRISE_BACKUP_DRIVER \
-            -e ENTERPRISE_BACKUP_THROW \
-            -e NEXTCLOUD_WEBDAV_BASE_URI \
-            -e NEXTCLOUD_WEBDAV_USERNAME \
-            -e NEXTCLOUD_WEBDAV_PASSWORD \
-            -e NEXTCLOUD_WEBDAV_BACKUP_ROOT \
-            -e NEXTCLOUD_WEBDAV_TIMEOUT \
-            -e NEXTCLOUD_WEBDAV_VERIFY_SSL \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -e AWS_DEFAULT_REGION \
+            -e AWS_BUCKET \
+            -e AWS_ENDPOINT \
+            -e AWS_USE_PATH_STYLE_ENDPOINT \
             -v "${TMPDIR}:/backup:ro" \
             madeena_cp:latest \
-            artisan backup:webdav-upload "/backup/${BACKUP_NAME}" \
+            artisan backup:upload "/backup/${BACKUP_NAME}" \
               --remote-name="${BACKUP_NAME}" \
               --retention-days="${RETENTION_DAYS}" \
               --prefix="${APP_SLUG}-" \
@@ -272,11 +269,11 @@ jobs:
           rm -f "$BACKUP_LOG"
 
           if [ "$BACKUP_RC" -ne 0 ]; then
-            echo "FATAL: initial WebDAV backup failed with exit code $BACKUP_RC."
+            echo "FATAL: initial S3 backup failed with exit code $BACKUP_RC."
             exit 1
           fi
 
-      - name: Verify WebDAV backup disk
+      - name: Verify S3 backup disk
         run: |
           set -euo pipefail
 
@@ -289,7 +286,7 @@ jobs:
             --entrypoint php \
             --env-file "$BACKUP_ENV_FILE" \
             madeena_cp:latest \
-            artisan storage:webdav-check --disk=enterprise_backups --no-interaction
+            artisan storage:check --disk=enterprise_backups --no-interaction
 
           CRON="$(_sudo crontab -l 2>/dev/null | grep 'madeena-cp-db-backup' || true)"
           [ -n "$CRON" ] || {

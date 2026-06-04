@@ -32,7 +32,6 @@ jobs:
           SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
           SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
-          NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
         run: |
           set -euo pipefail
 
@@ -95,22 +94,18 @@ jobs:
           echo "  ✅ $REMOTE_PATH (owner: $SSH_USER)"
 
           echo "===> Pre-creating deployment directories..."
-          # MySQL — SSD path (must NOT be inside Nextcloud data tree)
+          # MySQL — SSD path
           sudo mkdir -p /var/lib/madeena_cp/mysql
           sudo chown -R 999:999 /var/lib/madeena_cp/mysql
 
-          # App private storage — local SSD path. CMS media uses WebDAV.
-          sudo mkdir -p /var/lib/madeena_cp/storage/app/private /var/lib/madeena_cp/storage/app/public
+          # App private storage — local SSD path. CMS media uses S3/MinIO.
+          sudo mkdir -p /var/lib/madeena_cp/storage/app/private
           sudo chown -R www-data:www-data /var/lib/madeena_cp/storage
           sudo chmod -R 775 /var/lib/madeena_cp/storage
 
-          # Laravel logs — Nextcloud-namespaced path (HDD)
-          if [ -z "${NEXTCLOUD_USERNAME:-}" ]; then
-            echo "❌ FATAL: NEXTCLOUD_USERNAME secret is missing!"
-            exit 1
-          fi
-          sudo mkdir -p "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
-          sudo chown -R www-data:www-data "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
-          sudo chmod -R 775 "/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
+          # Laravel logs — local SSD path
+          sudo mkdir -p /var/lib/madeena_cp/logs
+          sudo chown -R www-data:www-data /var/lib/madeena_cp/logs
+          sudo chmod -R 775 /var/lib/madeena_cp/logs
 
-          echo "✅ Directories created. WebDAV media/backups folders are created by deploy-swarm.yml."
+          echo "✅ Directories created. S3 bucket and backups prefix are validated by deploy-swarm.yml."
