@@ -44,7 +44,7 @@ fi
 
 echo "[entrypoint] Running Laravel bootstrap..."
 
-if [ "${PUBLIC_STORAGE_DRIVER:-local}" != "webdav" ]; then
+if [ "${FILESYSTEM_DISK:-local}" = "local" ]; then
     php artisan storage:link --force 2>/dev/null || true
 fi
 

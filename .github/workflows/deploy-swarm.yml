@@ -69,10 +69,10 @@ jobs:
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
           SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
-          NEXTCLOUD_USERNAME: ${{ secrets.NEXTCLOUD_USERNAME }}
-          NEXTCLOUD_WEBDAV_BASE_URI: ${{ secrets.NEXTCLOUD_WEBDAV_BASE_URI }}
-          NEXTCLOUD_WEBDAV_USERNAME: ${{ secrets.NEXTCLOUD_WEBDAV_USERNAME }}
-          NEXTCLOUD_WEBDAV_PASSWORD: ${{ secrets.NEXTCLOUD_WEBDAV_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.MINIO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.MINIO_SECRET_ACCESS_KEY }}
+          AWS_BUCKET: ${{ secrets.MINIO_BUCKET }}
+          AWS_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
           APP_VERSION: ${{ needs.build.outputs.app_version }}
         run: |
           set -euo pipefail
@@ -86,7 +86,7 @@ jobs:
             fi
           }
 
-          for var in APP_KEY APP_DOMAIN REMOTE_PATH DB_HOST DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD NEXTCLOUD_USERNAME NEXTCLOUD_WEBDAV_BASE_URI NEXTCLOUD_WEBDAV_USERNAME NEXTCLOUD_WEBDAV_PASSWORD; do
+          for var in APP_KEY APP_DOMAIN REMOTE_PATH DB_HOST DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_BUCKET AWS_ENDPOINT; do
             require_env "$var"
           done
 
@@ -110,7 +110,7 @@ jobs:
 
           export LIVE_VERSION="${APP_VERSION:-unknown}"
           export APP_STORAGE_HOST_PATH="/var/lib/madeena_cp/storage"
-          export APP_LOGS_HOST_PATH="/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_laravel_logs"
+          export APP_LOGS_HOST_PATH="/var/lib/madeena_cp/logs"
           export MYSQL_DATA_HOST_PATH="/var/lib/madeena_cp/mysql"
 
           echo "===> Clearing exited containers from previous runs..."
@@ -119,7 +119,6 @@ jobs:
           echo "===> Preparing persistent host paths..."
           _sudo mkdir -p \
             "$APP_STORAGE_HOST_PATH/app/private" \
-            "$APP_STORAGE_HOST_PATH/app/public" \
             "$APP_LOGS_HOST_PATH" \
             "$MYSQL_DATA_HOST_PATH"
           _sudo chown -R www-data:www-data "$APP_STORAGE_HOST_PATH" "$APP_LOGS_HOST_PATH" 2>/dev/null || true
@@ -148,16 +147,6 @@ jobs:
           cp "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" nginx/conf.d/app.conf
           echo "$LIVE_VERSION" > VERSION-CURRENT
 
-          echo "===> Resolving WebDAV URI for containers..."
-          HOST_IP="$(hostname -I | awk '{print $1}')"
-          WEBDAV_HOSTNAME="$(echo "$NEXTCLOUD_WEBDAV_BASE_URI" | sed -n 's|^http[s]*://\([^:/]*\).*|\1|p')"
-          if [ "$WEBDAV_HOSTNAME" = "127.0.0.1" ] || [ "$WEBDAV_HOSTNAME" = "localhost" ]; then
-            FINAL_WEBDAV_URI="$(echo "$NEXTCLOUD_WEBDAV_BASE_URI" | sed "s|://127\.0\.0\.1:|://$HOST_IP:|g; s|://localhost:|://$HOST_IP:|g")"
-            echo "  Rewrote loopback WebDAV host to $HOST_IP for containers."
-          else
-            FINAL_WEBDAV_URI="$NEXTCLOUD_WEBDAV_BASE_URI"
-          fi
-
           echo "===> Writing environment file..."
           printf '%s\n' \
             'APP_NAME="madeena_cp"' \
@@ -174,9 +163,10 @@ jobs:
             'DB_PORT=3306' \
             '' \
             'BROADCAST_CONNECTION=log' \
-            'FILESYSTEM_DISK=public' \
-            'PUBLIC_STORAGE_DRIVER=webdav' \
-            'PUBLIC_STORAGE_THROW=true' \
+            'FILESYSTEM_DISK=local' \
+            'AWS_USE_PATH_STYLE_ENDPOINT=true' \
+            'AWS_DEFAULT_REGION=id' \
+            'AWS_STORAGE_THROW=true' \
             'QUEUE_CONNECTION=database' \
             'CACHE_STORE=database' \
             'SESSION_DRIVER=database' \
@@ -185,14 +175,6 @@ jobs:
             "APP_STORAGE_HOST_PATH=${APP_STORAGE_HOST_PATH}" \
             "APP_LOGS_HOST_PATH=${APP_LOGS_HOST_PATH}" \
             "MYSQL_DATA_HOST_PATH=${MYSQL_DATA_HOST_PATH}" \
-            '' \
-            'NEXTCLOUD_WEBDAV_PUBLIC_ROOT=madeena_cp_media' \
-            'NEXTCLOUD_WEBDAV_BACKUP_ROOT=madeena_cp_backups' \
-            'NEXTCLOUD_WEBDAV_TIMEOUT=30' \
-            'NEXTCLOUD_WEBDAV_VERIFY_SSL=false' \
-            'ENTERPRISE_BACKUP_DRIVER=webdav' \
-            'ENTERPRISE_BACKUP_THROW=true' \
-            'ENTERPRISE_BACKUP_LOCAL_ROOT=/var/www/enterprise_backups' \
             '' \
             'MAIL_MAILER=smtp' \
             'MAIL_SCHEME=null' \
@@ -216,10 +198,10 @@ jobs:
             printf 'MAIL_FROM_NAME=%s\n' "Madeena Company Profile"
             printf 'SUPER_ADMIN_EMAIL=%s\n' "$SUPER_ADMIN_EMAIL"
             printf 'SUPER_ADMIN_PASSWORD=%s\n' "$SUPER_ADMIN_PASSWORD"
-            printf 'NEXTCLOUD_USERNAME=%s\n' "$NEXTCLOUD_USERNAME"
-            printf 'NEXTCLOUD_WEBDAV_BASE_URI=%s\n' "$FINAL_WEBDAV_URI"
-            printf 'NEXTCLOUD_WEBDAV_USERNAME=%s\n' "$NEXTCLOUD_WEBDAV_USERNAME"
-            printf 'NEXTCLOUD_WEBDAV_PASSWORD=%s\n' "$NEXTCLOUD_WEBDAV_PASSWORD"
+            printf 'AWS_ACCESS_KEY_ID=%s\n' "$AWS_ACCESS_KEY_ID"
+            printf 'AWS_SECRET_ACCESS_KEY=%s\n' "$AWS_SECRET_ACCESS_KEY"
+            printf 'AWS_BUCKET=%s\n' "$AWS_BUCKET"
+            printf 'AWS_ENDPOINT=%s\n' "$AWS_ENDPOINT"
             printf 'APP_VERSION=%s\n' "$LIVE_VERSION"
           } >> .env
 
@@ -238,90 +220,22 @@ jobs:
             exit 1
           }
 
-          WEBDAV_HOSTNAME="$(echo "$FINAL_WEBDAV_URI" | sed -n 's|^http[s]*://\([^:/]*\).*|\1|p')"
-          WEBDAV_PORT="$(echo "$FINAL_WEBDAV_URI" | sed -n 's|^http[s]*://[^:]*:\([0-9]*\).*|\1|p; t; s|^http://.*|80|p; s|^https://.*|443|p')"
-          RESOLVED_IP="$(getent hosts "$WEBDAV_HOSTNAME" | awk '{print $1; exit}' 2>/dev/null || true)"
-          RESOLVED_IP="${RESOLVED_IP:-$WEBDAV_HOSTNAME}"
-
-          echo "===> WebDAV host preflight: ${WEBDAV_HOSTNAME}:${WEBDAV_PORT} (${RESOLVED_IP})"
-          if ! timeout 5 bash -c "</dev/tcp/${RESOLVED_IP}/${WEBDAV_PORT}" 2>/dev/null; then
-            echo "FATAL: WebDAV endpoint is not reachable from the host."
+          echo "===> MinIO S3 connectivity preflight..."
+          S3_HOSTNAME="$(echo "$AWS_ENDPOINT" | sed -n 's|^http[s]*://\([^:/]*\).*|\1|p')"
+          S3_PORT="$(echo "$AWS_ENDPOINT" | sed -n 's|^http[s]*://[^:]*:\([0-9]*\).*|\1|p; t; s|^http://.*|80|p; s|^https://.*|443|p')"
+          echo "  S3 endpoint: ${S3_HOSTNAME}:${S3_PORT}"
+          if ! timeout 5 bash -c "</dev/tcp/${S3_HOSTNAME}/${S3_PORT}" 2>/dev/null; then
+            echo "FATAL: MinIO S3 endpoint is not reachable from the host."
             exit 1
           fi
+          echo "  S3 host connectivity: ok"
 
-          echo "===> Ensuring WebDAV folders exist..."
-          for folder in madeena_cp_media madeena_cp_backups; do
-            code="$(curl -sS -w "%{http_code}" -o /dev/null -4 \
-              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
-              -X MKCOL "${FINAL_WEBDAV_URI%/}/${folder}" 2>/dev/null || echo "000")"
-            if [ "$code" != "201" ] && [ "$code" != "405" ]; then
-              echo "FATAL: MKCOL for ${folder} returned HTTP ${code}."
-              exit 1
-            fi
-            echo "  ${folder}: ready"
-          done
-
-          webdav_probe() {
-            root="$1"
-            probe_name="deploy-preflight-$(date -u +%Y%m%d%H%M%S)-${RANDOM}.txt"
-            payload="madeena-cp-webdav-preflight:${root}:${probe_name}"
-            url="${FINAL_WEBDAV_URI%/}/${root}/${probe_name}"
-            tmp_get="$(mktemp)"
-            tmp_out="$(mktemp)"
-            trap 'rm -f "$tmp_get" "$tmp_out"' RETURN
-
-            set +e
-            put_code="$(printf '%s' "$payload" | curl -sS -w "%{http_code}" -o "$tmp_out" -4 \
-              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
-              --connect-timeout 5 --max-time 30 -T - "$url")"
-            put_rc=$?
-            set -e
-            if [ "$put_rc" -ne 0 ] || { [ "$put_code" != "200" ] && [ "$put_code" != "201" ] && [ "$put_code" != "204" ]; }; then
-              echo "FATAL: WebDAV PUT failed for ${root} (curl=${put_rc}, http=${put_code})."
-              cat "$tmp_out" 2>/dev/null || true
-              exit 1
-            fi
-
-            set +e
-            get_code="$(curl -sS -w "%{http_code}" -o "$tmp_get" -4 \
-              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
-              --connect-timeout 5 --max-time 30 "$url")"
-            get_rc=$?
-            set -e
-            if [ "$get_rc" -ne 0 ] || [ "$get_code" != "200" ] || [ "$(cat "$tmp_get")" != "$payload" ]; then
-              echo "FATAL: WebDAV GET/readback failed for ${root} (curl=${get_rc}, http=${get_code})."
-              exit 1
-            fi
-
-            delete_code="$(curl -sS -w "%{http_code}" -o /dev/null -4 \
-              --user "$NEXTCLOUD_WEBDAV_USERNAME:$NEXTCLOUD_WEBDAV_PASSWORD" \
-              --connect-timeout 5 --max-time 30 -X DELETE "$url" 2>/dev/null || echo "000")"
-            if [ "$delete_code" != "200" ] && [ "$delete_code" != "204" ]; then
-              echo "FATAL: WebDAV DELETE failed for ${root} (http=${delete_code})."
-              exit 1
-            fi
-            rm -f "$tmp_get" "$tmp_out"
-            trap - RETURN
-            echo "  ${root}: write/read/delete ok"
-          }
-
-          webdav_probe madeena_cp_media
-          webdav_probe madeena_cp_backups
-
-          echo "===> WebDAV container network preflight..."
-          docker run --rm \
-            --entrypoint php \
-            -e WEBDAV_HOST="$WEBDAV_HOSTNAME" \
-            -e WEBDAV_PORT="$WEBDAV_PORT" \
-            madeena_cp:latest \
-            -r '$s=@fsockopen(getenv("WEBDAV_HOST"), (int) getenv("WEBDAV_PORT"), $errno, $errstr, 5); if (! $s) { fwrite(STDERR, "connect failed: ".$errstr.PHP_EOL); exit(1); } fclose($s);'
-
-          echo "===> Laravel WebDAV disk preflight from container..."
+          echo "===> Laravel S3 storage preflight from container..."
           docker run --rm \
             --entrypoint php \
             --env-file .env \
             madeena_cp:latest \
-            artisan storage:webdav-check --disk=public --disk=enterprise_backups -v
+            artisan storage:check --disk=public --disk=enterprise_backups -v
 
           echo "===> Deploying stack..."
           docker stack deploy \
@@ -555,11 +469,11 @@ jobs:
             _fail "framework views path is not writable"
           fi
 
-          echo "7/8 WebDAV disks"
-          if docker exec "$app_container" php artisan storage:webdav-check --disk=public --disk=enterprise_backups -v; then
-            _pass "WebDAV public and backup disks verified"
+          echo "7/8 S3 storage disks"
+          if docker exec "$app_container" php artisan storage:check --disk=public --disk=enterprise_backups -v; then
+            _pass "S3 public and backup disks verified"
           else
-            _fail "WebDAV storage check failed"
+            _fail "S3 storage check failed"
           fi
 
           echo "8/8 /storage media streaming"

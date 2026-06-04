@@ -13,7 +13,7 @@ class ProductSeeder extends Seeder
     {
         // ── Seed the DDR product image ─────────────────────────────────────────
         // Copies public/images/product-ddr.png into Storage::disk('public')
-        // so the file lands on the Nextcloud-backed app_storage volume.
+        // so the file lands on the S3-backed (MinIO) storage bucket.
         // Only copies if the source file exists and the destination is missing.
         $imageSourcePath = public_path('images/product-ddr.png');
         $imageDiskPath = 'products/product-ddr.png';

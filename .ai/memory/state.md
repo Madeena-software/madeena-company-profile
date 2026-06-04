@@ -1,6 +1,6 @@
 # Session State — Madeena Company Profile
 
-> Last updated: 2026-06-04 11:30 WIB (UTC+7)
+> Last updated: 2026-06-04 11:55 WIB (UTC+7)
 
 ---
 
@@ -20,7 +20,7 @@
 | Server (Prod)  | Nginx (Alpine) + PHP 8.4-FPM                    |
 | Orchestration  | Docker Swarm (multi-stage Dockerfile)            |
 | CI/CD          | GitHub Actions (8 workflows)                    |
-| File Storage   | Nextcloud WebDAV (prod) / Local filesystem (dev)|
+| File Storage   | MinIO S3-compatible (bucket: `mmcp-storage`)     |
 | Queue          | sync (dev) / database (prod)                    |
 | Testing        | PHPUnit 11.x (Unit + Feature suites, SQLite :memory:) |
 
@@ -29,17 +29,20 @@
 - **Filament Resources**: User, HeroBanner, Product, Post, Page, InabuyerMessage + ManageSettings page
 - **Controllers**: HomeController, PublicStorageController, Inabuyer2026/FeedbackController
 - **Livewire**: Inabuyer2026Display
-- **Custom Artisan Commands**: CheckWebDavStorage, UploadDatabaseBackupToWebDav
-- **Service Providers**: AppServiceProvider, WebDavFilesystemServiceProvider
+- **Custom Artisan Commands**: CheckStorageHealth (`storage:check`), UploadDatabaseBackup (`backup:upload`)
+- **Service Providers**: AppServiceProvider
 
 ---
 
 ## 2. Active Goal & Priorities
 
-🎯 **Active Goal**: Awaiting user input
+🎯 **Active Goal**: Completed storage refactoring from Nextcloud WebDAV to MinIO S3. Awaiting user's next primary goal.
 
 **Priority Queue**:
-1. _(empty — awaiting user direction)_
+1. ~~Refactor `config/filesystems.php` to S3 driver~~ ✅
+2. ~~Replace Artisan commands (WebDAV → generic S3-compatible)~~ ✅
+3. ~~Update CI/CD deploy workflow~~ ✅
+4. ~~Verification: `composer update`, `php artisan test`, S3 integration test~~ ✅
 
 ---
 
@@ -49,6 +52,8 @@
 |------------|--------------------------------------------------|--------|
 | 2026-06-04 | `.ai/` control center bootstrapped               | ✅     |
 | 2026-06-04 | Full repository audit completed                  | ✅     |
+| 2026-06-04 | Storage refactored: WebDAV → MinIO S3            | ✅     |
+| 2026-06-04 | S3 Integration and PHPUnit verification passed   | ✅     |
 
 ---
 
@@ -59,23 +64,20 @@
 | PHP Version       | ✅ 8.4  | Matches `composer.json` platform config |
 | Node/NPM          | ✅       | `node_modules/` present                |
 | Composer Deps     | ✅       | `vendor/` present, `composer.lock` synced |
-| Database          | ⚠️ Unknown | Requires `php artisan migrate:status` check |
+| Database          | ✅       | Connection healthy, migrations passed   |
 | `.env`            | ✅       | `.env` and `.env.local` present         |
 | Docker            | ✅       | Multi-stage Dockerfile + Swarm compose  |
 | GitHub Workflows  | ✅       | 8 workflows configured                  |
-| FrankenPHP Binary | ✅       | `frankenphp` binary present at repo root |
+| MinIO S3          | ✅       | Verified with `storage:check` command   |
 
 ---
 
 ## 5. Known Issues
 
-- None documented yet. Will be populated as issues are discovered.
+*None.*
 
 ---
 
 ## 6. Next Steps
 
-1. **Receive primary goal** from the user to set the active objective.
-2. **Run `php artisan migrate:status`** to verify database health.
-3. **Run `php artisan test`** to verify test suite baseline.
-4. Begin work on the user's requested feature or fix.
+1. Await user's next instructions.

@@ -33,8 +33,8 @@
       "orchestration": "Docker Swarm",
       "reverse_proxy": "Nginx (Alpine)",
       "ci_cd": "GitHub Actions",
-      "storage_backend": "Nextcloud WebDAV (production) / Local (dev)",
-      "backup_system": "WebDAV-backed Laravel disk"
+      "storage_backend": "MinIO S3-compatible (single bucket: mmcp-storage)",
+      "backup_system": "S3-backed Laravel disk (backups/ prefix in mmcp-storage)"
     }
   },
   "modules": {
@@ -68,12 +68,11 @@
       "Inabuyer2026Display"
     ],
     "artisan_commands": [
-      "CheckWebDavStorage",
-      "UploadDatabaseBackupToWebDav"
+      "CheckStorageHealth",
+      "UploadDatabaseBackup"
     ],
     "service_providers": [
-      "AppServiceProvider",
-      "WebDavFilesystemServiceProvider"
+      "AppServiceProvider"
     ],
     "policies": [
       "PostPolicy"
@@ -124,6 +123,6 @@
     "test_db": "SQLite :memory:"
   },
   "bugs_fixed_history": [],
-  "last_updated": "2026-06-04T11:30:00+07:00",
+  "last_updated": "2026-06-04T11:55:00+07:00",
   "ai_bootstrapped": true
 }

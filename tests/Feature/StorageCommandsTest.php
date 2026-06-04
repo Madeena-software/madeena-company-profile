@@ -7,14 +7,14 @@ namespace Tests\Feature;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-class WebDavStorageCommandsTest extends TestCase
+class StorageCommandsTest extends TestCase
 {
-    public function test_webdav_check_command_verifies_configured_disks(): void
+    public function test_storage_check_command_verifies_configured_disks(): void
     {
         Storage::fake('public');
         Storage::fake('enterprise_backups');
 
-        $this->artisan('storage:webdav-check')
+        $this->artisan('storage:check')
             ->expectsOutputToContain('public: ok')
             ->expectsOutputToContain('enterprise_backups: ok')
             ->assertSuccessful();
@@ -30,7 +30,7 @@ class WebDavStorageCommandsTest extends TestCase
         file_put_contents($path, gzencode("CREATE TABLE `users` (`id` bigint unsigned not null);\n"));
 
         try {
-            $this->artisan('backup:webdav-upload', [
+            $this->artisan('backup:upload', [
                 'path' => $path,
                 '--remote-name' => 'madeena_cp-test.sql.gz',
                 '--retention-days' => '14',

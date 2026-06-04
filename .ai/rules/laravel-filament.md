@@ -61,7 +61,7 @@
 
 ### File Uploads
 - Use `FileUpload::make('field')->disk('public')` to store on the correct disk.
-- In production, the `public` disk resolves to Nextcloud WebDAV.
+- The `public` disk resolves to MinIO S3 (`mmcp-storage` bucket) in both dev and prod.
 - Always validate file types and sizes: `->acceptedFileTypes([...])`, `->maxSize(...)`.
 
 ---
@@ -166,6 +166,6 @@
 
 ### GitHub Actions Workflows
 - `tests.yml` — Runs PHPUnit on push/PR.
-- `deploy-swarm.yml` — Builds Docker image, pushes, and deploys via Swarm.
+- `deploy-swarm.yml` — Builds Docker image and deploys via Swarm (includes MinIO S3 preflight checks).
 - `server-setup-*.yml` — Server provisioning (DB, deploy environment).
 - `update-changelog.yml` — Auto-updates CHANGELOG.md.

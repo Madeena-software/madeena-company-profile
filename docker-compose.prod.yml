@@ -2,7 +2,7 @@
 # Madeena Company Profile - Production Docker Compose (Swarm Mode)
 #
 # The app and queue services use the locally built image `madeena_cp:latest`.
-# Laravel CMS media and database backups are WebDAV-backed through Laravel disks;
+# Laravel CMS media and database backups are S3-backed (MinIO) through Laravel disks;
 # only storage/app private files and logs are host-backed.
 # -----------------------------------------------------------------------------
 services:

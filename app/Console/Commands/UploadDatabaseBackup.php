@@ -9,11 +9,10 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\StorageAttributes;
-use Sabre\DAV\Client as SabreClient;
 
-class UploadDatabaseBackupToWebDav extends Command
+class UploadDatabaseBackup extends Command
 {
-    protected $signature = 'backup:webdav-upload
+    protected $signature = 'backup:upload
         {path : Local gzipped SQL backup file to upload}
         {--disk=enterprise_backups : Destination storage disk}
         {--remote-name= : Remote object name}
@@ -22,7 +21,7 @@ class UploadDatabaseBackupToWebDav extends Command
         {--retention-days=14 : Delete matching remote backups older than this many days}
         {--prefix=madeena_cp- : Remote backup filename prefix used for retention}';
 
-    protected $description = 'Upload a verified database backup to a WebDAV-backed Laravel disk.';
+    protected $description = 'Upload a verified database backup to a Laravel storage disk.';
 
     public function handle(): int
     {
@@ -67,7 +66,7 @@ class UploadDatabaseBackupToWebDav extends Command
             return self::FAILURE;
         }
 
-        if (! $this->verifyRemoteIntegrity($diskName, $remoteName, $localMetadata)) {
+        if (! $this->verifyRemoteIntegrity($disk, $remoteName, $localMetadata)) {
             return self::FAILURE;
         }
 
@@ -95,7 +94,7 @@ class UploadDatabaseBackupToWebDav extends Command
     }
 
     /**
-     * @return array{size:int,sha256:string,sha1:string}
+     * @return array{size:int,sha256:string}
      */
     private function buildLocalMetadata(string $path): array
     {
@@ -106,7 +105,6 @@ class UploadDatabaseBackupToWebDav extends Command
         }
 
         $sha256 = hash_init('sha256');
-        $sha1 = hash_init('sha1');
 
         while (! feof($stream)) {
             $chunk = fread($stream, 1024 * 1024);
@@ -119,7 +117,6 @@ class UploadDatabaseBackupToWebDav extends Command
 
             if ($chunk !== '') {
                 hash_update($sha256, $chunk);
-                hash_update($sha1, $chunk);
             }
         }
 
@@ -130,7 +127,6 @@ class UploadDatabaseBackupToWebDav extends Command
         return [
             'size' => (int) filesize($path),
             'sha256' => hash_final($sha256),
-            'sha1' => hash_final($sha1),
         ];
     }
 
@@ -236,12 +232,10 @@ class UploadDatabaseBackupToWebDav extends Command
     }
 
     /**
-     * @param  array{size:int,sha256:string,sha1:string}  $localMetadata
+     * @param  array{size:int,sha256:string}  $localMetadata
      */
-    private function verifyRemoteIntegrity(string $diskName, string $remoteName, array $localMetadata): bool
+    private function verifyRemoteIntegrity(Filesystem $disk, string $remoteName, array $localMetadata): bool
     {
-        $disk = Storage::disk($diskName);
-
         try {
             $remoteSize = (int) $disk->size($remoteName);
         } catch (\Throwable $exception) {
@@ -256,30 +250,6 @@ class UploadDatabaseBackupToWebDav extends Command
                 $localMetadata['size'],
                 $remoteSize,
             ));
-
-            return false;
-        }
-
-        $webDavChecksums = $this->readWebDavChecksums($diskName, $remoteName);
-
-        if ($webDavChecksums !== null && isset($webDavChecksums['sha1'])) {
-            $serverSha1 = strtolower($webDavChecksums['sha1']);
-
-            if ($serverSha1 !== strtolower($localMetadata['sha1'])) {
-                $this->error('Server-side WebDAV checksum mismatch (SHA1).');
-
-                return false;
-            }
-
-            $this->info('Remote metadata and server checksum verified (no full-file readback required).');
-
-            return true;
-        }
-
-        $requireServerChecksum = (bool) config("filesystems.disks.{$diskName}.require_server_checksum", false);
-
-        if ($requireServerChecksum) {
-            $this->error('Server-side checksum is required but not available from WebDAV metadata.');
 
             return false;
         }
@@ -333,7 +303,7 @@ class UploadDatabaseBackupToWebDav extends Command
     }
 
     /**
-     * @param  array{size:int,sha256:string,sha1:string}  $localMetadata
+     * @param  array{size:int,sha256:string}  $localMetadata
      */
     private function writeAndVerifyIntegrityManifest(Filesystem $disk, string $remoteName, array $localMetadata): bool
     {
@@ -343,7 +313,6 @@ class UploadDatabaseBackupToWebDav extends Command
             $manifest = json_encode([
                 'algorithm' => 'sha256',
                 'sha256' => $localMetadata['sha256'],
-                'sha1' => $localMetadata['sha1'],
                 'size' => $localMetadata['size'],
                 'generated_at_utc' => now('UTC')->toIso8601String(),
                 'file' => $remoteName,
@@ -373,82 +342,6 @@ class UploadDatabaseBackupToWebDav extends Command
         $this->info('Integrity manifest uploaded and verified.');
 
         return true;
-    }
-
-    /**
-     * @return array<string, string>|null
-     */
-    private function readWebDavChecksums(string $diskName, string $remoteName): ?array
-    {
-        $diskConfig = (array) config("filesystems.disks.{$diskName}", []);
-
-        if (($diskConfig['driver'] ?? null) !== 'webdav') {
-            return null;
-        }
-
-        $baseUri = rtrim((string) ($diskConfig['base_uri'] ?? ''), '/').'/';
-        $username = (string) ($diskConfig['username'] ?? '');
-        $password = (string) ($diskConfig['password'] ?? '');
-        $root = trim((string) ($diskConfig['root'] ?? ''), '/');
-
-        if ($baseUri === '/' || $username === '' || $password === '') {
-            return null;
-        }
-
-        $client = new SabreClient([
-            'baseUri' => $baseUri,
-            'userName' => $username,
-            'password' => $password,
-            'authType' => SabreClient::AUTH_BASIC,
-        ]);
-
-        $timeout = (int) ($diskConfig['timeout'] ?? 30);
-
-        if ($timeout > 0) {
-            $client->addCurlSetting(CURLOPT_CONNECTTIMEOUT, min($timeout, 10));
-            $client->addCurlSetting(CURLOPT_TIMEOUT, $timeout);
-        }
-
-        if (($diskConfig['verify_ssl'] ?? true) === false) {
-            $client->addCurlSetting(CURLOPT_SSL_VERIFYHOST, 0);
-            $client->addCurlSetting(CURLOPT_SSL_VERIFYPEER, false);
-        }
-
-        $path = ltrim($remoteName, '/');
-        $webDavPath = trim($root.'/'.$path, '/');
-        $encodedPath = implode('/', array_map('rawurlencode', explode('/', $webDavPath)));
-
-        try {
-            $properties = $client->propFind($encodedPath, ['{http://owncloud.org/ns}checksums']);
-        } catch (\Throwable) {
-            return null;
-        }
-
-        $rawChecksums = (string) ($properties['{http://owncloud.org/ns}checksums'] ?? '');
-
-        if ($rawChecksums === '') {
-            return null;
-        }
-
-        $checksums = [];
-
-        foreach (preg_split('/\s+/', trim($rawChecksums)) ?: [] as $token) {
-            if (! str_contains($token, ':')) {
-                continue;
-            }
-
-            [$algorithm, $value] = explode(':', $token, 2);
-            $algorithm = strtolower(trim($algorithm));
-            $value = trim($value);
-
-            if ($algorithm === '' || $value === '') {
-                continue;
-            }
-
-            $checksums[$algorithm] = $value;
-        }
-
-        return $checksums === [] ? null : $checksums;
     }
 
     private function deleteRelatedIntegrityManifest(Filesystem $disk, string $path): void

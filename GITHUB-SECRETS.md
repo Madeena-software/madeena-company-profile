@@ -82,19 +82,31 @@ The manual workflow at `.github/workflows/server-setup-db.yml` uses this extra s
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
 | `SUDO_PASSWORD` | Password for the runner user to run `sudo` during DB setup and backup installation | `your_sudo_password` |
-| `NEXTCLOUD_USERNAME` | Nextcloud username on the production server — used to build the correct storage and backup paths | `admin` |
 
-Backup files are written to `/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups`.
+---
+
+### MinIO S3-Compatible Storage
+
+| Secret Name | Description | Example |
+|-------------|-------------|---------|
+| `MINIO_ACCESS_KEY_ID` | MinIO access key ID | `mmcp-6142-16ab-key` |
+| `MINIO_SECRET_ACCESS_KEY` | MinIO secret access key | `7d591e6132f80aa59d...` |
+| `MINIO_BUCKET` | MinIO bucket name | `mmcp-storage` |
+| `MINIO_ENDPOINT` | MinIO endpoint URL | `http://82.41.42.170:9000` |
+
+Public media files are stored in the bucket root. Database backups are stored under the `backups/` prefix within the same bucket.
 
 ---
 
 ### Storage Paths Summary
 
-| Path | Purpose | Disk |
+| Path / Location | Purpose | Type |
 |------|---------|------|
-| `/var/lib/madeena_cp/mysql` | MySQL data files | SSD |
-| `/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_storage` | App uploaded files (product images, etc.) — visible in Nextcloud | HDD |
-| `/media/nextcloud-data/data/${NEXTCLOUD_USERNAME}/files/madeena_cp_backups` | Automated DB backups — visible in Nextcloud | HDD |
+| `/var/lib/madeena_cp/mysql` | MySQL data files | Host (SSD) |
+| `/var/lib/madeena_cp/storage/app/private` | Private app files | Host |
+| `/var/lib/madeena_cp/logs` | Laravel logs | Host |
+| `s3://mmcp-storage/` | Public media (product images, banners, posts) | MinIO S3 |
+| `s3://mmcp-storage/backups/` | Automated database backups | MinIO S3 |
 
 ---
 
@@ -145,7 +157,7 @@ git push origin main
 
 ## Environment Variables Used in Workflow
 
-The `.github/workflows/deploy-docker.yml` uses these secrets to create `.env` on VPS:
+The `.github/workflows/deploy-swarm.yml` uses these secrets to create `.env` on the deployment host:
 
 ```env
 APP_NAME="madeena_cp"
@@ -153,30 +165,35 @@ APP_DISPLAY_NAME="Madeena Company Profile"
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=${{ secrets.APP_KEY }}
-APP_URL=http://${{ secrets.SSH_HOST }}:8011
+APP_URL=https://${{ secrets.APP_DOMAIN }}
 
 DB_CONNECTION=mysql
-DB_HOST=mysql
+DB_HOST=db
 DB_PORT=3306
 DB_DATABASE=${{ secrets.DB_DATABASE }}
 DB_USERNAME=${{ secrets.DB_USERNAME }}
 DB_PASSWORD=${{ secrets.DB_PASSWORD }}
 DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
 
-REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+AWS_ACCESS_KEY_ID=${{ secrets.MINIO_ACCESS_KEY_ID }}
+AWS_SECRET_ACCESS_KEY=${{ secrets.MINIO_SECRET_ACCESS_KEY }}
+AWS_BUCKET=${{ secrets.MINIO_BUCKET }}
+AWS_ENDPOINT=${{ secrets.MINIO_ENDPOINT }}
+AWS_USE_PATH_STYLE_ENDPOINT=true
+AWS_DEFAULT_REGION=id
 
-CACHE_DRIVER=redis
+CACHE_STORE=database
 SESSION_DRIVER=database
-QUEUE_CONNECTION=redis
+QUEUE_CONNECTION=database
 
-MAIL_MAILER=${{ secrets.MAIL_MAILER }}
-MAIL_HOST=${{ secrets.MAIL_HOST }}
-MAIL_PORT=${{ secrets.MAIL_PORT }}
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
 MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
 MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
-MAIL_FROM_NAME=${APP_DISPLAY_NAME}
-VITE_APP_NAME=${APP_DISPLAY_NAME}
+MAIL_FROM_ADDRESS=${{ secrets.MAIL_USERNAME }}
+MAIL_FROM_NAME="Madeena Company Profile"
+VITE_APP_NAME="Madeena Company Profile"
 ```
 
 ---
