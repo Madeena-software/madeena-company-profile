@@ -27,18 +27,24 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Post::class, PostPolicy::class);
 
-        View::composer(['layouts.app', 'home', 'product', 'post'], function ($view) {
+        View::composer(['layouts.app', 'home', 'product', 'post', 'page'], function ($view) {
             try {
-                if (Schema::hasTable('settings')) {
-                    $settings = Setting::all()->pluck('value', 'key');
-                } else {
-                    $settings = collect();
-                }
+                $settings = Schema::hasTable('settings') ? Setting::all()->pluck('value', 'key') : collect();
+
+                $headerMenus = Schema::hasTable('menu_items')
+                    ? \App\Models\MenuItem::where('is_active', true)->whereIn('location', ['header', 'both'])->orderBy('sort_order')->get()
+                    : collect();
+
+                $footerMenus = Schema::hasTable('menu_items')
+                    ? \App\Models\MenuItem::where('is_active', true)->whereIn('location', ['footer', 'both'])->orderBy('sort_order')->get()
+                    : collect();
             } catch (\Exception $e) {
                 $settings = collect();
+                $headerMenus = collect();
+                $footerMenus = collect();
             }
 
-            $view->with('settings', $settings);
+            $view->with(compact('settings', 'headerMenus', 'footerMenus'));
         });
     }
 }

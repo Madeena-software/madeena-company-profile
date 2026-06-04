@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\HeroBanner;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\Product;
 
@@ -41,5 +42,10 @@ class HomeController extends Controller
         abort_if(! $product->is_active, 404);
 
         return view('product', compact('product'));
+    }
+
+    public function page(Page $page)
+    {
+        return view('page', compact('page'));
     }
 }

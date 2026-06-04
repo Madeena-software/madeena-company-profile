@@ -35,7 +35,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: madeena_website
+      MYSQL_DATABASE: madeena_cp
+      MYSQL_USER: madeena_cp
+      MYSQL_PASSWORD: secret
       TZ: Asia/Jakarta
     ports:
       - "127.0.0.1:3306:3306"

@@ -25,14 +25,19 @@
                 </a>
 
                 <nav class="hidden md:flex items-center gap-6">
-                    <a href="{{ route('home') }}" class="text-white/90 hover:text-white font-medium transition-colors">Home</a>
-                    <a href="{{ route('home') }}#produk" class="text-white/90 hover:text-white font-medium transition-colors">Produk</a>
-                    <a href="{{ route('home') }}#tentang" class="text-white/90 hover:text-white font-medium transition-colors">Tentang Kami</a>
-                    <a href="{{ route('blog.index') }}" class="text-white/90 hover:text-white font-medium transition-colors">Blog</a>
-                    <a href="{{ route('home') }}#kontak"
-                        class="bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">
-                        Hubungi Kami
-                    </a>
+                    @foreach($headerMenus as $item)
+                        @if($item->is_cta)
+                            <a href="{{ $item->url }}" target="{{ $item->target }}"
+                                class="bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">
+                                {{ $item->label }}
+                            </a>
+                        @else
+                            <a href="{{ $item->url }}" target="{{ $item->target }}"
+                                class="text-white/90 hover:text-white font-medium transition-colors">
+                                {{ $item->label }}
+                            </a>
+                        @endif
+                    @endforeach
                 </nav>
 
                 <button @click="open = !open" class="md:hidden text-white p-2">
@@ -42,14 +47,19 @@
             </div>
 
             <div x-show="open" x-transition class="md:hidden pb-4 border-t border-white/20 mt-2 pt-4 space-y-2">
-                <a href="{{ route('home') }}" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Home</a>
-                <a href="{{ route('home') }}#produk" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Produk</a>
-                <a href="{{ route('home') }}#tentang" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Tentang Kami</a>
-                <a href="{{ route('blog.index') }}" class="block text-white/90 hover:text-white font-medium py-2 transition-colors">Blog</a>
-                <a href="{{ route('home') }}#kontak"
-                    class="block bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg text-center mt-2">
-                    Hubungi Kami
-                </a>
+                @foreach($headerMenus as $item)
+                    @if($item->is_cta)
+                        <a href="{{ $item->url }}" target="{{ $item->target }}"
+                            class="block bg-madeena-teal text-white font-semibold px-5 py-2 rounded-lg text-center mt-2">
+                            {{ $item->label }}
+                        </a>
+                    @else
+                        <a href="{{ $item->url }}" target="{{ $item->target }}"
+                            class="block text-white/90 hover:text-white font-medium py-2 transition-colors">
+                            {{ $item->label }}
+                        </a>
+                    @endif
+                @endforeach
             </div>
         </div>
     </header>
@@ -73,11 +83,13 @@
                 <div>
                     <h4 class="font-semibold text-lg mb-4">Navigasi</h4>
                     <ul class="space-y-2 text-white/70">
-                        <li><a href="{{ route('home') }}#produk" class="hover:text-white transition-colors">Produk</a></li>
-                        <li><a href="{{ route('home') }}#tentang" class="hover:text-white transition-colors">Tentang Kami</a></li>
-                        <li><a href="{{ route('blog.index') }}" class="hover:text-white transition-colors">Blog</a></li>
-                        <li><a href="{{ route('home') }}#legalitas" class="hover:text-white transition-colors">Legalitas</a></li>
-                        <li><a href="{{ route('home') }}#kontak" class="hover:text-white transition-colors">Kontak</a></li>
+                        @foreach($footerMenus as $item)
+                            <li>
+                                <a href="{{ $item->url }}" target="{{ $item->target }}" class="hover:text-white transition-colors">
+                                    {{ $item->label }}
+                                </a>
+                            </li>
+                        @endforeach
                     </ul>
                 </div>
                 <div>

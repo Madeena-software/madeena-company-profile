@@ -34,3 +34,5 @@ Route::prefix('inabuyer2026')
         Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
         Route::get('/display', Inabuyer2026Display::class)->name('display');
     });
+
+Route::get('/{page:slug}', [HomeController::class, 'page'])->name('page.show');
