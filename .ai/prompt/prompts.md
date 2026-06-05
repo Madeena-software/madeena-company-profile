@@ -69,7 +69,7 @@ _"Building and verifying..."_
 
 During implementation:
 1. **Write code** in small, reviewable increments.
-2. **Test immediately** — run `php artisan test` after each significant change.
+2. **Test and Format** — Run `php artisan test` after significant changes. **Crucial:** Run `./vendor/bin/pint` to format the code to match the project's style guidelines before concluding the phase.
 3. **Verify locally** — check that routes, views, and admin panel work.
 4. **Iterate** — if tests fail or behavior is unexpected:
    - Read error messages carefully.
@@ -127,4 +127,12 @@ CONTEXT: [Current infrastructure state, what needs to change]
 OBJECTIVE: [Infrastructure goal — must comply with server-access-constraints.md]
 ROLE: DevOps engineer with Docker Swarm + GitHub Actions expertise
 EXPECTATIONS: Changes committed as config files/workflows, tested in simulation
+```
+
+### Writing Tests (Test Pyramid)
+```
+CONTEXT: [Reference the un-tested or newly written module]
+OBJECTIVE: Write comprehensive tests adhering to the Testing Pyramid
+ROLE: QA Automation Engineer with strict TDD principles
+EXPECTATIONS: Add Unit tests for isolated logic, Feature tests for DB/HTTP interactions, and ensure execution is fast via SQLite :memory:
 ```

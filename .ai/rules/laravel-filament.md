@@ -34,6 +34,7 @@
 - Always include `->down()` method for reversibility.
 - Use `constrained()->cascadeOnDelete()` for foreign keys unless soft-delete behavior is needed.
 - Database-level defaults should match model `$attributes` defaults.
+- Migration Cleanliness: When adding fields, do not generate a brand-new migration file if the feature branch is still local and unmerged. Modify the existing local migration instead to avoid migration bloat. If merged to main, a new migration is mandatory.
 
 ### Configuration & Environment
 - Never hardcode credentials, API keys, or secrets. Always use `env()` helper.

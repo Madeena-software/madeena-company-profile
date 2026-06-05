@@ -118,11 +118,15 @@
   ],
   "testing": {
     "framework": "PHPUnit 11.x",
-    "suites": ["Unit", "Feature"],
+    "suites": [
+      "Unit",
+      "Feature"
+    ],
     "config_file": "phpunit.xml",
     "test_db": "SQLite :memory:"
   },
   "bugs_fixed_history": [],
   "last_updated": "2026-06-04T11:55:00+07:00",
-  "ai_bootstrapped": true
+  "ai_bootstrapped": true,
+  "testing_strategy": "Defined in .ai/rules/testing-pyramid.md (Unit > Feature > E2E)"
 }
