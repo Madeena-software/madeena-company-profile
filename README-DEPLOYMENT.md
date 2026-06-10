@@ -145,7 +145,6 @@ Gunakan urutan berikut secara **strict order**:
 7. `docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache`
 8. `docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache`
 9. `docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache`
-10. `docker compose -f docker-compose.prod.yml exec -T app php artisan octane:reload`
 
 Validasi setelah deploy:
 
@@ -156,7 +155,7 @@ Validasi setelah deploy:
 Jika rollback diperlukan:
 
 1. pull image tag stabil sebelumnya
-2. jalankan kembali langkah 3-10
+2. jalankan kembali langkah 3-9
 
 ---
 
