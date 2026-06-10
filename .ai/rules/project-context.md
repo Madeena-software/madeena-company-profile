@@ -22,7 +22,7 @@
 | Frontend         | Tailwind CSS + Alpine.js | 3.4 / 3.15 |
 | Build            | Vite                   | 6.x      |
 | Database         | MySQL                  | 8.4      |
-| Dev Server       | Artisan Serve    | 2.17+    |
+| Dev Server       | Artisan Serve          | —        |
 | Prod Server      | Nginx + PHP-FPM        | Alpine   |
 | Container        | Docker + Docker Swarm  | Multi-stage |
 | CI/CD            | GitHub Actions         | 8 workflows |
@@ -74,7 +74,7 @@ php artisan make:filament-user
 ### Running the Application
 
 ```bash
-# Full dev stack (Octane + Queue + Pail Logs + Vite HMR) — recommended
+# Full dev stack (Serve + Queue + Pail Logs + Vite HMR) — recommended
 composer dev
 
 # Individual services
@@ -140,6 +140,7 @@ docker stack deploy -c docker-compose.prod.yml madeena_cp
 │   ├── css/                    # Tailwind CSS source
 │   ├── js/                     # Alpine.js entry point
 │   └── views/                  # Blade templates (layouts, pages, Livewire, Filament)
+├── docs/                       # Documentation (PRD.md)
 ├── routes/                     # Route definitions (web.php, console.php)
 ├── scripts/                    # Deployment & simulation scripts
 ├── storage/                    # Laravel storage (logs, cache, uploads)

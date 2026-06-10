@@ -1,25 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-@layer base {
-    html {
-        scroll-behavior: smooth;
-    }
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+@theme {
+    --color-madeena-blue: #1e3a5f;
+    --color-madeena-teal: #1a9b8a;
+    --color-madeena-light: #e8f4f8;
+    --font-sans: 'Inter', sans-serif;
 }
 
-@layer components {
-    .btn-primary {
-        @apply inline-block bg-madeena-teal text-white font-semibold px-6 py-3 rounded-lg hover:bg-opacity-90 transition-all duration-200;
-    }
-    .btn-secondary {
-        @apply inline-block border-2 border-madeena-teal text-madeena-teal font-semibold px-6 py-3 rounded-lg hover:bg-madeena-teal hover:text-white transition-all duration-200;
-    }
-    .section-title {
-        @apply text-3xl md:text-4xl font-bold text-madeena-blue mb-4;
-    }
-    .section-subtitle {
-        @apply text-lg text-gray-600 mb-8;
-    }
+html {
+    scroll-behavior: smooth;
+}
+
+.btn-primary {
+    @apply inline-block bg-madeena-teal text-white font-semibold px-6 py-3 rounded-lg hover:bg-madeena-teal/90 transition-all duration-200;
+}
+.btn-secondary {
+    @apply inline-block border-2 border-madeena-teal text-madeena-teal font-semibold px-6 py-3 rounded-lg hover:bg-madeena-teal hover:text-white transition-all duration-200;
+}
+.section-title {
+    @apply text-3xl md:text-4xl font-bold text-madeena-blue mb-4;
+}
+.section-subtitle {
+    @apply text-lg text-gray-600 mb-8;
 }

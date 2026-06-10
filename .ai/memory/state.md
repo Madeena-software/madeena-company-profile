@@ -1,6 +1,6 @@
 # Session State — Madeena Company Profile
 
-> Last updated: 2026-06-04 11:55 WIB (UTC+7)
+> Last updated: 2026-06-10 19:00 WIB (UTC+7)
 
 ---
 
@@ -16,7 +16,7 @@
 | Build Tool     | Vite v6 (`laravel-vite-plugin`)                 |
 | Template       | Blade                                           |
 | Database       | MySQL 8.4                                       |
-| Server (Dev)   | Artisan Serve                    |
+| Server (Dev)   | Artisan Serve                                   |
 | Server (Prod)  | Nginx (Alpine) + PHP 8.4-FPM                    |
 | Orchestration  | Docker Swarm (multi-stage Dockerfile)            |
 | CI/CD          | GitHub Actions (8 workflows)                    |
@@ -36,13 +36,16 @@
 
 ## 2. Active Goal & Priorities
 
-🎯 **Active Goal**: Completed storage refactoring from Nextcloud WebDAV to MinIO S3. Awaiting user's next primary goal.
+🎯 **Active Goal**: Documentation alignment — PRD generated, README and `.ai/` files being aligned. Awaiting user's next primary goal.
 
 **Priority Queue**:
 1. ~~Refactor `config/filesystems.php` to S3 driver~~ ✅
 2. ~~Replace Artisan commands (WebDAV → generic S3-compatible)~~ ✅
 3. ~~Update CI/CD deploy workflow~~ ✅
 4. ~~Verification: `composer update`, `php artisan test`, S3 integration test~~ ✅
+5. ~~Remove FrankenPHP references from codebase~~ ✅
+6. ~~Generate comprehensive PRD (`docs/PRD.md`)~~ ✅
+7. ~~Align README and `.ai/` files with PRD~~ ✅
 
 ---
 
@@ -54,6 +57,9 @@
 | 2026-06-04 | Full repository audit completed                  | ✅     |
 | 2026-06-04 | Storage refactored: WebDAV → MinIO S3            | ✅     |
 | 2026-06-04 | S3 Integration and PHPUnit verification passed   | ✅     |
+| 2026-06-10 | FrankenPHP references removed from codebase      | ✅     |
+| 2026-06-10 | Comprehensive PRD generated (`docs/PRD.md`)      | ✅     |
+| 2026-06-10 | README and `.ai/` files aligned with PRD         | ✅     |
 
 ---
 
@@ -69,12 +75,14 @@
 | Docker            | ✅       | Multi-stage Dockerfile + Swarm compose  |
 | GitHub Workflows  | ✅       | 8 workflows configured                  |
 | MinIO S3          | ✅       | Verified with `storage:check` command   |
+| PRD               | ✅       | `docs/PRD.md` generated and validated   |
 
 ---
 
 ## 5. Known Issues
 
-*None.*
+- `.env.example` stale `OCTANE_SERVER`/`OCTANE_HTTPS` references — **fixed 2026-06-10**.
+- `config/octane.php` and `laravel/octane` dependency still present in codebase (not actively used).
 
 ---
 

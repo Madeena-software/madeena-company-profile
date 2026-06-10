@@ -14,7 +14,7 @@
       "framework": "Laravel",
       "framework_version": "13.x",
       "admin_panel": "Filament PHP v5",
-      "web_server_engine": "FrankenPHP (Octane, dev) / Nginx + PHP-FPM (production)",
+      "web_server_engine": "Artisan Serve (dev) / Nginx + PHP-FPM (production)",
       "queue": "sync (dev) / database (prod)"
     },
     "frontend": {
