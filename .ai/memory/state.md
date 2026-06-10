@@ -16,7 +16,7 @@
 | Build Tool     | Vite v6 (`laravel-vite-plugin`)                 |
 | Template       | Blade                                           |
 | Database       | MySQL 8.4                                       |
-| Server (Dev)   | FrankenPHP via Laravel Octane                    |
+| Server (Dev)   | Artisan Serve                    |
 | Server (Prod)  | Nginx (Alpine) + PHP 8.4-FPM                    |
 | Orchestration  | Docker Swarm (multi-stage Dockerfile)            |
 | CI/CD          | GitHub Actions (8 workflows)                    |

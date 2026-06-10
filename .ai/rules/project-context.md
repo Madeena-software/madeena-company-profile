@@ -22,7 +22,7 @@
 | Frontend         | Tailwind CSS + Alpine.js | 3.4 / 3.15 |
 | Build            | Vite                   | 6.x      |
 | Database         | MySQL                  | 8.4      |
-| Dev Server       | FrankenPHP (Octane)    | 2.17+    |
+| Dev Server       | Artisan Serve    | 2.17+    |
 | Prod Server      | Nginx + PHP-FPM        | Alpine   |
 | Container        | Docker + Docker Swarm  | Multi-stage |
 | CI/CD            | GitHub Actions         | 8 workflows |
@@ -78,7 +78,7 @@ php artisan make:filament-user
 composer dev
 
 # Individual services
-php artisan octane:frankenphp --host=127.0.0.1 --port=8000  # App server
+php artisan serve --host=127.0.0.1 --port=8000  # App server
 npm run dev                                                    # Vite HMR
 php artisan queue:listen --tries=1                             # Queue worker
 php artisan pail --timeout=0                                   # Log tail
