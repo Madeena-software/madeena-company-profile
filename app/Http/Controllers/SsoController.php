@@ -43,8 +43,8 @@ class SsoController extends Controller
         $error = $request->query('error');
         if ($error) {
             if ($error === 'login_required') {
-                // Silent auth failed (prompt=none), redirect to full login flow
-                return $this->redirect();
+                // Silent auth failed (prompt=none), redirect to login page with flag
+                return redirect()->route('filament.admin.auth.login')->with('sso_silent_failed', true);
             }
 
             if ($error === 'access_denied') {

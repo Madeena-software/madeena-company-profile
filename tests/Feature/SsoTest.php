@@ -72,19 +72,12 @@ class SsoTest extends TestCase
      */
     public function test_callback_handles_login_required_by_redirecting_to_full_flow(): void
     {
-        $provider = Mockery::mock('Laravel\Socialite\Two\AbstractProvider');
-        $provider->shouldReceive('redirect')
-            ->once()
-            ->andReturn(redirect()->to('http://localhost:8000/oauth/authorize?client_id=123'));
 
-        Socialite::shouldReceive('driver')
-            ->with('laravelpassport')
-            ->once()
-            ->andReturn($provider);
 
         $response = $this->get(route('sso.callback', ['error' => 'login_required']));
         $response->assertStatus(302);
-        $response->assertRedirectContains('/oauth/authorize');
+        $response->assertRedirect(route('filament.admin.auth.login'));
+        $response->assertSessionHas('sso_silent_failed', true);
     }
 
     /**

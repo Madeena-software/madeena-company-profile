@@ -105,7 +105,7 @@ sync_local_env() {
     set_env "APP_NAME" '"madeena_cp"'
     set_env "APP_DISPLAY_NAME" '"Madeena Company Profile"'
     set_env "APP_ENV" "local"
-    set_env "APP_URL" "http://localhost:8000"
+    set_env "APP_URL" "http://localhost:8011"
     set_env "DB_CONNECTION" "mysql"
     set_env "DB_HOST" "127.0.0.1"
     set_env "DB_PORT" "3306"
@@ -282,8 +282,8 @@ echo -e "${BOLD}${GREEN}══════════════════�
 echo -e "${BOLD}${GREEN}  ✅  ${APP_NAME} local environment ready!${RESET}"
 echo -e "${BOLD}${GREEN}══════════════════════════════════════════════════════${RESET}"
 echo ""
-echo -e "  ${BOLD}App URL:${RESET}       http://localhost:8000"
-echo -e "  ${BOLD}Admin:${RESET}         http://localhost:8000/admin"
+echo -e "  ${BOLD}App URL:${RESET}       http://localhost:8011"
+echo -e "  ${BOLD}Admin:${RESET}         http://localhost:8011/admin"
 echo -e "  ${BOLD}MySQL:${RESET}         127.0.0.1:${DB_PORT} (container: ${DB_CONTAINER})"
 echo -e "  ${BOLD}PHP:${RESET}           ${PHP_CURRENT} (native WSL)"
 echo -e "  ${BOLD}Node:${RESET}          $(node -v) (native WSL)"

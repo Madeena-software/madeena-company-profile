@@ -8,15 +8,19 @@ use Filament\Auth\Pages\Login as BaseLogin;
 
 class SsoLogin extends BaseLogin
 {
-    /**
-     * Override mount method to redirect to SSO silent login.
-     */
     public function mount(): void
     {
-        parent::mount();
+        if (\Filament\Facades\Filament::auth()->check()) {
+            redirect()->intended(\Filament\Facades\Filament::getUrl());
+            return;
+        }
 
-        // Redirect immediately to silent SSO flow
-        redirect()->route('sso.silent');
+        if (! session()->has('sso_silent_failed')) {
+            redirect()->route('sso.silent');
+            return;
+        }
+
+        $this->form->fill();
     }
 
     /**
@@ -25,5 +29,15 @@ class SsoLogin extends BaseLogin
     public function getView(): string
     {
         return 'filament.pages.auth.sso-login';
+    }
+
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        return 'Masuk ke Dasbor';
+    }
+
+    public function getSubheading(): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        return 'Gunakan akun sentral Anda untuk mengakses aplikasi ini.';
     }
 }
