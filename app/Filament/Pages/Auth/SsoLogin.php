@@ -15,7 +15,7 @@ class SsoLogin extends BaseLogin
             return;
         }
 
-        if (! session()->has('sso_silent_failed')) {
+        if (! session()->has('sso_silent_failed') && ! session()->has('sso_manual_login')) {
             redirect()->route('sso.silent');
             return;
         }
