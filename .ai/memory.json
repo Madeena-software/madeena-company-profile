@@ -125,8 +125,13 @@
     "config_file": "phpunit.xml",
     "test_db": "SQLite :memory:"
   },
-  "bugs_fixed_history": [],
-  "last_updated": "2026-06-04T11:55:00+07:00",
+  "bugs_fixed_history": [
+    {
+      "date": "2026-06-11",
+      "description": "Fixed SSO IAM Link API server error by changing POST to PATCH. Addressed logout and account switching issues by enforcing prompt=login."
+    }
+  ],
+  "last_updated": "2026-06-11T21:38:00+07:00",
   "ai_bootstrapped": true,
   "testing_strategy": "Defined in .ai/rules/testing-pyramid.md (Unit > Feature > E2E)"
 }

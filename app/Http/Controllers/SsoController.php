@@ -21,7 +21,9 @@ class SsoController extends Controller
      */
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('laravelpassport')->redirect();
+        return Socialite::driver('laravelpassport')
+            ->with(['prompt' => 'login'])
+            ->redirect();
     }
 
     /**

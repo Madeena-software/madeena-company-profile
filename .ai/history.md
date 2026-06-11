@@ -90,3 +90,17 @@
 ### Result
 ✅ Single Sign-On client integration completed and tested successfully.
 
+---
+
+## 2026-06-11 — Session 6: SSO Authentication Refinement & Debugging
+
+**Agent**: Antigravity (Gemini 3.1 Pro)
+**Objective**: Debug and refine the SSO authentication flow, specifically addressing logout issues, account switching, and API errors.
+
+### Actions Performed
+1. **API Method Fix**: Changed the IAM Link API request method from `POST` to `PATCH` (`/api/v1/client-user/link`) in `SsoController` to fix server errors during authentication.
+2. **Account Switching**: Updated the `redirect()` method in `SsoController` to include `prompt=login` parameter. This forces the IAM server to prompt for credentials instead of automatically logging in the last user, resolving the account switching issue.
+3. **Logout Flow Resolution**: Addressed user sign out issues ensuring clean termination of the session.
+
+### Result
+✅ SSO authentication flow debugged and refined successfully.

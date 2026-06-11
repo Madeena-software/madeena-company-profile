@@ -1,6 +1,6 @@
 # Session State — Madeena Company Profile
 
-> Last updated: 2026-06-11 14:50 WIB (UTC+7)
+> Last updated: 2026-06-11 21:38 WIB (UTC+7)
 
 ---
 
@@ -59,6 +59,7 @@
 | 2026-06-10 | Comprehensive PRD generated (`docs/PRD.md`)      | ✅     |
 | 2026-06-10 | README and `.ai/` files aligned with PRD         | ✅     |
 | 2026-06-11 | SSO client integration with `madeena-iam` completed | ✅     |
+| 2026-06-11 | SSO authentication flow refined (logout & account switching) | ✅     |
 
 ---
 
