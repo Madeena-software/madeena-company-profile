@@ -1,6 +1,6 @@
 # Session State — Madeena Company Profile
 
-> Last updated: 2026-06-10 19:00 WIB (UTC+7)
+> Last updated: 2026-06-11 14:50 WIB (UTC+7)
 
 ---
 
@@ -11,6 +11,7 @@
 | Language       | PHP 8.4                                         |
 | Framework      | Laravel 13.x                                    |
 | Admin Panel    | Filament PHP v5                                 |
+| Auth           | SSO-only via Laravel Socialite & `socialiteproviders/laravelpassport` (OAuth2 against `madeena-iam`) |
 | Frontend CSS   | Tailwind CSS v3.4 (with `@tailwindcss/forms`, `@tailwindcss/typography`) |
 | Frontend JS    | Alpine.js v3.15                                 |
 | Build Tool     | Vite v6 (`laravel-vite-plugin`)                 |
@@ -27,25 +28,22 @@
 ### Major Modules
 - **Models**: User, HeroBanner, Product, Post, Setting, Page, InabuyerMessage
 - **Filament Resources**: User, HeroBanner, Product, Post, Page, InabuyerMessage + ManageSettings page
-- **Controllers**: HomeController, PublicStorageController, Inabuyer2026/FeedbackController
+- **Filament Auth**: SsoLogin (custom login page)
+- **Controllers**: HomeController, PublicStorageController, Inabuyer2026/FeedbackController, SsoController
 - **Livewire**: Inabuyer2026Display
 - **Custom Artisan Commands**: CheckStorageHealth (`storage:check`), UploadDatabaseBackup (`backup:upload`)
-- **Service Providers**: AppServiceProvider
+- **Service Providers**: AppServiceProvider, SocialiteServiceProvider
 
 ---
 
 ## 2. Active Goal & Priorities
 
-🎯 **Active Goal**: Documentation alignment — PRD generated, README and `.ai/` files being aligned. Awaiting user's next primary goal.
+🎯 **Active Goal**: Single Sign-On (SSO) integration complete. Awaiting user's next primary goal.
 
 **Priority Queue**:
-1. ~~Refactor `config/filesystems.php` to S3 driver~~ ✅
-2. ~~Replace Artisan commands (WebDAV → generic S3-compatible)~~ ✅
-3. ~~Update CI/CD deploy workflow~~ ✅
-4. ~~Verification: `composer update`, `php artisan test`, S3 integration test~~ ✅
-5. ~~Remove FrankenPHP references from codebase~~ ✅
-6. ~~Generate comprehensive PRD (`docs/PRD.md`)~~ ✅
-7. ~~Align README and `.ai/` files with PRD~~ ✅
+1. ~~SSO Client Integration with `madeena-iam`~~ ✅
+2. ~~E2E, Feature and Unit testing verification~~ ✅
+3. ~~Laravel Pint style check & format~~ ✅
 
 ---
 
@@ -60,6 +58,7 @@
 | 2026-06-10 | FrankenPHP references removed from codebase      | ✅     |
 | 2026-06-10 | Comprehensive PRD generated (`docs/PRD.md`)      | ✅     |
 | 2026-06-10 | README and `.ai/` files aligned with PRD         | ✅     |
+| 2026-06-11 | SSO client integration with `madeena-iam` completed | ✅     |
 
 ---
 
@@ -76,12 +75,12 @@
 | GitHub Workflows  | ✅       | 8 workflows configured                  |
 | MinIO S3          | ✅       | Verified with `storage:check` command   |
 | PRD               | ✅       | `docs/PRD.md` generated and validated   |
+| SSO               | ✅       | Integrated, Pint compliant, all tests passed |
 
 ---
 
 ## 5. Known Issues
 
-- `.env.example` stale `OCTANE_SERVER`/`OCTANE_HTTPS` references — **fixed 2026-06-10**.
 - `config/octane.php` and `laravel/octane` dependency still present in codebase (not actively used).
 
 ---

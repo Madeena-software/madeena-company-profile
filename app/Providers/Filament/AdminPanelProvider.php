@@ -2,7 +2,7 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Pages\Auth\Register;
+use App\Filament\Pages\Auth\SsoLogin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -28,9 +28,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->brandName(config('app.display_name', 'Madeena Company Profile'))
-            ->login()
+            ->login(SsoLogin::class)
             ->profile()
-            ->registration(Register::class)
             ->colors([
                 'primary' => Color::Teal,
             ])

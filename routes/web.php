@@ -3,6 +3,7 @@
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Inabuyer2026\FeedbackController;
 use App\Http\Controllers\PublicStorageController;
+use App\Http\Controllers\SsoController;
 use App\Livewire\Inabuyer2026Display;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -34,3 +35,9 @@ Route::prefix('inabuyer2026')
         Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
         Route::get('/display', Inabuyer2026Display::class)->name('display');
     });
+
+Route::prefix('sso')->group(function (): void {
+    Route::get('/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('/silent', [SsoController::class, 'silentRedirect'])->name('sso.silent');
+    Route::get('/callback', [SsoController::class, 'callback'])->name('sso.callback');
+});

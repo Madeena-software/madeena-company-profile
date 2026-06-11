@@ -70,3 +70,23 @@
 
 ### Result
 ✅ PRD successfully generated and all project context documentation fully aligned.
+
+---
+
+## 2026-06-11 — Session 5: SSO Client Integration
+
+**Agent**: Antigravity (Gemini 3.5 Flash)
+**Objective**: Integrate Single Sign-On (SSO) Client with the central `madeena-iam` server using OAuth2.
+
+### Actions Performed
+1. **Installed Dependencies**: Installed `socialiteproviders/laravelpassport` to handle OAuth2 communication.
+2. **Configured Event Listener**: Registered the Socialite event listener in `AppServiceProvider`.
+3. **Database Migration**: Created and ran migration `add_sso_fields_to_users_table` to add the `sso_id` column and make the local `password` column nullable.
+4. **Environment Setup**: Configured local client credentials in `.env` and placeholders in `.env.example`.
+5. **SSO Controller**: Created `SsoController` to manage silent/redirect OAuth login, callback handling (supporting `login_required` silent login failure fallback, `access_denied` user approval suspension page), and integration with the central IAM Link API (`PATCH /api/v1/client-user/link`) to bind local user IDs.
+6. **Filament Customization**: Created custom `SsoLogin` page that automatically triggers silent SSO redirect on mount and overrides Filament's standard login screen with a sleek loading/redirecting UI. Removed registration from `AdminPanelProvider`.
+7. **Automated Verification**: Created Unit and Feature tests checking User model, SSO redirects, error callback flows, and successful logging in / linking. Ran Pint to ensure PSR-12 code style compliance. All tests passed.
+
+### Result
+✅ Single Sign-On client integration completed and tested successfully.
+

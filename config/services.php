@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'laravelpassport' => [
+        'client_id' => env('MADEENA_IAM_CLIENT_ID'),
+        'client_secret' => env('MADEENA_IAM_CLIENT_SECRET'),
+        'redirect' => env('MADEENA_IAM_REDIRECT_URI'),
+        'host' => env('MADEENA_IAM_URL'),
+        'authorize_uri' => 'oauth/authorize',
+        'token_uri' => 'oauth/token',
+        'userinfo_uri' => 'api/v1/user',
+    ],
+
 ];
