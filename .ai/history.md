@@ -104,3 +104,19 @@
 
 ### Result
 ✅ SSO authentication flow debugged and refined successfully.
+
+---
+
+## 2026-06-12 — Session 7: WordPress-Like & Academic CMS Architecture Upgrade
+
+**Agent**: Antigravity (Gemini 3.1 Pro)
+**Objective**: Implement a dynamic, builder-based CMS and an academic-grade rich text editor based on PRDs.
+
+### Actions Performed
+1. **Academic CMS**: Migrated `posts` and `pages` to use a `content_json` column. Built custom Tiptap blocks for `Figure`, `Table`, `Equation`, and `ReferenceList`. Created `AcademicContentRenderer` to auto-number sections, figures, tables, and equations, and render KaTeX. Added a full-width UI and 3-second auto-save to `PostResource` and `PageResource`.
+2. **WordPress-like CMS**: Rebuilt the homepage using a dynamic `Builder` field (`HomepageEditor.php`) with 21 pre-configured section blocks. Replaced `ManageSettings` with a comprehensive `SiteSettings` page. Simplified the admin sidebar and added a custom Filament `Dashboard`.
+3. **Database Cleanup**: Removed `HeroBannerResource` and `ManageSettings` page. Added `content_json` to `products`.
+4. **Documentation**: Verified implementation against `academic-cms-editor.md` and `wordpress-like-cms.md`. Updated `docs/PRD.md` to reflect the final V2 architecture.
+
+### Result
+✅ CMS upgraded successfully with full drag-and-drop capabilities and advanced academic typesetting.

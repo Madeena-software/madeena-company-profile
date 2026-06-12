@@ -49,15 +49,16 @@
     ],
     "filament_resources": [
       "UserResource",
-      "HeroBannerResource",
       "ProductResource",
       "PostResource",
       "PageResource",
       "InabuyerMessageResource"
     ],
     "filament_pages": [
-      "ManageSettings",
-      "Auth (Login/Register)"
+      "HomepageEditor",
+      "SiteSettings",
+      "Auth (Login/Register)",
+      "Dashboard"
     ],
     "controllers": [
       "HomeController",
@@ -131,7 +132,7 @@
       "description": "Fixed SSO IAM Link API server error by changing POST to PATCH. Addressed logout and account switching issues by enforcing prompt=login."
     }
   ],
-  "last_updated": "2026-06-11T21:38:00+07:00",
+  "last_updated": "2026-06-12T20:45:00+07:00",
   "ai_bootstrapped": true,
   "testing_strategy": "Defined in .ai/rules/testing-pyramid.md (Unit > Feature > E2E)"
 }
