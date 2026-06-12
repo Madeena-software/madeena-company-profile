@@ -25,7 +25,7 @@ Systematically analyze the following areas. Be thorough — the PRD quality depe
 ### 1.2 Tech Stack
 - **Framework & version** (Laravel, Filament, Livewire, Inertia, etc.)
 - **Frontend** (Blade, Vue, React, Alpine.js, Tailwind version)
-- **Database** (MySQL, PostgreSQL, SQLite)
+- **Database** (MySQL, PostgreSQL)
 - **Queue / Cache / Search** drivers from `.env.example`
 - **External services** (S3, mail providers, payment gateways, SSO, APIs)
 

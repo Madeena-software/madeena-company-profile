@@ -23,7 +23,7 @@
 | CI/CD          | GitHub Actions (8 workflows)                    |
 | File Storage   | MinIO S3-compatible (bucket: `mmcp-storage`)     |
 | Queue          | sync (dev) / database (prod)                    |
-| Testing        | PHPUnit 11.x (Unit + Feature suites, SQLite :memory:) |
+| Testing        | PHPUnit 11.x (Unit + Feature suites, mysql :memory:) |
 
 ### Major Modules
 - **Models**: User, HeroBanner, Product, Post, Setting, Page, InabuyerMessage

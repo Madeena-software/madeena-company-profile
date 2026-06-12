@@ -3121,7 +3121,7 @@
                 "ext-mysqli": "Requiered to use the package with the MySQLi extension",
                 "ext-pdo": "Required to use the package with the PDO extension",
                 "ext-pgsql": "Requiered to use the package with the PgSQL extension",
-                "ext-sqlite3": "Required to use the package with the SQLite3 extension"
+                "ext-mysql3": "Required to use the package with the mysql3 extension"
             },
             "type": "library",
             "extra": {

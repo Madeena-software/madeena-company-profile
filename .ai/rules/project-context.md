@@ -178,7 +178,7 @@ docker stack deploy -c docker-compose.prod.yml madeena_cp
 
 ### Testing
 - **PHPUnit 11.x** with `Unit` and `Feature` test suites.
-- **Testing database**: SQLite `:memory:` (configured in `phpunit.xml`).
+- **Testing database**: mysql `:memory:` (configured in `phpunit.xml`).
 - **Faker**: Available via `fakerphp/faker` for test data generation.
 
 ### Version Control

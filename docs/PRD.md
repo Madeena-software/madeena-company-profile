@@ -166,13 +166,13 @@ The application functions as both a **public-facing marketing website** and a **
 - **Key Components**: `app/Filament/Pages/Dashboard.php`, custom Widgets.
 
 #### F-010: Homepage Editor
-- **Description**: A drag-and-drop page builder using Filament's Builder field. Allows admins to add, reorder, and configure homepage sections without coding. Hero banners are managed purely as JSON within this block.
+- **Description**: A drag-and-drop page builder using Filament's Builder field. Allows admins to add, reorder, and configure homepage sections without coding. Features a massive full-width editing canvas and auto-saves every 3 seconds.
 - **User Roles**: Admin only
 - **Routes**: `/admin/homepage-editor`
-- **Key Components**: `app/Filament/Pages/HomepageEditor.php`
+- **Key Components**: `app/Filament/Pages/HomepageEditor.php`, `BuilderBlocks` (21 available section blocks).
 
 #### F-011: Academic Article Editor (Posts)
-- **Description**: Post resource featuring an academic Tiptap RichEditor. Contains custom blocks for Figures, Tables, Equations, and References. Supports abstract, keywords, and author information fields.
+- **Description**: Post resource featuring an academic Tiptap RichEditor with a full-width editing view and 3-second auto-save. Contains custom blocks for Figures, Tables, Equations, and References. Supports abstract, keywords, and author information fields.
 - **User Roles**: Admin (all posts), User (own posts only)
 - **Routes**: `/admin/posts`
 - **Key Components**: `PostResource`, `Post` model, custom Tiptap blocks.

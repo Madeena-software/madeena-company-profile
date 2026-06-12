@@ -26,7 +26,7 @@
     "database": {
       "engine": "MySQL",
       "engine_version": "8.4",
-      "testing_db": "SQLite :memory:"
+      "testing_db": "mysql :memory:"
     },
     "infrastructure": {
       "containerization": "Docker (multi-stage build)",
@@ -123,7 +123,7 @@
       "Feature"
     ],
     "config_file": "phpunit.xml",
-    "test_db": "SQLite :memory:"
+    "test_db": "mysql :memory:"
   },
   "bugs_fixed_history": [
     {

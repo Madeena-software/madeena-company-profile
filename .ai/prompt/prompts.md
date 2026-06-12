@@ -134,5 +134,5 @@ EXPECTATIONS: Changes committed as config files/workflows, tested in simulation
 CONTEXT: [Reference the un-tested or newly written module]
 OBJECTIVE: Write comprehensive tests adhering to the Testing Pyramid
 ROLE: QA Automation Engineer with strict TDD principles
-EXPECTATIONS: Add Unit tests for isolated logic, Feature tests for DB/HTTP interactions, and ensure execution is fast via SQLite :memory:
+EXPECTATIONS: Add Unit tests for isolated logic, Feature tests for DB/HTTP interactions, and ensure execution is fast via mysql :memory:
 ```
