@@ -37,10 +37,11 @@
 
 Rebuild the entire Filament admin panel into a **WordPress-like CMS** where a 61-year-old, technologically illiterate professor can:
 1. **Build and customize the homepage** using a drag-and-drop section builder
-2. **Manage products** with rich detail pages
-3. **Write academic articles** (handled by Prompt 1)
-4. **Manage site settings** (contact, social, SEO)
-5. **Navigate easily** with a flat, icon-based sidebar
+2. **Build custom static pages** using the same page builder
+3. **Manage products** with rich detail pages
+4. **Write academic articles** (handled by Prompt 1)
+5. **Manage site settings** (contact, social, SEO, branding)
+6. **Navigate easily** with a flat, icon-based sidebar
 
 ### R — Role
 
@@ -75,6 +76,8 @@ The existing `settings` table (`id`, `key`, `value`, `timestamps`) is sufficient
 | `contact_info` | JSON object | Email, phone, WhatsApp, address |
 | `social_media` | JSON object | Instagram, LinkedIn, YouTube URLs |
 | `seo` | JSON object | Meta title, meta description |
+| `branding` | JSON object | Logo path, primary color, secondary color, font |
+| `whatsapp_button` | JSON object | enabled (bool), number (string) |
 
 ### 1.2 Products Table — Add Page Builder Column
 
@@ -216,7 +219,6 @@ class HomepageEditor extends Page
                 ->label('Bagian Halaman')
                 ->blocks([
                     $this->heroBlock(),
-                    $this->researchBlock(),
                     $this->productsBlock(),
                     $this->featuresBlock(),
                     $this->aboutBlock(),
@@ -694,10 +696,80 @@ class SiteSettings extends Page
                         ->addActionLabel('+ Tambah Link')
                         ->helperText('Akan muncul di navigasi atas website.'),
                 ]),
+
+            Section::make('🎨 Pengaturan Tampilan')
+                ->description('Logo, warna, dan font website.')
+                ->collapsible()
+                ->collapsed()
+                ->schema([
+                    FileUpload::make('logo')->label('Logo Website')
+                        ->image()->disk('public')->directory('branding')
+                        ->helperText('Unggah logo perusahaan. Akan ditampilkan di header dan footer.'),
+                    TextInput::make('primary_color')->label('Warna Utama')
+                        ->type('color')->default('#1a365d')
+                        ->helperText('Warna utama website (header, tombol, dll).'),
+                    TextInput::make('secondary_color')->label('Warna Sekunder')
+                        ->type('color')->default('#2dd4bf')
+                        ->helperText('Warna aksen website (highlight, link, dll).'),
+                    Select::make('font_family')->label('Font Website')
+                        ->options([
+                            'Inter' => 'Inter (Modern)',
+                            'Noto Sans' => 'Noto Sans (Clean)',
+                            'Roboto' => 'Roboto (Classic)',
+                            'Outfit' => 'Outfit (Trendy)',
+                            'Poppins' => 'Poppins (Friendly)',
+                        ])->default('Inter')
+                        ->helperText('Pilih font untuk seluruh website.'),
+                ])->columns(2),
+
+            Section::make('💬 Tombol WhatsApp Melayang')
+                ->description('Tombol chat WhatsApp di pojok kanan bawah website.')
+                ->collapsible()
+                ->collapsed()
+                ->schema([
+                    Toggle::make('whatsapp_button_enabled')->label('Aktifkan Tombol WhatsApp')
+                        ->default(true)
+                        ->helperText('Tampilkan tombol chat WhatsApp di pojok kanan bawah.'),
+                    TextInput::make('whatsapp_button_number')->label('Nomor WhatsApp')
+                        ->placeholder('+62 857 2830 4141')
+                        ->helperText('Nomor yang akan dihubungi saat tombol diklik.'),
+                ]),
         ]);
     }
 }
 ```
+
+---
+
+## PHASE 5.5: PageResource Upgrade — Use Page Builder
+
+### 5.5.1 Replace Academic Editor with Builder Field
+
+`PageResource` should use the **same page builder** (Builder field) as the Homepage Editor, NOT just the academic text editor. This lets the professor build custom static pages with sections.
+
+```
+Section: "Informasi Halaman"
+├── TextInput: title
+├── TextInput: slug
+
+Section: "Konten Halaman" (Page Builder)
+└── Builder::make('content_json')
+        ->blocks([
+            HeroBlock,
+            FeaturesBlock,
+            AboutBlock,
+            GalleryBlock,
+            VideoBlock,
+            TestimonialBlock,
+            LegalitiesBlock,
+            ContactBlock,
+            FreeTextBlock,     // Uses academic editor from Prompt 1
+        ])
+        ->reorderable()
+        ->collapsible()
+```
+
+> **Note**: The academic editor (Prompt 1) is available INSIDE the "Free Text" block, not as the primary editor for Pages.
 
 ---
 
@@ -795,7 +867,20 @@ Update `resources/views/layouts/app.blade.php` navigation to be dynamic:
 </nav>
 ```
 
-### 7.4 HomeController Update
+### 7.4 Dynamic Footer
+
+Rebuild the footer in `resources/views/layouts/app.blade.php` to be fully dynamic:
+- Company description → pulled from `branding` settings or `homepage_about` section data
+- Navigation links → auto-generated from the same `getNavigation()` method used by the header
+- Contact info → pulled from `contact_info` settings
+- Social media icons → pulled from `social_media` settings
+- Logo → pulled from `branding` settings
+- Copyright text → dynamic year + company name from settings
+- Floating WhatsApp button → togglable from `whatsapp_button` setting
+
+No hardcoded content in the footer.
+
+### 7.5 HomeController Update
 
 ```php
 public function index()
@@ -847,70 +932,66 @@ Rebuild `resources/views/product.blade.php` to render the page builder JSON:
 
 ---
 
-## PHASE 8: Seeder — Default Homepage
+## PHASE 8: Seeder — Minimal Starter
 
-### 8.1 Update `HomepageSectionSeeder`
+### 8.1 Create `HomepageSectionSeeder`
 
-Create a seeder that populates `homepage_sections` with the current hardcoded content, so the website looks identical after the migration:
+Seed a **minimal starter template** — NOT a replica of the current legacy site. The professor builds his own website from scratch.
 
 ```php
 Setting::setJson('homepage_sections', [
     ['type' => 'hero', 'data' => [
         'show_in_nav' => false,
         'nav_label' => 'Beranda',
-        // Hero data matches current hardcoded content
-    ]],
-    ['type' => 'products', 'data' => [
-        'show_in_nav' => true,
-        'nav_label' => 'Produk',
-        'section_title' => 'Produk Inovasi Teknologi Kesehatan',
-        'section_subtitle' => 'Berstandar Nasional, Izin Edar Kemenkes RI',
-    ]],
-    ['type' => 'features', 'data' => [
-        'show_in_nav' => false,
-        'items' => [
-            ['icon' => 'fa-network-wired', 'title' => 'Sistem Teleradiologi', 'description' => '...'],
-            ['icon' => 'fa-brain', 'title' => 'Antarmuka AI Diagnostik', 'description' => '...'],
-            ['icon' => 'fa-certificate', 'title' => 'Izin Edar Kemenkes RI', 'description' => '...'],
-            ['icon' => 'fa-handshake', 'title' => 'Program Kemitraan', 'description' => '...'],
-        ],
-    ]],
-    ['type' => 'about', 'data' => [
-        'show_in_nav' => true,
-        'nav_label' => 'Tentang',
-        'company_profile' => 'PT Madeena Karya Indonesia didirikan...',
-        'vision' => 'Menjadi Duta Teknologi Indonesia...',
-        'mission' => ['Melakukan hilirisasi...', 'Mengkomersialisasikan...', 'Mengembangkan...'],
-        'motto' => 'Know Sciences, Learn Engineering, Create Technology, Develop Business.',
-    ]],
-    ['type' => 'legalities', 'data' => [
-        'show_in_nav' => true,
-        'nav_label' => 'Legalitas',
-        'background_style' => 'dark',
-        'section_title' => 'Legalitas Formal',
-        'certificates' => [
-            ['icon' => 'fa-building', 'title' => 'Surat Izin Berusaha Berbasis Risiko', 'detail' => 'NIB 9120106900275'],
-            // ... all 6 current certificates
+        'banners' => [
+            [
+                'title' => 'Selamat Datang',
+                'subtitle' => 'Selamat datang di website kami',
+                'description' => 'Klik "Edit Halaman Utama" di panel admin untuk mulai membangun website Anda.',
+                'cta_text' => 'Hubungi Kami',
+                'cta_url' => '#section-1',
+            ],
         ],
     ]],
     ['type' => 'contact', 'data' => [
         'show_in_nav' => true,
         'nav_label' => 'Kontak',
         'section_title' => 'Hubungi Kami',
+        'section_subtitle' => 'Silakan hubungi kami melalui saluran berikut',
         'background_style' => 'gradient',
     ]],
 ]);
 
-// Seed contact info and other settings
+// Seed minimal settings
 Setting::setJson('contact_info', [
-    'email' => 'madeenajog@gmail.com',
-    'phone' => '+62 821 3811 4011',
-    'whatsapp' => '+62 857 2830 4141',
-    'address' => 'Jl. Lowanu No. 68-72, Yogyakarta',
+    'email' => 'email@example.com',
+    'phone' => '+62 xxx xxxx xxxx',
+    'whatsapp' => '+62 xxx xxxx xxxx',
+    'address' => 'Alamat Anda',
 ]);
 
-Setting::setJson('social_media', [...]);
-Setting::setJson('seo', [...]);
+Setting::setJson('social_media', [
+    'instagram' => '',
+    'linkedin' => '',
+    'youtube' => '',
+]);
+
+Setting::setJson('seo', [
+    'meta_title' => 'Nama Website Anda',
+    'meta_description' => 'Deskripsi singkat website Anda.',
+]);
+
+Setting::setJson('branding', [
+    'logo' => null,
+    'primary_color' => '#1a365d',
+    'secondary_color' => '#2dd4bf',
+    'font_family' => 'Inter',
+]);
+
+Setting::setJson('whatsapp_button', [
+    'enabled' => true,
+    'number' => '+62 xxx xxxx xxxx',
+]);
 ```
 
 ---
@@ -936,11 +1017,16 @@ Setting::setJson('seo', [...]);
    ```
 
 ### Manual Verification
-- Seed the default homepage and verify it looks identical to the current hardcoded version
+- Seed the minimal starter and verify the website renders correctly
 - Add/remove/reorder sections in the Homepage Editor
 - Test the preview button
 - Test product detail page with page builder content
+- Test static pages with page builder
 - Test navigation updates when sections are toggled
+- Test branding changes (logo, colors, font)
+- Test WhatsApp button toggle
+- Test confirmation dialogs on delete actions
+- Test footer dynamic rendering
 - Test on mobile viewport
 
 ---
@@ -949,12 +1035,16 @@ Setting::setJson('seo', [...]);
 
 1. **No new Composer packages** — use Filament v5 native Builder + forms only
 2. **Clean slate** — remove old HeroBannerResource, old ManageSettings, old hardcoded Blade content
-3. **Visual parity** — after migration, the website must look identical to the current version
+3. **NOT a legacy clone** — seeder provides a minimal starter. Professor builds his own site from scratch.
 4. **Indonesian-first UX** — all admin labels in Bahasa Indonesia with helper text
 5. **Professor-proof** — large buttons, helpful placeholders, emoji icons, collapsible sections
-6. **Performance** — lazy-load images, optimize section rendering
-7. **Security** — sanitize all HTML output, validate file uploads
-8. **Follow `.ai/` protocol** — update `history.md`, `state.md`, `memory.json` at session end
+6. **Confirmation dialogs** — all destructive actions (delete section, delete product, etc.) show "Anda yakin ingin menghapus?" confirmation in Indonesian
+7. **Dynamic footer** — footer auto-pulls navigation, contact, social, branding from settings. No hardcoded content.
+8. **Dynamic branding** — logo, brand colors, font customizable from Settings
+9. **WhatsApp button** — togglable from Settings with custom number
+10. **Performance** — lazy-load images, optimize section rendering
+11. **Security** — sanitize all HTML output, validate file uploads
+12. **Follow `.ai/` protocol** — update `history.md`, `state.md`, `memory.json` at session end
 
 ---
 

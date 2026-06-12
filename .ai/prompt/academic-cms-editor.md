@@ -654,6 +654,17 @@ Always include academic CSS and KaTeX on post/page views:
 @endpush
 ```
 
+### 7.3 Blog Listing Page (`resources/views/blog.blade.php`)
+
+Redesign the blog listing page to match the Nature/Science academic style:
+- Clean, modern card layout with article titles, authors, dates, and abstracts
+- Academic typography (Inter / Noto Sans)
+- Category/keyword badges
+- Pagination with clean styling
+- Consistent with the article detail page aesthetic
+
+> **Note**: `PageResource` will use the **page builder** (Builder field from Prompt 2) instead of the academic editor alone. The academic editor is available inside the page builder's "Free Text" section block.
+
 ---
 
 ## PHASE 8: Auto-Numbering Engine
