@@ -29,6 +29,10 @@ class SsoTest extends TestCase
     {
         // Mock Socialite redirect
         $provider = Mockery::mock('Laravel\Socialite\Two\AbstractProvider');
+        $provider->shouldReceive('with')
+            ->with(['prompt' => 'login'])
+            ->once()
+            ->andReturnSelf();
         $provider->shouldReceive('redirect')
             ->once()
             ->andReturn(redirect()->to('http://localhost:8000/oauth/authorize?client_id=123'));
@@ -96,6 +100,7 @@ class SsoTest extends TestCase
     public function test_successful_sso_callback_logs_in_user_and_calls_link_api(): void
     {
         // Mock IAM Link API
+        config(['services.laravelpassport.host' => 'http://localhost:8000']);
         Http::fake([
             'http://localhost:8000/api/v1/client-user/link' => Http::response([], 200),
         ]);
