@@ -2,18 +2,28 @@
 
 namespace App\Filament\RichEditorBlocks;
 
-use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\RichEditor\RichContentCustomBlock;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Actions\Action;
 
-class EquationBlock
+class EquationBlock extends RichContentCustomBlock
 {
-    public static function make(): Block
+    public static function getId(): string
     {
-        return Block::make('academic-equation')
-            ->label('Persamaan / Equation')
+        return 'academic-equation';
+    }
+
+    public static function getLabel(): string
+    {
+        return 'Persamaan / Equation';
+    }
+
+    public static function configureEditorAction(Action $action): Action
+    {
+        return $action
             ->icon('heroicon-o-calculator')
-            ->schema([
+            ->form([
                 Textarea::make('latex')
                     ->label('Persamaan LaTeX')
                     ->required()

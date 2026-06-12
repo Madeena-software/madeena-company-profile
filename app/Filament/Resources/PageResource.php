@@ -79,12 +79,11 @@ class PageResource extends Resource
                         ReferenceListBlock::class,
                     ])
                     ->toolbarButtons([
-                        'heading',
+                        'h2',
+                        'h3',
                         'bold',
                         'italic',
-                        'underline',
-                        'superscript',
-                        'subscript',
+                        'strike',
                         'bulletList',
                         'orderedList',
                         'link',
@@ -92,7 +91,6 @@ class PageResource extends Resource
                         'table',
                         'undo',
                         'redo',
-                        'blocks',
                     ]),
             ]),
         ]);

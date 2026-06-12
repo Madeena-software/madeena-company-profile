@@ -90,6 +90,7 @@ class PostResource extends Resource
                             TextInput::make('email')->label('Email')->email(),
                         ])
                         ->columns(3)
+                        ->defaultItems(0)
                         ->addActionLabel('+ Tambah Penulis'),
                 ]),
 
@@ -108,12 +109,11 @@ class PostResource extends Resource
                             ReferenceListBlock::class,
                         ])
                         ->toolbarButtons([
-                            'heading',
+                            'h2',
+                            'h3',
                             'bold',
                             'italic',
-                            'underline',
-                            'superscript',
-                            'subscript',
+                            'strike',
                             'bulletList',
                             'orderedList',
                             'link',
@@ -121,7 +121,6 @@ class PostResource extends Resource
                             'table',
                             'undo',
                             'redo',
-                            'blocks',
                         ]),
                 ]),
             ])->columnSpanFull(),

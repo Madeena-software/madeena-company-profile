@@ -2,18 +2,28 @@
 
 namespace App\Filament\RichEditorBlocks;
 
-use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\RichEditor\RichContentCustomBlock;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
+use Filament\Actions\Action;
 
-class ReferenceListBlock
+class ReferenceListBlock extends RichContentCustomBlock
 {
-    public static function make(): Block
+    public static function getId(): string
     {
-        return Block::make('academic-references')
-            ->label('Daftar Pustaka / References')
+        return 'academic-references';
+    }
+
+    public static function getLabel(): string
+    {
+        return 'Daftar Pustaka / References';
+    }
+
+    public static function configureEditorAction(Action $action): Action
+    {
+        return $action
             ->icon('heroicon-o-book-open')
-            ->schema([
+            ->form([
                 Repeater::make('references')
                     ->label('Daftar Referensi')
                     ->schema([

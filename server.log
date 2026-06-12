@@ -1,0 +1,17 @@
+
+   WARN  Unable to respect the `PHP_CLI_SERVER_WORKERS` environment variable without the `--no-reload` flag. Only creating a single server.  
+
+   INFO  Server running on [http://127.0.0.1:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-06-12 12:41:38 /blog/e2e-test-post ........... ~ 0.12ms
+  2026-06-12 12:41:56 /blog/e2e-test-post ........... ~ 0.12ms
+  2026-06-12 12:41:56 /storage/test-e2e.jpg ....... ~ 500.31ms
+  2026-06-12 12:41:56 /build/assets/app-DUO0bwmK.css  ~ 500.48ms
+  2026-06-12 12:41:56 /build/assets/app-CWNHUZev.js  ~ 500.51ms
+  2026-06-12 12:41:56 /images/logo-current.png .... ~ 500.53ms
+  2026-06-12 12:41:56 /build/assets/katex-render-C6Tj-8BX.css  ~ 0.13ms
+  2026-06-12 12:41:56 /build/assets/katex-render-RW6NzIQE.js  ~ 500.59ms
+  2026-06-12 12:41:56 /build/assets/KaTeX_Math-Italic-t53AETM-.woff2  ~ 0.02ms
+  2026-06-12 12:41:56 /build/assets/KaTeX_Main-Regular-B22Nviop.woff2  ~ 0.04ms

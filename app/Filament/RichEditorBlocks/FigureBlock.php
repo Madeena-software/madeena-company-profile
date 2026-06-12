@@ -2,19 +2,29 @@
 
 namespace App\Filament\RichEditorBlocks;
 
-use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\RichEditor\RichContentCustomBlock;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Actions\Action;
 
-class FigureBlock
+class FigureBlock extends RichContentCustomBlock
 {
-    public static function make(): Block
+    public static function getId(): string
     {
-        return Block::make('academic-figure')
-            ->label('Gambar / Figure')
+        return 'academic-figure';
+    }
+
+    public static function getLabel(): string
+    {
+        return 'Gambar / Figure';
+    }
+
+    public static function configureEditorAction(Action $action): Action
+    {
+        return $action
             ->icon('heroicon-o-photo')
-            ->schema([
+            ->form([
                 FileUpload::make('image')
                     ->label('Unggah Gambar')
                     ->image()
@@ -22,7 +32,6 @@ class FigureBlock
                     ->directory('academic-figures')
                     ->imageResizeMode('contain')
                     ->imageResizeTargetWidth('1920')
-                    ->optimize('webp')
                     ->required()
                     ->helperText('Unggah gambar (JPG, PNG, WebP). Akan dioptimasi otomatis.'),
 
