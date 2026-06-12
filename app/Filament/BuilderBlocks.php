@@ -5,6 +5,7 @@ namespace App\Filament;
 use App\Filament\RichEditorBlocks\EquationBlock;
 use App\Filament\RichEditorBlocks\FigureBlock;
 use App\Filament\RichEditorBlocks\ReferenceListBlock;
+use App\Filament\RichEditorBlocks\TableBlock;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -30,6 +31,16 @@ class BuilderBlocks
             self::testimonialBlock(),
             self::videoBlock(),
             self::freeTextBlock(),
+            self::teamBlock(),
+            self::faqBlock(),
+            self::timelineBlock(),
+            self::partnersBlock(),
+            self::statsBlock(),
+            self::ctaBlock(),
+            self::mapBlock(),
+            self::pricingBlock(),
+            self::currentProjectsBlock(),
+            self::projectInvestmentBlock(),
         ];
     }
 
@@ -283,6 +294,7 @@ class BuilderBlocks
                     ->json()
                     ->customBlocks([
                         FigureBlock::class,
+                        TableBlock::class,
                         EquationBlock::class,
                         ReferenceListBlock::class,
                     ])
@@ -301,6 +313,229 @@ class BuilderBlocks
                         'redo',
                     ])
                     ->columnSpanFull(),
+            ]));
+    }
+
+    private static function teamBlock(): Block
+    {
+        return Block::make('team')
+            ->label('👥 Tim Kami')
+            ->icon('heroicon-o-users')
+            ->schema(array_merge(self::getNavFields(false, 'Tim'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Struktur Organisasi'),
+                TextInput::make('section_subtitle')->label('Subjudul'),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('light'),
+                Repeater::make('members')
+                    ->label('Anggota Tim')
+                    ->schema([
+                        FileUpload::make('photo')->label('Foto')->image()->disk('public')->directory('team'),
+                        TextInput::make('name')->label('Nama')->required(),
+                        TextInput::make('role')->label('Jabatan')->required(),
+                        Textarea::make('bio')->label('Bio Singkat')->rows(2),
+                        TextInput::make('linkedin')->label('URL LinkedIn')->url(),
+                    ])
+                    ->reorderable()
+                    ->addActionLabel('+ Tambah Anggota'),
+            ]));
+    }
+
+    private static function faqBlock(): Block
+    {
+        return Block::make('faq')
+            ->label('❓ FAQ')
+            ->icon('heroicon-o-question-mark-circle')
+            ->schema(array_merge(self::getNavFields(false, 'FAQ'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Pertanyaan Umum'),
+                TextInput::make('section_subtitle')->label('Subjudul'),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('white'),
+                Repeater::make('faqs')
+                    ->label('Daftar Pertanyaan')
+                    ->schema([
+                        TextInput::make('question')->label('Pertanyaan')->required(),
+                        Textarea::make('answer')->label('Jawaban')->rows(3)->required(),
+                    ])
+                    ->reorderable()
+                    ->addActionLabel('+ Tambah FAQ'),
+            ]));
+    }
+
+    private static function timelineBlock(): Block
+    {
+        return Block::make('timeline')
+            ->label('⏳ Timeline Sejarah')
+            ->icon('heroicon-o-clock')
+            ->schema(array_merge(self::getNavFields(false, 'Sejarah'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Perjalanan Kami'),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('light'),
+                Repeater::make('milestones')
+                    ->label('Milestone')
+                    ->schema([
+                        TextInput::make('year')->label('Tahun / Waktu')->required(),
+                        TextInput::make('title')->label('Judul Pencapaian')->required(),
+                        Textarea::make('description')->label('Deskripsi')->rows(2),
+                    ])
+                    ->reorderable()
+                    ->addActionLabel('+ Tambah Milestone'),
+            ]));
+    }
+
+    private static function partnersBlock(): Block
+    {
+        return Block::make('partners')
+            ->label('🤝 Mitra')
+            ->icon('heroicon-o-user-group')
+            ->schema(array_merge(self::getNavFields(false, 'Mitra'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Mitra Kami'),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('white'),
+                Repeater::make('partners')
+                    ->label('Mitra & Klien')
+                    ->schema([
+                        FileUpload::make('logo')->label('Logo Mitra')->image()->disk('public')->directory('partners')->required(),
+                        TextInput::make('name')->label('Nama Mitra'),
+                        TextInput::make('url')->label('URL Website')->url(),
+                    ])
+                    ->reorderable()
+                    ->addActionLabel('+ Tambah Mitra'),
+            ]));
+    }
+
+    private static function statsBlock(): Block
+    {
+        return Block::make('stats')
+            ->label('📊 Statistik Pencapaian')
+            ->icon('heroicon-o-chart-bar')
+            ->schema(array_merge(self::getNavFields(false, 'Statistik'), [
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('dark'),
+                Repeater::make('stats')
+                    ->label('Angka Statistik')
+                    ->schema([
+                        TextInput::make('number')->label('Angka (misal: 100+)')->required(),
+                        TextInput::make('label')->label('Label (misal: Klien)')->required(),
+                        Select::make('icon')->label('Ikon')->options(self::getIconOptions())->searchable(),
+                    ])
+                    ->reorderable()
+                    ->addActionLabel('+ Tambah Statistik')
+                    ->maxItems(4),
+            ]));
+    }
+
+    private static function ctaBlock(): Block
+    {
+        return Block::make('cta')
+            ->label('📢 Call to Action')
+            ->icon('heroicon-o-megaphone')
+            ->schema(array_merge(self::getNavFields(false, 'CTA'), [
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('gradient'),
+                TextInput::make('title')->label('Judul Ajakan')->required(),
+                Textarea::make('subtitle')->label('Subjudul Deskripsi')->rows(2),
+                TextInput::make('button_text')->label('Teks Tombol')->required(),
+                TextInput::make('button_url')->label('URL Tombol')->required(),
+            ]));
+    }
+
+    private static function mapBlock(): Block
+    {
+        return Block::make('map')
+            ->label('📍 Lokasi Peta')
+            ->icon('heroicon-o-map')
+            ->schema(array_merge(self::getNavFields(false, 'Lokasi'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Temukan Kami'),
+                TextInput::make('address')->label('Alamat Lengkap (Teks)'),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('white'),
+                Textarea::make('embed_url')
+                    ->label('URL Embed Google Maps (src attribute)')
+                    ->helperText('Contoh: https://www.google.com/maps/embed?pb=...')
+                    ->rows(3)
+                    ->required(),
+            ]));
+    }
+
+    private static function pricingBlock(): Block
+    {
+        return Block::make('pricing')
+            ->label('💳 Daftar Harga')
+            ->icon('heroicon-o-currency-dollar')
+            ->schema(array_merge(self::getNavFields(false, 'Harga'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Daftar Harga & Paket'),
+                TextInput::make('section_subtitle')->label('Subjudul'),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('light'),
+                Repeater::make('plans')
+                    ->label('Paket / Produk')
+                    ->schema([
+                        TextInput::make('name')->label('Nama Paket')->required(),
+                        TextInput::make('price')->label('Harga (Teks)')->required()->default('Hubungi Kami'),
+                        Toggle::make('is_featured')->label('Jadikan Paket Unggulan (Highlight)'),
+                        Repeater::make('features')
+                            ->label('Fitur / Spesifikasi')
+                            ->simple(TextInput::make('item')->label('Fitur')->required())
+                            ->addActionLabel('+ Tambah Fitur'),
+                        TextInput::make('button_text')->label('Teks Tombol')->default('Pilih Paket'),
+                        TextInput::make('button_url')->label('URL Tombol')->default('#kontak'),
+                    ])
+                    ->reorderable()
+                    ->addActionLabel('+ Tambah Paket'),
+            ]));
+    }
+
+    private static function currentProjectsBlock(): Block
+    {
+        return Block::make('current_projects')
+            ->label('🚧 Proyek Berjalan')
+            ->icon('heroicon-o-clipboard-document-list')
+            ->schema(array_merge(self::getNavFields(false, 'Proyek'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Proyek Berjalan'),
+                TextInput::make('section_subtitle')->label('Subjudul'),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('light'),
+                Repeater::make('projects')
+                    ->label('Daftar Proyek')
+                    ->schema([
+                        FileUpload::make('image')->label('Gambar Proyek')->image()->disk('public')->directory('projects'),
+                        TextInput::make('title')->label('Nama Proyek')->required(),
+                        Textarea::make('description')->label('Deskripsi Singkat')->rows(2),
+                        TextInput::make('progress')->label('Progress (%)')->numeric()->minValue(0)->maxValue(100),
+                    ])
+                    ->reorderable()
+                    ->addActionLabel('+ Tambah Proyek'),
+            ]));
+    }
+
+    private static function projectInvestmentBlock(): Block
+    {
+        return Block::make('project_investment')
+            ->label('💼 Peluang Investasi')
+            ->icon('heroicon-o-banknotes')
+            ->schema(array_merge(self::getNavFields(false, 'Investasi'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Peluang Investasi Proyek'),
+                Textarea::make('description')->label('Deskripsi Peluang')->rows(3),
+                Select::make('background_style')->label('Gaya Latar')->options([
+                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                ])->default('dark'),
+                TextInput::make('target_funding')->label('Target Pendanaan (Rp)'),
+                TextInput::make('roi')->label('Estimasi ROI / Keuntungan'),
+                Repeater::make('highlights')
+                    ->label('Highlight / Keuntungan Investor')
+                    ->simple(TextInput::make('item')->label('Poin Highlight')->required())
+                    ->addActionLabel('+ Tambah Poin'),
+                TextInput::make('button_text')->label('Teks Tombol (Pitch Deck)'),
+                TextInput::make('button_url')->label('URL File Pitch Deck'),
             ]));
     }
 }

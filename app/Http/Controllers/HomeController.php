@@ -2,22 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HeroBanner;
+use App\Filament\Pages\HomepageEditor;
 use App\Models\Post;
 use App\Models\Product;
+use App\Models\Setting;
 
 class HomeController extends Controller
 {
     public function index()
     {
-        $banners = HeroBanner::where('is_active', true)->orderBy('sort_order')->get();
-        $products = Product::where('is_active', true)->orderBy('sort_order')->get();
-        $posts = Post::where('is_published', true)
-            ->orderByDesc('published_at')
-            ->take(3)
-            ->get();
+        $sections    = Setting::getJson('homepage_sections', []);
+        $seo         = Setting::getJson('seo', []);
+        $contactInfo = Setting::getJson('contact_info', []);
+        $socialMedia = Setting::getJson('social_media', []);
+        $branding    = Setting::getJson('branding', []);
+        $whatsapp    = Setting::getJson('whatsapp_button', ['enabled' => true, 'number' => '']);
+        $navItems    = HomepageEditor::getNavigation();
 
-        return view('home', compact('banners', 'products', 'posts'));
+        // Inject dynamic data into auto-pull sections
+        foreach ($sections as &$section) {
+            match ($section['type'] ?? '') {
+                'products' => $section['products'] = Product::where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->get(),
+                'blog' => $section['posts'] = Post::where('is_published', true)
+                    ->orderByDesc('published_at')
+                    ->take((int) ($section['data']['posts_count'] ?? 3))
+                    ->get(),
+                'contact' => $section['contact'] = $contactInfo,
+                default => null,
+            };
+        }
+        unset($section);
+
+        return view('home', compact(
+            'sections',
+            'seo',
+            'contactInfo',
+            'socialMedia',
+            'branding',
+            'whatsapp',
+            'navItems',
+        ));
     }
 
     public function blog()

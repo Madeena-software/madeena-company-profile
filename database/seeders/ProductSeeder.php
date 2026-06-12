@@ -18,11 +18,15 @@ class ProductSeeder extends Seeder
         $imageSourcePath = public_path('images/product-ddr.png');
         $imageDiskPath = 'products/product-ddr.png';
 
-        if (File::exists($imageSourcePath) && ! Storage::disk('public')->exists($imageDiskPath)) {
-            Storage::disk('public')->put($imageDiskPath, File::get($imageSourcePath));
+        $imagePath = null;
+        try {
+            if (File::exists($imageSourcePath) && ! Storage::disk('public')->exists($imageDiskPath)) {
+                Storage::disk('public')->put($imageDiskPath, File::get($imageSourcePath));
+            }
+            $imagePath = Storage::disk('public')->exists($imageDiskPath) ? $imageDiskPath : null;
+        } catch (\Exception $e) {
+            // Silently ignore S3 connection errors during local development seeding
         }
-
-        $imagePath = Storage::disk('public')->exists($imageDiskPath) ? $imageDiskPath : null;
 
         // ── Product 1: DDR Madeena HF100B-MDN ─────────────────────────────────
         $product = Product::updateOrCreate(
@@ -30,7 +34,22 @@ class ProductSeeder extends Seeder
             [
                 'name' => 'DDR Madeena HF100B-MDN',
                 'tagline' => 'Direct Digital Radiography buatan Indonesia — TKDN 57,62%',
-                'description' => '<p>DDR Madeena HF100B-MDN dikembangkan oleh Universitas Gadjah Mada dan diproduksi oleh PT Madeena Karya Indonesia menggunakan teknologi Camera Coupled X-Ray Detector (CCXD). Tersedia dalam dua modalitas: <em>bedside radiography</em> dan <em>thorax radiography</em>.</p><p>Detektor 12MP 40×30 cm resolusi 16-bit, format citra DICOM, perangkat lunak DR.Grabber dan DICOM Viewer. Garansi sparepart 1 tahun, dukungan sparepart 3 tahun, garansi bodi 5 tahun. Izin Edar Kemenkes RI No. AKD 21501220581.</p>',
+                'content_json' => [
+                    [
+                        'type' => 'academic-paragraph',
+                        'data' => [],
+                        'content' => [
+                            ['type' => 'text', 'text' => 'DDR Madeena HF100B-MDN dikembangkan oleh Universitas Gadjah Mada dan diproduksi oleh PT Madeena Karya Indonesia menggunakan teknologi Camera Coupled X-Ray Detector (CCXD). Tersedia dalam dua modalitas: bedside radiography dan thorax radiography.']
+                        ]
+                    ],
+                    [
+                        'type' => 'academic-paragraph',
+                        'data' => [],
+                        'content' => [
+                            ['type' => 'text', 'text' => 'Detektor 12MP 40×30 cm resolusi 16-bit, format citra DICOM, perangkat lunak DR.Grabber dan DICOM Viewer. Garansi sparepart 1 tahun, dukungan sparepart 3 tahun, garansi bodi 5 tahun. Izin Edar Kemenkes RI No. AKD 21501220581.']
+                        ]
+                    ]
+                ],
                 'specifications' => [
                     'Detektor Langsung' => 'Madeena 12MP 40×30 cm, Resolusi 16-bit 4096×3000 (12MP)',
                     'Komputer' => 'Prosesor i7, RAM 32 GB; GPU RTX, HDD SATA 1 TB, K/M, 4 USB 3.0, 4 USB 2.0, Wi-Fi, RJ45, 2 HDMI',
@@ -59,7 +78,22 @@ class ProductSeeder extends Seeder
             [
                 'name' => 'Solusi Ruang Radiografi',
                 'tagline' => 'Paket solusi instalasi ruang radiografi lengkap untuk fasilitas pelayanan kesehatan',
-                'description' => '<p>PT Madeena menyediakan paket pengadaan dan instalasi ruang radiografi yang mencakup peralatan utama, aksesori pendukung, pemasangan, serta pelatihan operasional bagi tenaga teknis.</p><p>Program kemitraan dirancang secara fleksibel untuk menyesuaikan kebutuhan dan anggaran fasilitas pelayanan kesehatan.</p>',
+                'content_json' => [
+                    [
+                        'type' => 'academic-paragraph',
+                        'data' => [],
+                        'content' => [
+                            ['type' => 'text', 'text' => 'PT Madeena menyediakan paket pengadaan dan instalasi ruang radiografi yang mencakup peralatan utama, aksesori pendukung, pemasangan, serta pelatihan operasional bagi tenaga teknis.']
+                        ]
+                    ],
+                    [
+                        'type' => 'academic-paragraph',
+                        'data' => [],
+                        'content' => [
+                            ['type' => 'text', 'text' => 'Program kemitraan dirancang secara fleksibel untuk menyesuaikan kebutuhan dan anggaran fasilitas pelayanan kesehatan.']
+                        ]
+                    ]
+                ],
                 'specifications' => [],
                 'is_featured' => true,
                 'is_active' => true,

@@ -118,6 +118,20 @@ class AcademicContentRenderer
             case 'tableCell':
                 $html .= '<td>'.$this->renderChildren($node).'</td>';
                 break;
+            case 'academic-table':
+            case 'extension-academic-table':
+                $data = $node['attrs']['data'] ?? [];
+                $this->tableCount++;
+                $captionPrefix = $this->language === 'en' ? 'Table' : 'Tabel';
+                $refId = ! empty($data['ref_id']) ? $data['ref_id'] : 'tbl-'.$this->tableCount;
+                $caption = htmlspecialchars($data['caption'] ?? '');
+                $tableHtml = $data['table_html'] ?? '';
+
+                $html .= "<div id=\"{$refId}\" class=\"academic-table\">";
+                $html .= "<p class=\"table-caption\">{$captionPrefix} {$this->tableCount}: {$caption}</p>";
+                $html .= $tableHtml;
+                $html .= '</div>';
+                break;
             case 'academic-figure':
             case 'extension-academic-figure':
                 $data = $node['attrs']['data'] ?? [];

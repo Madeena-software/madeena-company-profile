@@ -36,16 +36,7 @@ class PageResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        $user = Auth::user();
 
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        return $user->isAdmin();
-    }
 
     public static function form(Schema $schema): Schema
     {

@@ -80,4 +80,33 @@ class HomepageEditor extends Page implements HasForms
             ->body('Halaman utama telah diperbarui.')
             ->send();
     }
+
+    public static function getNavigation(): array
+    {
+        $sections = Setting::getJson('homepage_sections', []);
+        $navItems = [];
+
+        foreach ($sections as $section) {
+            if (! empty($section['data']['show_in_nav'])) {
+                $sectionId = $section['data']['section_id'] ?? '';
+                $navItems[] = [
+                    'label'       => $section['data']['nav_label'] ?? ucfirst($section['type']),
+                    'anchor'      => $sectionId ? '#'.$sectionId : null,
+                    'is_external' => false,
+                ];
+            }
+        }
+
+        // Append custom links from settings
+        $customLinks = Setting::getJson('nav_custom_links', []);
+        foreach ($customLinks as $link) {
+            $navItems[] = [
+                'label'       => $link['label'] ?? '',
+                'url'         => $link['url'] ?? '#',
+                'is_external' => true,
+            ];
+        }
+
+        return $navItems;
+    }
 }

@@ -59,7 +59,11 @@
                         @endif
 
                         <!-- Reading Time Estimate -->
-                        <span>{{ ceil(str_word_count(strip_tags($post->body)) / 200) }} min read</span>
+                        @php
+                            $wordCount = str_word_count($post->excerpt ?? '');
+                            $readTime = max(1, ceil($wordCount / 200));
+                        @endphp
+                        <span>{{ $readTime }} min read</span>
                     </div>
 
                     <!-- Excerpt -->

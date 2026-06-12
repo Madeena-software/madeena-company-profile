@@ -6,6 +6,7 @@ use App\Filament\Resources\PostResource\Pages;
 use App\Filament\RichEditorBlocks\EquationBlock;
 use App\Filament\RichEditorBlocks\FigureBlock;
 use App\Filament\RichEditorBlocks\ReferenceListBlock;
+use App\Filament\RichEditorBlocks\TableBlock;
 use App\Models\Post;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
@@ -103,6 +104,7 @@ class PostResource extends Resource
                         ->columnSpanFull()
                         ->customBlocks([
                             FigureBlock::class,
+                            TableBlock::class,
                             EquationBlock::class,
                             ReferenceListBlock::class,
                         ])
@@ -111,12 +113,13 @@ class PostResource extends Resource
                             'h3',
                             'bold',
                             'italic',
+                            'superscript',
+                            'subscript',
                             'strike',
                             'bulletList',
                             'orderedList',
                             'link',
                             'blockquote',
-                            'table',
                             'undo',
                             'redo',
                         ]),
