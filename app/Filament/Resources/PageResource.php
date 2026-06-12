@@ -65,6 +65,14 @@ class PageResource extends Resource
                     ->reorderable()
                     ->collapsible()
                     ->collapsed()
+                    ->columnSpanFull()
+                    ->live(debounce: 3000)
+                    ->afterStateUpdated(function ($livewire) {
+                        if (method_exists($livewire, 'save')) {
+                            $livewire->save();
+                        }
+                    })
+                    ->helperText('Tersimpan otomatis setiap 3 detik. ✓')
                     ->blockNumbers(false),
             ]),
         ]);

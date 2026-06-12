@@ -12,6 +12,8 @@ class EditPost extends EditRecord
 {
     protected static string $resource = PostResource::class;
 
+    protected \Filament\Support\Enums\Width | string | null $maxContentWidth = \Filament\Support\Enums\Width::Full;
+
     protected function authorizeAccess(): void
     {
         $user = Auth::user();

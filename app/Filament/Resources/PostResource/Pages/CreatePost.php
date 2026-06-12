@@ -11,6 +11,8 @@ class CreatePost extends CreateRecord
 {
     protected static string $resource = PostResource::class;
 
+    protected \Filament\Support\Enums\Width | string | null $maxContentWidth = \Filament\Support\Enums\Width::Full;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $user = Auth::user();

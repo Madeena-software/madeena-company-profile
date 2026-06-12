@@ -20,6 +20,11 @@ class HomepageEditor extends Page implements HasForms
     protected static ?string $title = 'Edit Halaman Utama';
     protected static ?int $navigationSort = 1;
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\Width | string | null
+    {
+        return \Filament\Support\Enums\Width::Full;
+    }
+
     protected string $view = 'filament.pages.homepage-editor';
 
     public ?array $data = [];

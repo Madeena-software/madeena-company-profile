@@ -25,6 +25,11 @@ class SiteSettings extends Page implements HasForms
     protected static ?string $title = 'Pengaturan Website';
     protected static ?int $navigationSort = 5;
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\Width | string | null
+    {
+        return \Filament\Support\Enums\Width::Full;
+    }
+
     protected string $view = 'filament.pages.site-settings';
 
     public ?array $data = [];

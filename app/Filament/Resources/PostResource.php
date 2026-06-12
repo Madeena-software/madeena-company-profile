@@ -102,6 +102,13 @@ class PostResource extends Resource
                         ->label('Isi Artikel')
                         ->json()
                         ->columnSpanFull()
+                        ->live(debounce: 3000)
+                        ->afterStateUpdated(function ($livewire) {
+                            if (method_exists($livewire, 'save')) {
+                                $livewire->save();
+                            }
+                        })
+                        ->helperText('Tersimpan otomatis setiap 3 detik. ✓')
                         ->customBlocks([
                             FigureBlock::class,
                             TableBlock::class,
