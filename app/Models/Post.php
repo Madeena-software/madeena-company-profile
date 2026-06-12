@@ -15,7 +15,12 @@ class Post extends Model
         'title',
         'slug',
         'excerpt',
-        'body',
+        'content_json',
+        'abstract',
+        'keywords',
+        'authors_info',
+        'content_language',
+        'enable_auto_numbering',
         'cover_image',
         'category',
         'is_published',
@@ -25,6 +30,10 @@ class Post extends Model
     protected $casts = [
         'is_published' => 'boolean',
         'published_at' => 'datetime',
+        'content_json' => 'array',
+        'keywords' => 'array',
+        'authors_info' => 'array',
+        'enable_auto_numbering' => 'boolean',
     ];
 
     public function author(): BelongsTo

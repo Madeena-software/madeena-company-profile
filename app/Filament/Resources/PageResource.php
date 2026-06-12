@@ -3,6 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PageResource\Pages;
+use App\Filament\RichEditorBlocks\EquationBlock;
+use App\Filament\RichEditorBlocks\FigureBlock;
+use App\Filament\RichEditorBlocks\ReferenceListBlock;
 use App\Models\Page;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
@@ -10,7 +13,9 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
@@ -53,9 +58,43 @@ class PageResource extends Resource
                     ->afterStateUpdated(fn ($state, Set $set) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')
                     ->label('Slug')->required()->unique(ignoreRecord: true),
-                RichEditor::make('content')
-                    ->label('Konten Halaman')->columnSpanFull(),
+                Select::make('content_language')
+                    ->label('Bahasa Konten')
+                    ->options(['id' => 'Indonesia', 'en' => 'Inggris'])
+                    ->default('id'),
+                Toggle::make('enable_auto_numbering')
+                    ->label('Aktifkan Penomoran Otomatis')
+                    ->default(true)
+                    ->helperText('Jika aktif, judul (H2, H3) akan otomatis diberi nomor urut.'),
             ])->columns(2),
+
+            Section::make('Konten Halaman')->schema([
+                RichEditor::make('content_json')
+                    ->label('Konten')
+                    ->json()
+                    ->columnSpanFull()
+                    ->customBlocks([
+                        FigureBlock::class,
+                        EquationBlock::class,
+                        ReferenceListBlock::class,
+                    ])
+                    ->toolbarButtons([
+                        'heading',
+                        'bold',
+                        'italic',
+                        'underline',
+                        'superscript',
+                        'subscript',
+                        'bulletList',
+                        'orderedList',
+                        'link',
+                        'blockquote',
+                        'table',
+                        'undo',
+                        'redo',
+                        'blocks',
+                    ]),
+            ]),
         ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Responses\LogoutResponse;
 use App\Models\Post;
 use App\Models\Setting;
 use App\Policies\PostPolicy;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use SocialiteProviders\LaravelPassport\Provider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(
             \Filament\Auth\Http\Responses\Contracts\LogoutResponse::class,
-            \App\Http\Responses\LogoutResponse::class
+            LogoutResponse::class
         );
     }
 
@@ -31,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(function (SocialiteWasCalled $event): void {
-            $event->extendSocialite('laravelpassport', \SocialiteProviders\LaravelPassport\Provider::class);
+            $event->extendSocialite('laravelpassport', Provider::class);
         });
 
         Gate::policy(Post::class, PostPolicy::class);

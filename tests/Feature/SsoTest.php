@@ -73,7 +73,6 @@ class SsoTest extends TestCase
     public function test_callback_handles_login_required_by_redirecting_to_full_flow(): void
     {
 
-
         $response = $this->get(route('sso.callback', ['error' => 'login_required']));
         $response->assertStatus(302);
         $response->assertRedirect(route('filament.admin.auth.login'));

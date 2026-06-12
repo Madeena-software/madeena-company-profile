@@ -9,6 +9,13 @@ class Page extends Model
     protected $fillable = [
         'title',
         'slug',
-        'content',
+        'content_json',
+        'content_language',
+        'enable_auto_numbering',
+    ];
+
+    protected $casts = [
+        'content_json' => 'array',
+        'enable_auto_numbering' => 'boolean',
     ];
 }

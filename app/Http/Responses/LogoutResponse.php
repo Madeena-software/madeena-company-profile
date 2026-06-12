@@ -10,7 +10,7 @@ use Livewire\Features\SupportRedirects\Redirector;
 
 class LogoutResponse implements Responsable
 {
-    public function toResponse($request): RedirectResponse | Redirector
+    public function toResponse($request): RedirectResponse|Redirector
     {
         // Set the session flag to prevent auto silent auth after explicit logout
         $request->session()->put('sso_manual_login', true);

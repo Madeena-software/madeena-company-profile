@@ -1,0 +1,128 @@
+/* Nature/Science inspired — single column, clean, modern */
+.academic-article {
+  font-family: 'Inter', 'Noto Sans', sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: #1a1a2e;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Section headings */
+.academic-article h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* Abstract block */
+.academic-abstract {
+  background: #f8f9fa;
+  border-left: 4px solid #3b82f6;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+}
+
+/* Figure styling */
+.academic-figure {
+  margin: 2rem auto;
+  text-align: center;
+}
+.academic-figure img {
+  max-width: 100%;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.academic-figure figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+  font-style: italic;
+}
+
+/* Equation styling */
+.academic-equation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0;
+  gap: 2rem;
+}
+.equation-number {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* Table styling */
+.academic-table {
+  margin: 2rem 0;
+  overflow-x: auto;
+}
+.table-caption {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+.academic-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.academic-table th, .academic-table td {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.academic-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+/* References */
+.academic-references {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e5e7eb;
+}
+.academic-references ol {
+  padding-left: 2rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.academic-references li {
+  margin-bottom: 0.5rem;
+}
+
+/* Cross-reference links */
+a.xref {
+  color: #2563eb;
+  text-decoration: none;
+  cursor: pointer;
+}
+a.xref:hover {
+  text-decoration: underline;
+}
+
+/* Keywords */
+.academic-keywords {
+  margin: 1rem 0;
+}
+.academic-keywords .keyword {
+  display: inline-block;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.2rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  margin: 0.2rem;
+}
+
+/* Author info */
+.academic-authors {
+  color: #4b5563;
+  font-size: 0.95rem;
+  margin: 0.5rem 0 1.5rem;
+}
