@@ -38,7 +38,7 @@ Senior Fullstack Laravel/Filament Engineer with expertise in:
 ### E — Expectations
 
 - **No third-party editor packages** — use Filament v5 native `RichEditor` only
-- **Backward compatible** — existing posts/pages using HTML `body`/`content` fields must continue working
+- **Hard replace** — drop old `body`/`content` HTML columns, migrate all existing data to `content_json`. No legacy fallbacks.
 - **PSR-12** compliant (run `./vendor/bin/pint`)
 - **Tested** — PHPUnit tests for new models, blocks, and rendering
 - **Production-quality** — no TODOs, no placeholders
@@ -48,44 +48,71 @@ Senior Fullstack Laravel/Filament Engineer with expertise in:
 
 ## PHASE 1: Database Schema Changes
 
-### 1.1 Migration: Add JSON Content to Posts
+### 1.1 Migration: Refactor Posts Table to Academic Format
 
-Create migration `add_academic_fields_to_posts_table`:
+Create migration `refactor_posts_to_academic_format`:
 
+**Step 1**: Add new columns
 ```
-posts table additions:
-├── content_json      JSON     NULLABLE  — Structured Tiptap JSON content (new editor)
+posts table changes:
+├── content_json      JSON     NOT NULL  — Structured Tiptap JSON content (replaces `body`)
 ├── abstract          TEXT     NULLABLE  — Paper abstract (optional)
 ├── keywords          JSON     NULLABLE  — Array of keywords (optional)
 ├── authors_info      JSON     NULLABLE  — Array of {name, affiliation, email} (optional)
 ├── content_language  VARCHAR  DEFAULT 'id'  — 'id' or 'en' for label rendering
-└── body              TEXT     NULLABLE  — KEEP existing column for backward compat
+└── body              DROP     — Remove old HTML column after data migration
 ```
 
-**Logic**: If `content_json` is not null → render with academic renderer. Else → render old `body` HTML.
-
-### 1.2 Migration: Add JSON Content to Pages
-
-Create migration `add_academic_fields_to_pages_table`:
-
+**Step 2**: Data migration — convert existing `body` HTML to minimal Tiptap JSON:
+```php
+// In the migration's up() method:
+Post::whereNotNull('body')->each(function ($post) {
+    $post->content_json = [
+        'type' => 'doc',
+        'content' => [
+            [
+                'type' => 'paragraph',
+                'content' => [
+                    ['type' => 'text', 'text' => strip_tags($post->body)]
+                ]
+            ]
+        ]
+    ];
+    $post->saveQuietly();
+});
 ```
-pages table additions:
-├── content_json      JSON     NULLABLE  — Structured Tiptap JSON content
+
+**Step 3**: Drop `body` column after migration.
+
+> **Note**: For the `down()` method, reverse the process: convert `content_json` back to HTML `body`.
+
+### 1.2 Migration: Refactor Pages Table to Academic Format
+
+Create migration `refactor_pages_to_academic_format`:
+
+**Step 1**: Add new columns, migrate data, then drop old column:
+```
+pages table changes:
+├── content_json      JSON     NOT NULL  — Structured Tiptap JSON content (replaces `content`)
 ├── content_language  VARCHAR  DEFAULT 'id'
-└── content           TEXT     NULLABLE  — KEEP existing column
+└── content           DROP     — Remove old HTML column after data migration
 ```
+
+**Step 2**: Same data migration pattern as posts — convert `content` HTML → Tiptap JSON, then drop `content` column.
 
 ### 1.3 Model Updates
 
 **Post model**:
-- Add `content_json`, `abstract`, `keywords`, `authors_info`, `content_language` to `$fillable`
+- Replace `body` with `content_json` in `$fillable`
+- Add `abstract`, `keywords`, `authors_info`, `content_language` to `$fillable`
 - Add casts: `content_json` → `array`, `keywords` → `array`, `authors_info` → `array`
-- Add accessor: `hasStructuredContent(): bool` → checks `content_json !== null`
+- Remove any references to old `body` field
 
 **Page model**:
-- Add `content_json`, `content_language` to `$fillable`
+- Replace `content` with `content_json` in `$fillable`
+- Add `content_language` to `$fillable`
 - Add casts: `content_json` → `array`
-- Add accessor: `hasStructuredContent(): bool`
+- Remove any references to old `content` field
 
 ---
 
@@ -292,11 +319,11 @@ Tab 3: "Konten Artikel" (main editor — full width)
         ])
 ```
 
-### 3.2 Backward Compatibility
+### 3.2 No Legacy Fallback
 
-- If a post has `content_json` → the editor loads from `content_json`
-- If a post only has `body` (old HTML) → show a read-only HTML preview + option to "Convert to Structured Editor"
-- Saving always writes to `content_json` for new/edited posts
+- All posts use `content_json` exclusively — the old `body` column no longer exists
+- The editor always reads/writes `content_json` (Tiptap JSON)
+- Existing posts were migrated during the database migration phase
 
 ---
 
@@ -577,61 +604,54 @@ Add a custom Filament Action button "👁️ Pratinjau" (Preview) that opens a m
 
 ### 7.1 Post Show View (`resources/views/post/show.blade.php` or equivalent)
 
+All posts now use the academic renderer — no legacy HTML fallback needed:
+
 ```blade
-@if ($post->hasStructuredContent())
-    {{-- Academic renderer --}}
-    @if ($post->authors_info)
-        <div class="academic-authors">
-            @foreach ($post->authors_info as $author)
-                <span>{{ $author['name'] }}</span>
-                @if ($author['affiliation'] ?? null)
-                    <span class="affiliation">{{ $author['affiliation'] }}</span>
-                @endif
-            @endforeach
-        </div>
-    @endif
-
-    @if ($post->abstract)
-        <div class="academic-abstract">
-            <strong>{{ $post->content_language === 'en' ? 'Abstract' : 'Abstrak' }}:</strong>
-            {{ $post->abstract }}
-        </div>
-    @endif
-
-    @if ($post->keywords)
-        <div class="academic-keywords">
-            <strong>{{ $post->content_language === 'en' ? 'Keywords' : 'Kata Kunci' }}:</strong>
-            @foreach ($post->keywords as $keyword)
-                <span class="keyword">{{ $keyword }}</span>
-            @endforeach
-        </div>
-    @endif
-
-    <x-academic-content
-        :content="$post->content_json"
-        :language="$post->content_language"
-    />
-@else
-    {{-- Legacy HTML renderer --}}
-    <div class="prose max-w-none">
-        {!! $post->body !!}
+{{-- Academic renderer — all posts use content_json --}}
+@if ($post->authors_info)
+    <div class="academic-authors">
+        @foreach ($post->authors_info as $author)
+            <span>{{ $author['name'] }}</span>
+            @if ($author['affiliation'] ?? null)
+                <span class="affiliation">{{ $author['affiliation'] }}</span>
+            @endif
+        @endforeach
     </div>
 @endif
+
+@if ($post->abstract)
+    <div class="academic-abstract">
+        <strong>{{ $post->content_language === 'en' ? 'Abstract' : 'Abstrak' }}:</strong>
+        {{ $post->abstract }}
+    </div>
+@endif
+
+@if ($post->keywords)
+    <div class="academic-keywords">
+        <strong>{{ $post->content_language === 'en' ? 'Keywords' : 'Kata Kunci' }}:</strong>
+        @foreach ($post->keywords as $keyword)
+            <span class="keyword">{{ $keyword }}</span>
+        @endforeach
+    </div>
+@endif
+
+<x-academic-content
+    :content="$post->content_json"
+    :language="$post->content_language"
+/>
 ```
 
-### 7.2 Load KaTeX Only When Needed
+### 7.2 Load Academic Assets
 
-Only include KaTeX JS/CSS on pages that have structured content with equations:
+Always include academic CSS and KaTeX on post/page views:
 
 ```blade
-@if ($post->hasStructuredContent())
-    @push('styles')
-        @vite('resources/css/academic-article.css')
-    @endpush
-    @push('scripts')
-        @vite('resources/js/katex-render.js')
-    @endpush
-@endif
+@push('styles')
+    @vite('resources/css/academic-article.css')
+@endpush
+@push('scripts')
+    @vite('resources/js/katex-render.js')
+@endpush
 ```
 
 ---
@@ -679,7 +699,7 @@ class AcademicContentRenderer
    - `PostResourceTest` — test creating a post with structured JSON content
    - `PageResourceTest` — test creating a page with structured JSON content
    - `AcademicArticleDisplayTest` — test that the frontend renders academic content correctly
-   - Backward compatibility test — old posts with only `body` still render
+   - Data migration test — verify existing HTML posts were converted to valid Tiptap JSON
 
 3. **Run commands**:
    ```bash
@@ -700,7 +720,7 @@ class AcademicContentRenderer
 
 1. **No new Composer packages** — use Filament v5 native only
 2. **One new npm package** — `katex` only
-3. **Backward compatible** — existing posts/pages must not break
+3. **Hard replace** — drop old `body`/`content` columns, all content uses `content_json` exclusively. Existing data migrated in the migration.
 4. **Indonesian-first UX** — all admin labels in Bahasa Indonesia
 5. **Language toggle** — output labels (Gambar/Figure, Tabel/Table) switch based on `content_language` field
 6. **Performance** — KaTeX loaded only on pages with equations, academic CSS loaded only on structured content pages
