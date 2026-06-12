@@ -118,21 +118,27 @@
     "pull-requests.yml"
   ],
   "testing": {
-    "framework": "PHPUnit 11.x",
+    "framework": "PHPUnit 11.x, Playwright (E2E)",
     "suites": [
       "Unit",
-      "Feature"
+      "Feature",
+      "E2E"
     ],
-    "config_file": "phpunit.xml",
-    "test_db": "mysql :memory:"
+    "config_file": "phpunit.xml, playwright.config.js",
+    "test_db": "mysql :memory:",
+    "coverage_driver": "PCOV"
   },
   "bugs_fixed_history": [
     {
       "date": "2026-06-11",
       "description": "Fixed SSO IAM Link API server error by changing POST to PATCH. Addressed logout and account switching issues by enforcing prompt=login."
+    },
+    {
+      "date": "2026-06-12",
+      "description": "Fixed AcademicContentRenderer to support native Filament array block structures, resolving missing frontend rendering and E2E timeouts."
     }
   ],
-  "last_updated": "2026-06-12T20:45:00+07:00",
+  "last_updated": "2026-06-12T21:15:00+07:00",
   "ai_bootstrapped": true,
   "testing_strategy": "Defined in .ai/rules/testing-pyramid.md (Unit > Feature > E2E)"
 }

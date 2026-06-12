@@ -24,12 +24,23 @@ class AcademicContentRenderer
 
     public function render(?array $tiptapJson): string
     {
-        if (! $tiptapJson || ! isset($tiptapJson['content'])) {
+        if (! $tiptapJson) {
+            return '';
+        }
+
+        $blocks = [];
+        if (isset($tiptapJson['content'])) {
+            $blocks = $tiptapJson['content'];
+        } elseif (isset($tiptapJson[0])) {
+            $blocks = $tiptapJson;
+        }
+
+        if (empty($blocks)) {
             return '';
         }
 
         $html = '';
-        foreach ($tiptapJson['content'] as $node) {
+        foreach ($blocks as $node) {
             $html .= $this->renderNode($node);
         }
 

@@ -89,5 +89,35 @@ class PostSeeder extends Seeder
                 'published_at' => now()->subDay(),
             ]
         );
+        Post::updateOrCreate(
+            ['slug' => 'e2e-test-post'],
+            [
+                'title' => 'E2E Test Post',
+                'excerpt' => 'This is an E2E test post.',
+                'content_json' => [
+                    [
+                        'type' => 'heading',
+                        'attrs' => ['level' => 2],
+                        'content' => [['type' => 'text', 'text' => 'Introduction']]
+                    ],
+                    [
+                        'type' => 'academic-equation',
+                        'attrs' => [
+                            'data' => [
+                                'latex' => 'E = mc^2',
+                            ]
+                        ]
+                    ],
+                    [
+                        'type' => 'paragraph',
+                        'content' => [['type' => 'text', 'text' => 'As seen in [@Fig. 1].']]
+                    ]
+                ],
+                'enable_auto_numbering' => true,
+                'category' => 'E2E',
+                'is_published' => true,
+                'published_at' => now(),
+            ]
+        );
     }
 }
