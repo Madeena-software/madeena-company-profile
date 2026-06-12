@@ -17,4 +17,15 @@ class Setting extends Model
 
         return $setting ? $setting->value : $default;
     }
+
+    public static function getJson(string $key, mixed $default = null): mixed
+    {
+        $setting = static::where('key', $key)->first();
+        return $setting ? json_decode($setting->value, true) : $default;
+    }
+
+    public static function setJson(string $key, mixed $value): void
+    {
+        static::updateOrCreate(['key' => $key], ['value' => json_encode($value)]);
+    }
 }

@@ -28,8 +28,6 @@ class ProductResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-beaker';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
-
     protected static ?int $navigationSort = 2;
 
     public static function shouldRegisterNavigation(): bool
@@ -46,25 +44,36 @@ class ProductResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Informasi Produk')->schema([
-                TextInput::make('name')
-                    ->label('Nama Produk')->required()->maxLength(255)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn ($state, Set $set) => $set('slug', Str::slug($state))),
-                TextInput::make('slug')
-                    ->label('Slug')->required()->unique(ignoreRecord: true),
-                TextInput::make('tagline')
-                    ->label('Tagline')->maxLength(255),
-                RichEditor::make('description')
-                    ->label('Deskripsi')->columnSpanFull(),
-                FileUpload::make('image_path')
-                    ->label('Gambar Produk')->image()->disk('public')->directory('products'),
-                KeyValue::make('specifications')
-                    ->label('Spesifikasi')->columnSpanFull(),
-                Toggle::make('is_featured')->label('Unggulan'),
-                Toggle::make('is_active')->label('Aktif')->default(true),
-                TextInput::make('sort_order')->label('Urutan')->numeric()->default(0),
-            ])->columns(2),
+            \Filament\Schemas\Components\Tabs::make('Tabs')
+                ->tabs([
+                    \Filament\Schemas\Components\Tabs\Tab::make('Info Produk')->schema([
+                        TextInput::make('name')
+                            ->label('Nama Produk')->required()->maxLength(255)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn ($state, Set $set) => $set('slug', Str::slug($state))),
+                        TextInput::make('slug')
+                            ->label('Slug')->required()->unique(ignoreRecord: true),
+                        TextInput::make('tagline')
+                            ->label('Tagline')->maxLength(255),
+                        FileUpload::make('image_path')
+                            ->label('Gambar Produk')->image()->disk('public')->directory('products'),
+                        KeyValue::make('specifications')
+                            ->label('Spesifikasi')->columnSpanFull(),
+                        Toggle::make('is_featured')->label('Unggulan'),
+                        Toggle::make('is_active')->label('Aktif')->default(true),
+                        TextInput::make('sort_order')->label('Urutan')->numeric()->default(0),
+                    ])->columns(2),
+                    \Filament\Schemas\Components\Tabs\Tab::make('Halaman Detail Produk')->schema([
+                        \Filament\Forms\Components\Builder::make('content_json')
+                            ->label('Konten')
+                            ->blocks(\App\Filament\BuilderBlocks::get())
+                            ->reorderable()
+                            ->collapsible()
+                            ->collapsed()
+                            ->columnSpanFull()
+                            ->blockNumbers(false),
+                    ]),
+                ])->columnSpanFull(),
         ]);
     }
 

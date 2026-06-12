@@ -8,6 +8,7 @@ use App\Filament\RichEditorBlocks\FigureBlock;
 use App\Filament\RichEditorBlocks\ReferenceListBlock;
 use App\Models\Page;
 use App\Models\User;
+use Filament\Forms\Components\Builder;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -33,9 +34,7 @@ class PageResource extends Resource
 
     protected static ?string $navigationLabel = 'Halaman';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
-
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 4;
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -69,29 +68,13 @@ class PageResource extends Resource
             ])->columns(2),
 
             Section::make('Konten Halaman')->schema([
-                RichEditor::make('content_json')
-                    ->label('Konten')
-                    ->json()
-                    ->columnSpanFull()
-                    ->customBlocks([
-                        FigureBlock::class,
-                        EquationBlock::class,
-                        ReferenceListBlock::class,
-                    ])
-                    ->toolbarButtons([
-                        'h2',
-                        'h3',
-                        'bold',
-                        'italic',
-                        'strike',
-                        'bulletList',
-                        'orderedList',
-                        'link',
-                        'blockquote',
-                        'table',
-                        'undo',
-                        'redo',
-                    ]),
+                Builder::make('content_json')
+                    ->label('Konten Halaman')
+                    ->blocks(\App\Filament\BuilderBlocks::get())
+                    ->reorderable()
+                    ->collapsible()
+                    ->collapsed()
+                    ->blockNumbers(false),
             ]),
         ]);
     }
