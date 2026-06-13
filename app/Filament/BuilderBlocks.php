@@ -124,7 +124,7 @@ class BuilderBlocks
                 TextInput::make('section_title')->label('Judul Bagian')->default('Produk Inovasi Teknologi Kesehatan'),
                 TextInput::make('section_subtitle')->label('Subjudul')->default('Berstandar Nasional, Izin Edar Kemenkes RI'),
             ]))
-            ;
+        ;
     }
 
     private static function aboutBlock(): Block
@@ -134,7 +134,10 @@ class BuilderBlocks
             ->icon('heroicon-o-building-office')
             ->schema(array_merge(self::getNavFields(true, 'Tentang'), [
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('white'),
                 Textarea::make('company_profile')->label('Profil Perusahaan')->rows(5)
                     ->helperText('Ceritakan tentang perusahaan Anda.'),
@@ -183,7 +186,10 @@ class BuilderBlocks
                 TextInput::make('section_title')->label('Judul Bagian')->default('Legalitas Formal'),
                 TextInput::make('section_subtitle')->label('Subjudul'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('dark'),
                 Repeater::make('certificates')
                     ->label('Daftar Sertifikasi')
@@ -210,20 +216,22 @@ class BuilderBlocks
                 TextInput::make('section_title')->label('Judul Bagian')->default('Hubungi Kami'),
                 TextInput::make('section_subtitle')->label('Subjudul'),
             ]))
-            ;
+        ;
     }
 
     private static function blogBlock(): Block
     {
         return Block::make('blog')
-            ->label('📝 Blog Terbaru')
+            ->label('📝 Artikel')
             ->icon('heroicon-o-newspaper')
             ->schema(array_merge(self::getNavFields(false, 'Blog'), [
                 TextInput::make('section_title')->label('Judul Bagian')->default('Blog & Artikel Terbaru'),
+                TextInput::make('category_filter')->label('Filter Penempatan (Seksi)')
+                    ->placeholder('Misal: Insight, Current Project, dsb')
+                    ->helperText('Ketik nama penempatan. Nama ini akan otomatis menjadi pilihan "Penempatan di Halaman Utama" saat Anda membuat postingan baru.'),
                 TextInput::make('posts_count')->label('Jumlah Artikel Ditampilkan')->numeric()->default(3)
                     ->helperText('Berapa artikel terbaru yang ditampilkan.'),
-            ]))
-            ;
+            ]));
     }
 
     private static function galleryBlock(): Block
@@ -287,7 +295,10 @@ class BuilderBlocks
             ->schema(array_merge(self::getNavFields(false, 'Info'), [
                 TextInput::make('section_title')->label('Judul Bagian'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('white'),
                 RichEditor::make('content')
                     ->label('Konten')
@@ -325,7 +336,10 @@ class BuilderBlocks
                 TextInput::make('section_title')->label('Judul Bagian')->default('Struktur Organisasi'),
                 TextInput::make('section_subtitle')->label('Subjudul'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('light'),
                 Repeater::make('members')
                     ->label('Anggota Tim')
@@ -350,7 +364,10 @@ class BuilderBlocks
                 TextInput::make('section_title')->label('Judul Bagian')->default('Pertanyaan Umum'),
                 TextInput::make('section_subtitle')->label('Subjudul'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('white'),
                 Repeater::make('faqs')
                     ->label('Daftar Pertanyaan')
@@ -371,7 +388,10 @@ class BuilderBlocks
             ->schema(array_merge(self::getNavFields(false, 'Sejarah'), [
                 TextInput::make('section_title')->label('Judul Bagian')->default('Perjalanan Kami'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('light'),
                 Repeater::make('milestones')
                     ->label('Milestone')
@@ -393,7 +413,10 @@ class BuilderBlocks
             ->schema(array_merge(self::getNavFields(false, 'Mitra'), [
                 TextInput::make('section_title')->label('Judul Bagian')->default('Mitra Kami'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('white'),
                 Repeater::make('partners')
                     ->label('Mitra & Klien')
@@ -414,7 +437,10 @@ class BuilderBlocks
             ->icon('heroicon-o-chart-bar')
             ->schema(array_merge(self::getNavFields(false, 'Statistik'), [
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('dark'),
                 Repeater::make('stats')
                     ->label('Angka Statistik')
@@ -436,7 +462,10 @@ class BuilderBlocks
             ->icon('heroicon-o-megaphone')
             ->schema(array_merge(self::getNavFields(false, 'CTA'), [
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('gradient'),
                 TextInput::make('title')->label('Judul Ajakan')->required(),
                 Textarea::make('subtitle')->label('Subjudul Deskripsi')->rows(2),
@@ -454,7 +483,10 @@ class BuilderBlocks
                 TextInput::make('section_title')->label('Judul Bagian')->default('Temukan Kami'),
                 TextInput::make('address')->label('Alamat Lengkap (Teks)'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('white'),
                 Textarea::make('embed_url')
                     ->label('URL Embed Google Maps (src attribute)')
@@ -473,7 +505,10 @@ class BuilderBlocks
                 TextInput::make('section_title')->label('Judul Bagian')->default('Daftar Harga & Paket'),
                 TextInput::make('section_subtitle')->label('Subjudul'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('light'),
                 Repeater::make('plans')
                     ->label('Paket / Produk')
@@ -496,13 +531,16 @@ class BuilderBlocks
     private static function currentProjectsBlock(): Block
     {
         return Block::make('current_projects')
-            ->label('🚧 Proyek Berjalan')
+            ->label('🚧 Proyek Berjalan (Desain Lama)')
             ->icon('heroicon-o-clipboard-document-list')
             ->schema(array_merge(self::getNavFields(false, 'Proyek'), [
                 TextInput::make('section_title')->label('Judul Bagian')->default('Proyek Berjalan'),
                 TextInput::make('section_subtitle')->label('Subjudul'),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('light'),
                 Repeater::make('projects')
                     ->label('Daftar Proyek')
@@ -520,13 +558,16 @@ class BuilderBlocks
     private static function projectInvestmentBlock(): Block
     {
         return Block::make('project_investment')
-            ->label('💼 Peluang Investasi')
+            ->label('💼 Peluang Investasi (Desain Lama)')
             ->icon('heroicon-o-banknotes')
             ->schema(array_merge(self::getNavFields(false, 'Investasi'), [
                 TextInput::make('section_title')->label('Judul Bagian')->default('Peluang Investasi Proyek'),
                 Textarea::make('description')->label('Deskripsi Peluang')->rows(3),
                 Select::make('background_style')->label('Gaya Latar')->options([
-                    'white' => 'Putih', 'light' => 'Abu-Abu Muda', 'dark' => 'Gelap', 'gradient' => 'Gradien',
+                    'white' => 'Putih',
+                    'light' => 'Abu-Abu Muda',
+                    'dark' => 'Gelap',
+                    'gradient' => 'Gradien',
                 ])->default('dark'),
                 TextInput::make('target_funding')->label('Target Pendanaan (Rp)'),
                 TextInput::make('roi')->label('Estimasi ROI / Keuntungan'),

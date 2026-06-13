@@ -23,6 +23,7 @@ class Post extends Model
         'enable_auto_numbering',
         'cover_image',
         'category',
+        'placement',
         'is_published',
         'published_at',
     ];

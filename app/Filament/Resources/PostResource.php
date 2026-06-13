@@ -59,7 +59,30 @@ class PostResource extends Resource
                         ->required()
                         ->default(Auth::id())
                         ->dehydrated(),
-                    TextInput::make('category')->label('Kategori'),
+                    TextInput::make('category')
+                        ->label('Kategori Konten (Topik)')
+                        ->helperText('Misal: Inovasi, E2E, Kemitraan'),
+                    Select::make('placement')
+                        ->label('Penempatan di Halaman Utama')
+                        ->options(function () {
+                            // HANYA baca dari blok artikel di Halaman Utama
+                            $sections = \App\Models\Setting::getJson('homepage_sections', []);
+                            $homepageCats = collect($sections)
+                                ->where('type', 'blog')
+                                ->pluck('data.category_filter')
+                                ->filter()
+                                ->unique()
+                                ->sort()
+                                ->values();
+                            
+                            if ($homepageCats->isEmpty()) {
+                                return ['Blog' => 'Blog'];
+                            }
+                            
+                            return $homepageCats->mapWithKeys(fn($item) => [$item => $item])->toArray();
+                        })
+                        ->searchable()
+                        ->helperText('Pilih di section mana artikel ini akan ditampilkan. Pilihan otomatis ditarik dari Pengaturan Halaman Utama.'),
                     FileUpload::make('cover_image')
                         ->label('Gambar Sampul')->image()->disk('public')->directory('posts'),
                     Toggle::make('is_published')->label('Publikasikan')
@@ -126,7 +149,8 @@ class PostResource extends Resource
             Tables\Columns\ImageColumn::make('cover_image')->label('Cover'),
             Tables\Columns\TextColumn::make('title')->label('Judul')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('author.name')->label('Penulis')->sortable(),
-            Tables\Columns\TextColumn::make('category')->label('Kategori'),
+            Tables\Columns\TextColumn::make('category')->label('Kategori (Topik)'),
+            Tables\Columns\TextColumn::make('placement')->label('Penempatan')->badge(),
             Tables\Columns\IconColumn::make('is_published')->label('Dipublikasikan')->boolean(),
             Tables\Columns\TextColumn::make('published_at')->label('Tanggal Publikasi')->date('d M Y')->sortable(),
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),

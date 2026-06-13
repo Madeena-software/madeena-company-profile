@@ -26,6 +26,9 @@ class HomeController extends Controller
                     ->orderBy('sort_order')
                     ->get(),
                 'blog' => $section['posts'] = Post::where('is_published', true)
+                    ->when(!empty($section['data']['category_filter']), function ($query) use ($section) {
+                        return $query->where('placement', $section['data']['category_filter']);
+                    })
                     ->orderByDesc('published_at')
                     ->take((int) ($section['data']['posts_count'] ?? 3))
                     ->get(),
