@@ -124,7 +124,6 @@ class SettingSeeder extends Seeder
                     'background_style' => 'light',
                     'members' => [
                         ['photo' => null, 'name' => 'Prof. Dr. Gede Bayu Suparta', 'role' => 'Founder & Komisaris Utama', 'bio' => 'Penemu teknologi CCXD dari Universitas Gadjah Mada.'],
-                        ['photo' => null, 'name' => 'Dr. Kuwat Triyana', 'role' => 'Penasihat Riset', 'bio' => 'Pakar instrumentasi dan fisika medis.'],
                     ],
                 ]],
                 ['type' => 'products', 'data' => [
