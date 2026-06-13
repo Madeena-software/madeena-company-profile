@@ -182,6 +182,9 @@ docker stack deploy -c docker-compose.prod.yml madeena_cp
 - **PHPUnit 11.x** with `Unit` and `Feature` test suites.
 - **Testing database**: mysql `:memory:` (configured in `phpunit.xml`).
 - **Faker**: Available via `fakerphp/faker` for test data generation.
+- **E2E Visual Testing**: All UI/visual changes MUST be tested using Playwright as defined in `@[.ai/rules/playwright-visual-testing.md]`.
+  - Scripts are stored in `tests/E2E/`.
+  - Use `@[.ai/prompts/full-visual-testing-prompt.md]` to instruct agents to perform a full E2E visual QA run.
 
 ### Version Control
 - **`.gitignore`** excludes `vendor/`, `node_modules/`, `.env`, and build artifacts.
