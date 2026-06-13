@@ -6,7 +6,13 @@ export default defineConfig({
     plugins: [
         tailwindcss(),
         laravel({
-            input: ['resources/css/app.css', 'resources/css/academic-article.css', 'resources/js/app.js', 'resources/js/katex-render.js'],
+            input: [
+                'resources/css/app.css', 
+                'resources/css/academic-article.css', 
+                'resources/js/app.js', 
+                'resources/js/katex-render.js',
+                'resources/css/filament/admin/theme.css'
+            ],
             refresh: true,
         }),
     ],

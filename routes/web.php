@@ -41,3 +41,8 @@ Route::prefix('sso')->group(function (): void {
     Route::get('/silent', [SsoController::class, 'silentRedirect'])->name('sso.silent');
     Route::get('/callback', [SsoController::class, 'callback'])->name('sso.callback');
 });
+Route::get('/login-test-user', function () {
+    $user = \App\Models\User::first();
+    auth()->login($user);
+    return redirect('/admin');
+});

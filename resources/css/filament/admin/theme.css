@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+
+/* Custom Filament Admin Glassmorphism Theme */
+
+.fi-topbar {
+    @apply !bg-white/50 dark:!bg-gray-900/50 !backdrop-blur-xl !border-b !border-white/20 dark:!border-white/10;
+}
+
+.fi-sidebar {
+    @apply !bg-white/50 dark:!bg-gray-900/50 !backdrop-blur-xl !border-r !border-white/20 dark:!border-white/10;
+}
+
+/* Beautiful vibrant background to make the glass pop */
+.fi-main {
+    @apply !bg-gradient-to-br !from-indigo-50 !via-purple-50 !to-blue-50 dark:!from-indigo-950 dark:!via-purple-950 dark:!to-blue-950;
+}
+
+/* Glassmorphism for panels, cards, and stat widgets */
+.fi-ta-content, .fi-in-content, .fi-wi-stats-overview-stat, .fi-section {
+    @apply !bg-white/60 dark:!bg-gray-900/60 !backdrop-blur-md !shadow-[0_8px_30px_rgb(0,0,0,0.04)] !border !border-white/40 dark:!border-white/5 !rounded-2xl;
+}
+
+/* Modernize inputs and buttons with softer borders and fuller radius */
+.fi-btn {
+    @apply !rounded-xl;
+}
+
+.fi-input {
+    @apply !rounded-xl !border-gray-200 dark:!border-white/10 focus:!ring-indigo-500;
+}
