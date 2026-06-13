@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->sidebarCollapsibleOnDesktop()
             ->brandName(config('app.display_name', 'Madeena Company Profile'))
             ->login(SsoLogin::class)
             ->profile()
