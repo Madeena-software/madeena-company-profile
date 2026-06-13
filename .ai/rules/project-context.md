@@ -4,9 +4,11 @@
 
 **PT Madeena Karya Indonesia** — Company profile website for an Indonesian manufacturer of Digital Direct Radiography (DDR) equipment. The site serves as both a public-facing marketing website and a content-managed CMS via Filament admin panel.
 
+**Description**: CRUD management of admin panel users with role assignment. Dual role tracking (`is_admin`) was completely removed; it now relies purely on the `role` column. Users can also log in via Madeena IAM SSO.
+
 ### Key Features
 - **Public Website**: Homepage with hero banners, product catalog, blog, about section, legal/certification info, and contact details with WhatsApp integration.
-- **Admin Panel** (`/admin`): Filament v5-powered CMS for managing hero banners, products, blog posts, pages, site settings, users, and Inabuyer 2026 event messages.
+- **Admin Panel** (`/admin`): Filament v5-powered CMS (accessible via SSO or credentials) for managing hero banners, products, blog posts, pages, site settings, users, and Inabuyer 2026 event messages.
 - **Inabuyer 2026 Module**: Event feedback form with CSRF protection and a Livewire-based live display component.
 - **Storage**: MinIO S3-compatible object storage for public media and backups (same endpoint for dev and prod).
 - **Backup**: Automated database backup upload to MinIO S3 via custom Artisan command.
@@ -19,7 +21,7 @@
 |------------------|------------------------|----------|
 | Backend          | Laravel (PHP)          | 13.x / 8.4 |
 | Admin Panel      | Filament PHP           | 5.x      |
-| Frontend         | Tailwind CSS + Alpine.js | 3.4 / 3.15 |
+| Frontend         | Tailwind CSS + Alpine.js | 4.0.0 / 3.15 |
 | Build            | Vite                   | 6.x      |
 | Database         | MySQL                  | 8.4      |
 | Dev Server       | Artisan Serve          | —        |
@@ -166,7 +168,7 @@ docker stack deploy -c docker-compose.prod.yml madeena_cp
 - **Filament resources**: Follow Filament v5 conventions — each resource in `app/Filament/Resources/` with corresponding `Pages/` subdirectory.
 
 ### Frontend
-- **Tailwind CSS v3** with custom `madeena` color palette (`blue: #1e3a5f`, `teal: #1a9b8a`, `light: #e8f4f8`).
+- **Tailwind CSS v4** with custom `madeena` color palette (`blue: #1e3a5f`, `teal: #1a9b8a`, `light: #e8f4f8`).
 - **Inter** as the default sans-serif font family.
 - **Alpine.js** for client-side interactivity — no heavy JS frameworks.
 - **Blade components** and layouts — the main layout is `resources/views/layouts/app.blade.php`.

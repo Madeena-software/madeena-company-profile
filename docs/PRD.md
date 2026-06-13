@@ -27,7 +27,7 @@ The application functions as both a **public-facing marketing website** and a **
 | Admin Panel | Filament PHP | 5.x |
 | Editor Engine | Tiptap (RichEditor) | Native to Filament v5 |
 | Math Rendering | KaTeX | via npm |
-| Frontend CSS | Tailwind CSS | 3.4 |
+| Frontend CSS | Tailwind CSS | 4.0.0 |
 | Frontend JS | Alpine.js | 3.15 |
 | Build Tool | Vite | 6.x |
 | Database | MySQL | 8.4 |
@@ -54,8 +54,10 @@ The application functions as both a **public-facing marketing website** and a **
 | `/inabuyer2026/feedback/csrf-token` | CSRF token endpoint for the feedback form | No |
 | `/storage/{path}` | Public file proxy (serves S3 assets) | No |
 | `/health` | Application health check (DB connectivity) | No |
-| `/admin` | Filament admin panel (login, custom dashboard, CMS) | Yes |
+| `/admin` | Filament admin panel (login via SSO or credentials) | Yes |
 | `/admin/register` | Filament registration page (creates 'user' role) | No |
+| `/sso/redirect` | Redirects to Madeena IAM for SSO login | No |
+| `/sso/callback` | Handles SSO login callback from Madeena IAM | No |
 
 ---
 
@@ -231,6 +233,12 @@ flowchart TD
     L -- Yes --> M["Create user with role='user'"]
     M --> N["Auto-login & redirect to /admin"]
     L -- No --> O["Show validation errors"]
+
+    P["User visits /sso/redirect"] --> Q["Redirect to Madeena IAM"]
+    Q --> R["Authenticate via IAM"]
+    R --> S["Callback to /sso/callback"]
+    S --> T["Find or Auto-Create User locally"]
+    T --> G
 ```
 
 #### 3.5.2 Content Publishing Flow (Blog Posts)
@@ -303,8 +311,9 @@ sequenceDiagram
 | `id` | bigint | PK, auto-increment | Primary key |
 | `name` | varchar(255) | required | User's full name |
 | `email` | varchar(255) | required, unique | Email address (login identifier) |
+| `sso_id` | varchar(255) | nullable, unique | Madeena IAM SSO user identifier |
 | `role` | varchar(255) | default: 'user' | Role identifier: 'admin' or 'user' |
-| `password` | varchar(255) | required | Bcrypt-hashed password |
+| `password` | varchar(255) | nullable | Bcrypt-hashed password (nullable for SSO users) |
 
 #### `categories`
 | Column | Type | Constraints | Description |
@@ -369,6 +378,7 @@ erDiagram
         bigint id PK
         string name
         string email UK
+        string sso_id UK
         string role
         string password
     }
@@ -468,7 +478,7 @@ flowchart LR
 - **Asset Loading**: Academic CSS and KaTeX JS are only injected on post/page views requiring them.
 
 ### 6.2 Security
-- **Authentication**: Session-based authentication via Filament. Bcrypt hashing.
+- **Authentication**: Dual support for SSO (via Madeena IAM / Laravel Passport) and session-based authentication via Filament. Bcrypt hashing for local passwords.
 - **Authorization**: Role-based access control (`role` = `admin` | `user`).
 - **Data Protection**: CSRF protection, Path traversal protection on PublicStorageController, HTML sanitization on TableBlocks.
 
@@ -480,7 +490,7 @@ flowchart LR
 ---
 
 ## 7. Technical Debt Resolved in V2
-- **Removed Dual Role Tracking**: The redundant `is_admin` column has been dropped in favor of the `role` column.
+- **Removed Dual Role Tracking**: The redundant `is_admin` column has been completely dropped via migration (`drop_is_admin_from_users_table`). The application purely relies on the `role` column.
 - **Normalized Categories**: Post categories are now stored in a dedicated `categories` table instead of free-text.
 - **Routed Static Pages**: A frontend route (`GET /halaman/{slug}`) was added to render the newly created Page Builder content.
 - **Removed Extraneous Tables**: `hero_banners` table was removed to embrace a pure JSON-driven builder approach.

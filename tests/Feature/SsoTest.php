@@ -132,7 +132,6 @@ class SsoTest extends TestCase
             'email' => 'jane.doe@example.com',
             'sso_id' => 'iam-user-id-123',
             'role' => 'user',
-            'is_admin' => 0,
         ]);
 
         // Assert user is logged in

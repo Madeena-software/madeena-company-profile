@@ -26,7 +26,6 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'role',
-        'is_admin',
     ];
 
     /**
@@ -50,17 +49,12 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => 'string',
-            'is_admin' => 'boolean',
         ];
     }
 
     protected static function booted(): void
     {
-        static::saving(function (self $user): void {
-            if ($user->isDirty('role')) {
-                $user->is_admin = $user->role === 'admin';
-            }
-        });
+        // 
     }
 
     public function canAccessPanel(Panel $panel): bool
@@ -71,7 +65,6 @@ class User extends Authenticatable implements FilamentUser
     public function isAdmin(): bool
     {
         return $this->role === 'admin'
-            || $this->is_admin
             || $this->email === config('auth.filament_admin_email', 'admin@madeena.local');
     }
 }

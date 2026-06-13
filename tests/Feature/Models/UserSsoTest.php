@@ -23,7 +23,6 @@ class UserSsoTest extends TestCase
             'email' => 'john.sso@example.com',
             'password' => null,
             'role' => 'user',
-            'is_admin' => false,
         ]);
 
         $this->assertDatabaseHas('users', [
@@ -32,7 +31,6 @@ class UserSsoTest extends TestCase
             'sso_id' => '12345-abcde',
             'password' => null,
             'role' => 'user',
-            'is_admin' => 0,
         ]);
     }
 }

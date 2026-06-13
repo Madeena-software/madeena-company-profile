@@ -90,7 +90,6 @@ class SsoController extends Controller
                     'email' => $socialiteUser->getEmail(),
                     'sso_id' => $socialiteUser->getId(),
                     'role' => 'user',
-                    'is_admin' => false,
                 ]);
             }
 

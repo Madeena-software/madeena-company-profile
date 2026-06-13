@@ -57,7 +57,7 @@ The `composer dev` command starts all services concurrently: app server (port 80
 
 ## Admin Access
 
-Navigate to `/admin` and log in. The seeder creates a default admin account using the `FILAMENT_ADMIN_EMAIL` and `FILAMENT_ADMIN_PASSWORD` values from `.env`.
+Navigate to `/admin` and log in. You can log in using Madeena IAM SSO or traditional credentials. The database seeder creates a default admin account using the `FILAMENT_ADMIN_EMAIL` and `FILAMENT_ADMIN_PASSWORD` values from `.env`.
 
 ## Docker
 
