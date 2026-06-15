@@ -17,13 +17,23 @@
             <div class="p-8 md:p-12">
                 <h1 class="text-3xl md:text-4xl font-bold text-madeena-blue mb-8 text-center">{{ $page->title }}</h1>
                 
-                @if($page->content_json)
+                @if(is_array($page->content_json) && count($page->content_json) > 0)
                 <div class="mt-8 prose prose-lg max-w-none text-gray-700">
-                    <x-academic-content
-                        :content="$page->content_json"
-                        :language="$page->content_language"
-                        :enableAutoNumbering="$page->enable_auto_numbering"
-                    />
+                    @foreach($page->content_json as $index => $section)
+                        @if(isset($section['type']) && $section['type'] === 'free_text')
+                            <x-academic-content
+                                :content="$section['data']['content'] ?? []"
+                                :language="$page->content_language"
+                                :enableAutoNumbering="$page->enable_auto_numbering"
+                            />
+                        @elseif(isset($section['type']))
+                            @includeIf('sections.' . $section['type'], [
+                                'data'    => $section['data'] ?? [],
+                                'section' => $section,
+                                'index'   => $index,
+                            ])
+                        @endif
+                    @endforeach
                 </div>
                 @else
                 <p class="text-gray-500 text-center">Konten belum tersedia.</p>

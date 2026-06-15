@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\HeroBanner;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Product;
@@ -13,8 +12,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('madeena:seed-cms {--force}', function () {
-    $cmsHasContent = HeroBanner::query()->exists()
-        || Product::query()->exists()
+    $cmsHasContent = Product::query()->exists()
         || Post::query()->exists()
         || Page::query()->exists()
         || Setting::query()->exists();

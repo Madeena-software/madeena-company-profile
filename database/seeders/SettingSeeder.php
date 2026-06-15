@@ -61,9 +61,9 @@ class SettingSeeder extends Seeder
                     'nav_label'   => 'Beranda',
                     'banners'     => [
                         [
-                            'title'       => 'PT Madeena Karya Indonesia',
+                            'title'       => 'PT MADEENA Karya Indonesia',
                             'subtitle'    => 'Know Sciences, Learn Engineering, Create Technology, Develop Business.',
-                            'description' => 'Produsen alat Digital Direct Radiography (DDR) berbasis teknologi Camera Coupled X-Ray Detector (CCXD) buatan Indonesia. TKDN 57,62%.',
+                            'description' => 'Produsen alat Digital Direct Radiography (DDR) berbasis teknologi Camera Coupled X-Ray Detector (CCXD) buatan Indonesia. TKDN 57,62%, Izin Edar Kemenkes RI AKD 21501220581.',
                             'cta_text'    => 'Lihat Produk Kami',
                             'cta_url'     => '#produk',
                             'image_path'  => null,
