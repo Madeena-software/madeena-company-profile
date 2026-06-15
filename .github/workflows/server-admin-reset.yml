@@ -65,13 +65,12 @@ jobs:
                           'password' => \Illuminate\Support\Facades\Hash::make(\$password),
                           'email_verified_at' => now(),
                           'role' => 'admin',
-                          'is_admin' => true,
                       ]
                   );
 
                   \$user->refresh();
 
-                  if (\$user->role !== 'admin' || ! \$user->is_admin) {
+                  if (\$user->role !== 'admin') {
                       echo '❌ Error: Admin flags were not saved correctly.' . PHP_EOL;
                       exit(1);
                   }

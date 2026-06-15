@@ -29,6 +29,8 @@ class InabuyerMessageResource extends Resource
 
     protected static ?string $navigationLabel = 'Kesan dan Pesan';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Users';
+
     protected static ?int $navigationSort = 7;
 
     protected static function isAdminUser(): bool
