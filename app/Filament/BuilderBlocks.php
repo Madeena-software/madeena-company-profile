@@ -44,6 +44,17 @@ class BuilderBlocks
         ];
     }
 
+    public static function getProductBlocks(): array
+    {
+        return [
+            self::freeTextBlock(),
+            self::galleryBlock(),
+            self::videoBlock(),
+            self::featuresBlock(),
+            self::testimonialBlock(),
+        ];
+    }
+
     private static function getIconOptions(): array
     {
         return [
@@ -308,20 +319,6 @@ class BuilderBlocks
                         TableBlock::class,
                         EquationBlock::class,
                         ReferenceListBlock::class,
-                    ])
-                    ->toolbarButtons([
-                        'h2',
-                        'h3',
-                        'bold',
-                        'italic',
-                        'strike',
-                        'bulletList',
-                        'orderedList',
-                        'link',
-                        'blockquote',
-                        'table',
-                        'undo',
-                        'redo',
                     ])
                     ->columnSpanFull(),
             ]));

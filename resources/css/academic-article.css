@@ -36,6 +36,8 @@
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+.academic-figure.figure-small img { max-width: 50%; }
+.academic-figure.figure-medium img { max-width: 75%; }
 .academic-figure figcaption {
   margin-top: 0.75rem;
   font-size: 0.9rem;

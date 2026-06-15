@@ -52,7 +52,9 @@ class AcademicContentRenderer
         $type = $node['type'] ?? 'text';
 
         // Check for filament custom block
-        if (isset($node['attrs']['type']) && in_array($node['attrs']['type'], ['academic-figure', 'academic-equation', 'academic-references'])) {
+        if ($type === 'customBlock' && isset($node['attrs']['id'])) {
+            $type = $node['attrs']['id'];
+        } elseif (isset($node['attrs']['type']) && in_array($node['attrs']['type'], ['academic-figure', 'academic-table', 'academic-equation', 'academic-references'])) {
             $type = $node['attrs']['type'];
         }
 
@@ -131,7 +133,7 @@ class AcademicContentRenderer
                 break;
             case 'academic-table':
             case 'extension-academic-table':
-                $data = $node['attrs']['data'] ?? [];
+                $data = $node['attrs']['data'] ?? $node['attrs']['config'] ?? [];
                 $this->tableCount++;
                 $captionPrefix = $this->language === 'en' ? 'Table' : 'Tabel';
                 $refId = ! empty($data['ref_id']) ? $data['ref_id'] : 'tbl-'.$this->tableCount;
@@ -145,7 +147,7 @@ class AcademicContentRenderer
                 break;
             case 'academic-figure':
             case 'extension-academic-figure':
-                $data = $node['attrs']['data'] ?? [];
+                $data = $node['attrs']['data'] ?? $node['attrs']['config'] ?? [];
                 $this->figureCount++;
                 $captionPrefix = $this->language === 'en' ? 'Figure' : 'Gambar';
                 $refId = ! empty($data['ref_id']) ? $data['ref_id'] : 'fig-'.$this->figureCount;
@@ -154,15 +156,23 @@ class AcademicContentRenderer
                 $imagePath = is_array($data['image']) ? array_values($data['image'])[0] : $data['image'];
                 $imageUrl = $imagePath ? asset('storage/'.$imagePath) : '';
                 $caption = $data['caption'] ?? '';
+                $size = $data['size'] ?? 'full';
+                
+                $widthPercent = 100;
+                if ($size === 'small') $widthPercent = 50;
+                elseif ($size === 'medium') $widthPercent = 75;
+                elseif ($size === 'custom' && !empty($data['custom_size'])) {
+                    $widthPercent = (int) $data['custom_size'];
+                }
 
-                $html .= "<figure id=\"{$refId}\" class=\"academic-figure\">";
-                $html .= "<a href=\"{$imageUrl}\" target=\"_blank\"><img src=\"{$imageUrl}\" alt=\"{$caption}\" /></a>";
+                $html .= "<figure id=\"{$refId}\" class=\"academic-figure figure-{$size}\">";
+                $html .= "<a href=\"{$imageUrl}\" target=\"_blank\"><img src=\"{$imageUrl}\" alt=\"{$caption}\" style=\"width: {$widthPercent}%; max-width: 100%; height: auto; margin: 0 auto; display: block;\" /></a>";
                 $html .= "<figcaption>{$captionPrefix} {$this->figureCount}: {$caption}</figcaption>";
                 $html .= '</figure>';
                 break;
             case 'academic-equation':
             case 'extension-academic-equation':
-                $data = $node['attrs']['data'] ?? [];
+                $data = $node['attrs']['data'] ?? $node['attrs']['config'] ?? [];
                 $this->equationCount++;
                 $refId = ! empty($data['ref_id']) ? $data['ref_id'] : 'eq-'.$this->equationCount;
                 $latex = htmlspecialchars($data['latex'] ?? '');
@@ -174,7 +184,7 @@ class AcademicContentRenderer
                 break;
             case 'academic-references':
             case 'extension-academic-references':
-                $data = $node['attrs']['data'] ?? [];
+                $data = $node['attrs']['data'] ?? $node['attrs']['config'] ?? [];
                 $references = $data['references'] ?? [];
 
                 if (empty($references)) {

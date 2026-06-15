@@ -30,12 +30,11 @@ class FigureBlock extends RichContentCustomBlock
                     ->image()
                     ->disk('public')
                     ->directory('academic-figures')
+                    ->multiple()
+                    ->maxFiles(1)
                     ->imageResizeMode('contain')
                     ->imageResizeTargetWidth('1920')
                     ->required()
-                    ->saveUploadedFileUsing(function (\Illuminate\Http\UploadedFile $file): string {
-                        return $file->store('academic-figures', 'public');
-                    })
                     ->helperText('Unggah gambar (JPG, PNG, WebP). Akan dioptimasi otomatis.'),
 
                 TextInput::make('caption')
@@ -56,8 +55,20 @@ class FigureBlock extends RichContentCustomBlock
                         'small' => 'Kecil (50%)',
                         'medium' => 'Sedang (75%)',
                         'full' => 'Penuh (100%)',
+                        'custom' => 'Kustom (%)',
                     ])
+                    ->live()
                     ->default('full'),
+
+                TextInput::make('custom_size')
+                    ->label('Persentase Ukuran (10-100)')
+                    ->numeric()
+                    ->minValue(10)
+                    ->maxValue(100)
+                    ->default(100)
+                    ->suffix('%')
+                    ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('size') === 'custom')
+                    ->required(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('size') === 'custom'),
             ]);
     }
 }

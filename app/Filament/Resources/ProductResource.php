@@ -57,7 +57,7 @@ class ProductResource extends Resource
                     \Filament\Schemas\Components\Tabs\Tab::make('Halaman Detail Produk')->schema([
                         \Filament\Forms\Components\Builder::make('content_json')
                             ->label('Konten')
-                            ->blocks(\App\Filament\BuilderBlocks::get())
+                            ->blocks(\App\Filament\BuilderBlocks::getProductBlocks())
                             ->reorderable()
                             ->collapsible()
                             ->collapsed()
