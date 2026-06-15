@@ -19,6 +19,10 @@ The following secrets must be configured in your GitHub Repository Settings (`Se
 | `MINIO_SECRET_ACCESS_KEY` | Secret Access Key for MinIO S3-compatible cloud storage. |
 | `MINIO_BUCKET` | The name of the S3 bucket used for backups and public file uploads. |
 | `MINIO_ENDPOINT` | The absolute URL of the MinIO storage server endpoint (e.g., `https://s3.mhcsgo.cloud`). |
+| `MADEENA_IAM_URL` | The URL of the Madeena IAM service. |
+| `MADEENA_IAM_CLIENT_ID` | The SSO Client ID for this application. |
+| `MADEENA_IAM_CLIENT_SECRET` | The SSO Client Secret for this application. |
+| `MADEENA_IAM_REDIRECT_URI` | The SSO Redirect URI (e.g., `http://<IP>:8011/sso/callback`). |
 
 ## Optional Secrets
 

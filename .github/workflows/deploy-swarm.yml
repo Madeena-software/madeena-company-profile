@@ -85,6 +85,10 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.MINIO_SECRET_ACCESS_KEY }}
           AWS_BUCKET: ${{ secrets.MINIO_BUCKET }}
           AWS_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MADEENA_IAM_URL: ${{ secrets.MADEENA_IAM_URL }}
+          MADEENA_IAM_CLIENT_ID: ${{ secrets.MADEENA_IAM_CLIENT_ID }}
+          MADEENA_IAM_CLIENT_SECRET: ${{ secrets.MADEENA_IAM_CLIENT_SECRET }}
+          MADEENA_IAM_REDIRECT_URI: ${{ secrets.MADEENA_IAM_REDIRECT_URI }}
           APP_VERSION: ${{ needs.build.outputs.app_version }}
         run: |
           set -euo pipefail
@@ -214,6 +218,10 @@ jobs:
             printf 'AWS_SECRET_ACCESS_KEY=%s\n' "$AWS_SECRET_ACCESS_KEY"
             printf 'AWS_BUCKET=%s\n' "$AWS_BUCKET"
             printf 'AWS_ENDPOINT=%s\n' "$AWS_ENDPOINT"
+            printf 'MADEENA_IAM_URL=%s\n' "$MADEENA_IAM_URL"
+            printf 'MADEENA_IAM_CLIENT_ID=%s\n' "$MADEENA_IAM_CLIENT_ID"
+            printf 'MADEENA_IAM_CLIENT_SECRET=%s\n' "$MADEENA_IAM_CLIENT_SECRET"
+            printf 'MADEENA_IAM_REDIRECT_URI=%s\n' "$MADEENA_IAM_REDIRECT_URI"
             printf 'APP_VERSION=%s\n' "$LIVE_VERSION"
           } >> .env
 
