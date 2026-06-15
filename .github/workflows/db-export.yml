@@ -1,0 +1,58 @@
+name: "Server - Export DB Dump"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_SLUG: madeena_cp
+  DB_DATABASE: ${{ secrets.DB_DATABASE }}
+  DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+
+jobs:
+  export-db:
+    name: Export Database
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Validate secrets and locate services
+        run: |
+          set -euo pipefail
+          if [ -z "$DB_DATABASE" ] || [ -z "$DB_ROOT_PASSWORD" ]; then
+            echo "FATAL: Missing DB_DATABASE or DB_ROOT_PASSWORD."
+            exit 1
+          fi
+
+          DB_CONTAINER="$(docker ps -q --filter "label=com.docker.swarm.service.name=${APP_SLUG}_db" | head -n 1)"
+          if [ -z "$DB_CONTAINER" ]; then
+            DB_CONTAINER="$(docker ps -q --filter "name=${APP_SLUG}_db" | head -n 1)"
+          fi
+          if [ -z "$DB_CONTAINER" ]; then
+            echo "FATAL: could not find the running ${APP_SLUG}_db container."
+            exit 1
+          fi
+
+          echo "DB_CONTAINER=$DB_CONTAINER" >> "$GITHUB_ENV"
+
+      - name: Dump Database
+        run: |
+          set -euo pipefail
+          docker exec "$DB_CONTAINER" \
+            mysqldump -u root -p"${DB_ROOT_PASSWORD}" \
+            --single-transaction \
+            --routines \
+            --triggers \
+            --events \
+            --add-drop-table \
+            "$DB_DATABASE" \
+            2>/dev/null > db-dump.sql
+
+      - name: Upload Dump Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-dump
+          path: db-dump.sql
+          retention-days: 1
