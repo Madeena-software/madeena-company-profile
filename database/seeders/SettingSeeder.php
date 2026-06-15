@@ -75,14 +75,7 @@ class SettingSeeder extends Seeder
                     'show_in_nav'     => true,
                     'nav_label'       => 'Tentang Kami',
                     'background_style' => 'light',
-                    'company_profile' => 'PT Madeena Karya Indonesia didirikan untuk memfasilitasi hilirisasi inovasi radiografi digital yang dikembangkan oleh Prof. Dr. Gede Bayu Suparta bersama tim riset Universitas Gadjah Mada.',
-                    'vision'          => 'Menjadi Duta Teknologi Indonesia dengan menghasilkan teknologi dan produk kesehatan mutakhir untuk masyarakat global.',
-                    'mission'         => [
-                        ['item' => 'Melakukan hilirisasi perkembangan dan hasil riset serta pengembangan teknologi.'],
-                        ['item' => 'Mengkomersialisasikan teknologi hasil riset & pengembangan menjadi produk inovatif yang siap dimanfaatkan masyarakat.'],
-                        ['item' => 'Mengembangkan sistem pencitraan untuk memenuhi kebutuhan medis dan industri.'],
-                    ],
-                    'motto' => 'Know Sciences, Learn Engineering, Create Technology, Develop Business.',
+                    'page_id'         => \App\Models\Page::where('slug', 'tentang')->value('id') ?? 1,
                 ]],
                 ['type' => 'products', 'data' => [
                     'section_id'      => 'produk',

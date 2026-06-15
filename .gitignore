@@ -28,3 +28,4 @@ frankenphp-worker.php
 
 .env.local
 .env.*
+dump_dir

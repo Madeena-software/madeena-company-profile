@@ -7,48 +7,25 @@
         default    => 'bg-white',
     };
     $isDark = in_array($data['background_style'] ?? 'white', ['dark', 'gradient']);
+    $page = $section['page'] ?? null;
 @endphp
 <section id="{{ $data['section_id'] ?? 'tentang' }}" class="py-20 {{ $bg }}">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        @if($page)
             <span class="inline-block {{ $isDark ? 'bg-white/10 text-white' : 'bg-madeena-teal/10 text-madeena-teal' }} font-semibold text-sm uppercase tracking-wider px-3 py-1 rounded-full mb-4">Tentang Kami</span>
-            <h2 class="section-title {{ $isDark ? 'text-white' : '' }}">Profil, Visi &amp; Misi</h2>
-            <p class="{{ $isDark ? 'text-white/70' : 'section-subtitle' }}">PT Madeena Karya Indonesia &mdash; Inovasi Teknologi Alat Kesehatan Indonesia</p>
-        </div>
+            <h2 class="text-3xl md:text-4xl font-bold mb-6 {{ $isDark ? 'text-white' : 'text-madeena-blue' }}">{{ $page->title }}</h2>
+            
+            @if($page->summary)
+                <p class="text-lg {{ $isDark ? 'text-white/80' : 'text-gray-600' }} leading-relaxed mb-10">
+                    {{ $page->summary }}
+                </p>
+            @endif
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            <div>
-                @if(!empty($data['company_profile']))
-                <div class="{{ $isDark ? 'bg-white/10 border border-white/20' : 'bg-madeena-light' }} rounded-2xl p-8 mb-8">
-                    <h3 class="text-xl font-bold {{ $isDark ? 'text-white' : 'text-madeena-blue' }} mb-4">Tentang Perusahaan</h3>
-                    <p class="{{ $isDark ? 'text-white/80' : 'text-gray-600' }} leading-relaxed">{{ $data['company_profile'] }}</p>
-                </div>
-                @endif
-                @if(!empty($data['motto']))
-                <div class="{{ $isDark ? 'bg-white/5 border border-white/20' : 'bg-madeena-blue' }} rounded-2xl p-8 text-white">
-                    <blockquote class="text-xl font-medium italic text-white/90 mb-2">&ldquo;{{ $data['motto'] }}&rdquo;</blockquote>
-                    <p class="text-white/60 text-sm">Kredo PT Madeena Karya Indonesia</p>
-                </div>
-                @endif
-            </div>
-            <div class="space-y-6">
-                @if(!empty($data['vision']))
-                <div class="border-l-4 border-madeena-teal pl-6">
-                    <h3 class="text-xl font-bold {{ $isDark ? 'text-white' : 'text-madeena-blue' }} mb-3">Visi</h3>
-                    <p class="{{ $isDark ? 'text-white/80' : 'text-gray-600' }} italic">&ldquo;{{ $data['vision'] }}&rdquo;</p>
-                </div>
-                @endif
-                @if(!empty($data['mission']))
-                <div class="border-l-4 border-madeena-blue pl-6">
-                    <h3 class="text-xl font-bold {{ $isDark ? 'text-white' : 'text-madeena-blue' }} mb-3">Misi</h3>
-                    <ol class="list-decimal list-inside space-y-2 {{ $isDark ? 'text-white/80' : 'text-gray-600' }}">
-                        @foreach($data['mission'] as $m)
-                        <li>{{ $m['item'] ?? $m }}</li>
-                        @endforeach
-                    </ol>
-                </div>
-                @endif
-            </div>
-        </div>
+            <a href="{{ route('page.show', $page->slug) }}" class="inline-block px-8 py-4 rounded-full font-semibold transition duration-300 {{ $isDark ? 'bg-white text-madeena-blue hover:bg-gray-100' : 'bg-madeena-teal text-white hover:bg-teal-600' }} shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                Baca Selengkapnya
+            </a>
+        @else
+            <p class="{{ $isDark ? 'text-white/50' : 'text-gray-500' }}">Halaman belum diatur.</p>
+        @endif
     </div>
 </section>

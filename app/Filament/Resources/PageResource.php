@@ -15,6 +15,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -56,6 +57,17 @@ class PageResource extends Resource
                     ->label('Aktifkan Penomoran Otomatis')
                     ->default(true)
                     ->helperText('Jika aktif, judul (H2, H3) akan otomatis diberi nomor urut.'),
+                Toggle::make('show_in_header')
+                    ->label('Tampilkan di Navigasi Header')
+                    ->default(false),
+                Toggle::make('show_in_footer')
+                    ->label('Tampilkan di Footer')
+                    ->default(false),
+                Textarea::make('summary')
+                    ->label('Ringkasan Singkat')
+                    ->rows(3)
+                    ->columnSpanFull()
+                    ->helperText('Ringkasan yang muncul di Halaman Utama atau kartu preview.'),
             ])->columns(2),
 
             Section::make('Konten Halaman')->schema([
@@ -83,6 +95,8 @@ class PageResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('title')->label('Judul')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('slug')->label('Slug')->searchable(),
+            Tables\Columns\IconColumn::make('show_in_header')->label('Header')->boolean(),
+            Tables\Columns\IconColumn::make('show_in_footer')->label('Footer')->boolean(),
             Tables\Columns\TextColumn::make('created_at')->label('Dibuat')->date('d M Y')->sortable(),
             Tables\Columns\TextColumn::make('updated_at')->label('Diperbarui')->since(),
         ])->defaultSort('created_at', 'desc')

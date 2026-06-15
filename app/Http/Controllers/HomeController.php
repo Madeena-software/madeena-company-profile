@@ -33,6 +33,7 @@ class HomeController extends Controller
                     ->take((int) ($section['data']['posts_count'] ?? 3))
                     ->get(),
                 'contact' => $section['contact'] = $contactInfo,
+                'about' => $section['page'] = \App\Models\Page::find($section['data']['page_id'] ?? null),
                 default => null,
             };
         }
@@ -70,5 +71,10 @@ class HomeController extends Controller
         abort_if(! $product->is_active, 404);
 
         return view('product', compact('product'));
+    }
+
+    public function page(\App\Models\Page $page)
+    {
+        return view('page', compact('page'));
     }
 }

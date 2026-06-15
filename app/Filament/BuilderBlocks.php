@@ -150,17 +150,11 @@ class BuilderBlocks
                     'dark' => 'Gelap',
                     'gradient' => 'Gradien',
                 ])->default('white'),
-                Textarea::make('company_profile')->label('Profil Perusahaan')->rows(5)
-                    ->helperText('Ceritakan tentang perusahaan Anda.'),
-                TextInput::make('vision')->label('Visi')
-                    ->placeholder('Menjadi Duta Teknologi Indonesia...'),
-                Repeater::make('mission')
-                    ->label('Misi')
-                    ->simple(TextInput::make('item')->label('Poin Misi')->required())
-                    ->addActionLabel('+ Tambah Misi')
-                    ->helperText('Setiap poin misi akan ditampilkan sebagai daftar bernomor.'),
-                TextInput::make('motto')->label('Motto / Kredo')
-                    ->placeholder('Know Sciences, Learn Engineering, Create Technology, Develop Business.'),
+                Select::make('page_id')
+                    ->label('Pilih Halaman')
+                    ->options(\App\Models\Page::pluck('title', 'id'))
+                    ->searchable()
+                    ->helperText('Pilih halaman yang berisi profil perusahaan lengkap.'),
             ]));
     }
 
