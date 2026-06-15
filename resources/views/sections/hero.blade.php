@@ -9,7 +9,7 @@
             @php $hero = $banners[0]; @endphp
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div>
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
+                    <h1 class="text-[6.5vw] lg:text-[3.8vw] font-extrabold text-white leading-tight mb-6 whitespace-nowrap">
                         {{ $hero['title'] ?? '' }}
                     </h1>
                     @if(!empty($hero['subtitle']))
