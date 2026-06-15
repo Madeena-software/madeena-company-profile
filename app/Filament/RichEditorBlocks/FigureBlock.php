@@ -33,6 +33,9 @@ class FigureBlock extends RichContentCustomBlock
                     ->imageResizeMode('contain')
                     ->imageResizeTargetWidth('1920')
                     ->required()
+                    ->saveUploadedFileUsing(function (\Illuminate\Http\UploadedFile $file): string {
+                        return $file->store('academic-figures', 'public');
+                    })
                     ->helperText('Unggah gambar (JPG, PNG, WebP). Akan dioptimasi otomatis.'),
 
                 TextInput::make('caption')
