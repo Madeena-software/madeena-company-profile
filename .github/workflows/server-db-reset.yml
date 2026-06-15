@@ -1,0 +1,59 @@
+name: "Server — Database Reset"
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type "RESET" to confirm permanent deletion of all production data'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  db-reset:
+    name: "Reset Production Database"
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "1/3 — Validate Confirmation"
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" != "RESET" ]; then
+            echo "❌ ERROR: Confirmation string did not match 'RESET'. Aborting."
+            exit 1
+          fi
+          echo "✅ Confirmation valid. Proceeding with database reset."
+
+      - name: "2/3 — Execute Reset in Container"
+        run: |
+          set -euo pipefail
+          
+          # Find the running app container
+          APP_CONTAINER=$(docker ps -q -f name=madeena_cp_app | head -n 1 || true)
+          
+          if [ -z "$APP_CONTAINER" ]; then
+            echo "❌ No madeena_cp_app container found. Cannot execute reset command."
+            exit 1
+          fi
+          
+          echo "✅ App container found: $APP_CONTAINER"
+          echo "▶ Dropping all tables and reseeding base data..."
+          
+          docker exec "$APP_CONTAINER" php artisan migrate:fresh --seed --force
+          
+          echo "✅ Database migrated and base data seeded."
+
+      - name: "3/3 — Seed CMS Content"
+        run: |
+          set -euo pipefail
+          APP_CONTAINER=$(docker ps -q -f name=madeena_cp_app | head -n 1 || true)
+          
+          echo "▶ Seeding CMS default content..."
+          docker exec "$APP_CONTAINER" php artisan madeena:seed-cms --force
+          
+          echo "✅ CMS content seeded successfully."

@@ -49,8 +49,8 @@ if [ "${FILESYSTEM_DISK:-local}" = "local" ]; then
 fi
 
 php artisan migrate --force
-php artisan madeena:seed-cms --force
 php artisan config:cache
+php artisan madeena:seed-cms --force
 php artisan route:cache
 
 if ! php artisan view:cache; then

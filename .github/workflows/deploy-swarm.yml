@@ -1,5 +1,17 @@
 name: Deploy to Production (Swarm)
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Madeena Standard CI/CD Template — Docker Swarm Deployment (AWS S3 Edition)
+#
+# REQUIRED GITHUB SECRETS:
+#   APP_KEY, APP_DOMAIN, SSH_USER, REMOTE_PATH
+#   DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_ROOT_PASSWORD
+#   MINIO_ACCESS_KEY_ID, MINIO_SECRET_ACCESS_KEY, MINIO_BUCKET, MINIO_ENDPOINT
+#
+# OPTIONAL GITHUB SECRETS:
+#   SUDO_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD, SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD
+# ═══════════════════════════════════════════════════════════════════════════════
+
 on:
   workflow_dispatch:
 
@@ -15,7 +27,7 @@ jobs:
   build:
     name: Build Docker Image (Local)
     runs-on: self-hosted
-    timeout-minutes: 25
+    timeout-minutes: 60
     outputs:
       app_version: ${{ steps.version.outputs.app_version }}
 
@@ -34,13 +46,13 @@ jobs:
       - name: Build Docker image locally
         run: |
           set -euo pipefail
-          echo "===> Building madeena_cp:latest on local runner..."
+          echo "===> Building \"madeena_cp\":latest on local runner..."
           docker build \
             --build-arg APP_VERSION="${{ steps.version.outputs.app_version }}" \
-            --tag madeena_cp:latest \
+            --tag "madeena_cp":latest \
             --file ./Dockerfile \
             .
-          docker image inspect madeena_cp:latest --format 'ID: {{.Id}} | Size: {{.Size}} bytes'
+          docker image inspect "madeena_cp":latest --format 'ID: {{.Id}} | Size: {{.Size}} bytes'
 
   deploy:
     name: Deploy to Production
@@ -144,7 +156,7 @@ jobs:
           cd "$REMOTE_PATH"
           cp "$GITHUB_WORKSPACE/docker-compose.prod.yml" docker-compose.prod.yml
           mkdir -p nginx/conf.d
-          cp "$GITHUB_WORKSPACE/nginx/conf.d/app.conf" nginx/conf.d/app.conf
+          cp "$GITHUB_WORKSPACE/docker/nginx.conf" nginx/conf.d/app.conf
           echo "$LIVE_VERSION" > VERSION-CURRENT
 
           echo "===> Writing environment file..."
@@ -214,9 +226,9 @@ jobs:
             exit 1
           fi
 
-          echo "===> Verifying local image madeena_cp:latest..."
-          docker image inspect madeena_cp:latest >/dev/null 2>&1 || {
-            echo "FATAL: madeena_cp:latest is not available locally."
+          echo "===> Verifying local image \"madeena_cp\":latest..."
+          docker image inspect "madeena_cp":latest >/dev/null 2>&1 || {
+            echo "FATAL: \"madeena_cp\":latest is not available locally."
             exit 1
           }
 
@@ -234,7 +246,7 @@ jobs:
           docker run --rm \
             --entrypoint php \
             --env-file .env \
-            madeena_cp:latest \
+            "madeena_cp":latest \
             artisan storage:check --disk=public --disk=enterprise_backups -v
 
           echo "===> Deploying stack..."
@@ -244,8 +256,8 @@ jobs:
 
           echo "===> Force updating app and queue services with new image..."
           sleep 5
-          docker service update --force --image madeena_cp:latest madeena_cp_app || true
-          docker service update --force --image madeena_cp:latest madeena_cp_queue || true
+          docker service update --force --image "madeena_cp":latest madeena_cp_app || true
+          docker service update --force --image "madeena_cp":latest madeena_cp_queue || true
 
           echo "===> [1/3] Waiting for database to be healthy..."
           _WAIT_DB=0
@@ -348,7 +360,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 10); do
-            HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 30 "http://${{ secrets.SSH_HOST }}:8011" || echo "000")
+            HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 30 "http://127.0.0.1:8011/up" || echo "000")
             echo "Attempt $attempt/10 — HTTP $HTTP_STATUS"
             echo "$HTTP_STATUS" | grep -qE '^(200|301|302|307|308)$' && { echo "✅ Healthy"; exit 0; }
             sleep 10

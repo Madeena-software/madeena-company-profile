@@ -39,7 +39,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     networks:
-      - madeena_cp_network
+      - "madeena_cp_network"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin status -uroot --password=\"$$MYSQL_ROOT_PASSWORD\" 2>/dev/null | grep -q Uptime"]
       interval: 10s
@@ -48,7 +48,7 @@ services:
       start_period: 60s
 
   app:
-    image: madeena_cp:latest
+    image: "madeena_cp:latest"
     deploy:
       replicas: 1
       placement:
@@ -92,12 +92,12 @@ services:
     depends_on:
       - db
     networks:
-      - madeena_cp_network
+      - "madeena_cp_network"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
   queue:
-    image: madeena_cp:latest
+    image: "madeena_cp:latest"
     deploy:
       replicas: 1
       placement:
@@ -144,7 +144,7 @@ services:
     depends_on:
       - app
     networks:
-      - madeena_cp_network
+      - "madeena_cp_network"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -189,7 +189,7 @@ services:
     depends_on:
       - app
     networks:
-      - madeena_cp_network
+      - "madeena_cp_network"
 
 volumes:
   db_data:
@@ -201,7 +201,7 @@ volumes:
   app_public:
 
 networks:
-  madeena_cp_network:
+  "madeena_cp_network":
     driver: overlay
     driver_opts:
       com.docker.network.driver.overlay.bind_interface: "0.0.0.0"

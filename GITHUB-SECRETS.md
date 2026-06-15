@@ -1,231 +1,31 @@
-# GitHub Secrets Configuration
+# GitHub Secrets Configuration — Madeena Company Profile
 
-This file documents all required GitHub Secrets for the Docker deployment pipeline.
-
-## How to Add Secrets
-
-1. Go to repository **Settings** → **Secrets and variables** → **Actions**
-2. Click **New repository secret**
-3. Enter the secret name and value
-4. Save
-
----
+The following secrets must be configured in your GitHub Repository Settings (`Settings` -> `Secrets and variables` -> `Actions`) before running the server setup or deployment workflows.
 
 ## Required Secrets
 
-### Docker Registry (Docker Hub)
+| Secret | Description / How to Get |
+|---|---|
+| `APP_KEY` | The Laravel application encryption key. Generate it using `php artisan key:generate --show`. |
+| `APP_DOMAIN` | The production domain name for the application (e.g., `madeena.com`). |
+| `REMOTE_PATH` | The dedicated deployment directory on the server host (e.g., `/var/www/madeena-company-profile`). |
+| `SSH_USER` | The system username on the target server running the self-hosted runner. |
+| `DB_HOST` | Must be configured to `db` to resolve the isolated Swarm database service container. |
+| `DB_DATABASE` | The name of the MySQL production database (e.g., `madeena_cp`). |
+| `DB_USERNAME` | The MySQL username for application connections (e.g., `madeena_cp`). |
+| `DB_PASSWORD` | The password for the application's MySQL user account. |
+| `DB_ROOT_PASSWORD` | The root password for the MySQL database container. |
+| `MINIO_ACCESS_KEY_ID` | Access Key ID for MinIO S3-compatible cloud storage. |
+| `MINIO_SECRET_ACCESS_KEY` | Secret Access Key for MinIO S3-compatible cloud storage. |
+| `MINIO_BUCKET` | The name of the S3 bucket used for backups and public file uploads. |
+| `MINIO_ENDPOINT` | The absolute URL of the MinIO storage server endpoint (e.g., `https://s3.mhcsgo.cloud`). |
 
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `DOCKER_USERNAME` | Docker Hub username | `myusername` |
-| `DOCKER_PASSWORD` | Docker Hub access token (NOT password) | `dckr_pat_xxxxx...` |
+## Optional Secrets
 
-**To generate Docker access token**:
-1. Go to https://hub.docker.com/
-2. Login with your account
-3. Click profile icon → **Account Settings** → **Security**
-4. Click **New Access Token**
-5. Copy token value
-
----
-
-### VPS Connection Details
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `VPS_HOST` | VPS public IP or hostname | `203.0.113.45` or `api.example.com` |
-| `VPS_USER` | SSH username | `ubuntu` or `root` |
-| `VPS_SSH_KEY` | Private SSH key (with `\n` for newlines) | See below |
-| `VPS_PORT` | SSH port | `22` |
-| `APP_DEPLOY_PATH` | Deployment directory on VPS | `/var/www/madeena-company-profile` |
-
-**To add SSH key as secret**:
-1. Copy your private SSH key content
-2. Replace actual newlines with `\n` literal string (use sed or similar)
-3. Example:
-   ```bash
-   cat ~/.ssh/id_rsa | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n$/\n/'
-   ```
-4. Paste in GitHub Secrets
-
----
-
-### Application Configuration
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `APP_DOMAIN` | Domain name for the application | `example.com` |
-| `APP_KEY` | Laravel encryption key (generate: `php artisan key:generate --show`) | `base64:xxxxx...` |
-
-### Admin Credentials
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `SUPER_ADMIN_EMAIL` | Production admin login email used by the admin reset workflow | `admin@example.com` |
-| `SUPER_ADMIN_PASSWORD` | Production admin login password used by the admin reset workflow | `strong_password_here` |
-
----
-
-### Database Configuration
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `DB_DATABASE` | MySQL database name | `madeena_company_profile` |
-| `DB_USERNAME` | MySQL user (non-root) | `madeena` |
-| `DB_PASSWORD` | MySQL user password | `secure_password_123` |
-| `DB_ROOT_PASSWORD` | MySQL root password | `root_password_456` |
-
-### Server Database Setup Workflow
-
-The manual workflow at `.github/workflows/server-setup-db.yml` uses this extra secret to create the backup directory, install the cron job, and write the backup script on the self-hosted runner:
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `SUDO_PASSWORD` | Password for the runner user to run `sudo` during DB setup and backup installation | `your_sudo_password` |
-
----
-
-### MinIO S3-Compatible Storage
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `MINIO_ACCESS_KEY_ID` | MinIO access key ID | `mmcp-6142-16ab-key` |
-| `MINIO_SECRET_ACCESS_KEY` | MinIO secret access key | `7d591e6132f80aa59d...` |
-| `MINIO_BUCKET` | MinIO bucket name | `mmcp-storage` |
-| `MINIO_ENDPOINT` | MinIO endpoint URL | `http://82.41.42.170:9000` |
-
-Public media files are stored in the bucket root. Database backups are stored under the `backups/` prefix within the same bucket.
-
----
-
-### Storage Paths Summary
-
-| Path / Location | Purpose | Type |
-|------|---------|------|
-| `/var/lib/madeena_cp/mysql` | MySQL data files | Host (SSD) |
-| `/var/lib/madeena_cp/storage/app/private` | Private app files | Host |
-| `/var/lib/madeena_cp/logs` | Laravel logs | Host |
-| `s3://mmcp-storage/` | Public media (product images, banners, posts) | MinIO S3 |
-| `s3://mmcp-storage/backups/` | Automated database backups | MinIO S3 |
-
----
-
-### Redis Configuration
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `REDIS_PASSWORD` | Redis password | `redis_secure_pass` |
-
----
-
-### Email Configuration
-
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `MAIL_MAILER` | Mail driver | `smtp` or `sendgrid` |
-| `MAIL_HOST` | SMTP host | `smtp.mailtrap.io` |
-| `MAIL_PORT` | SMTP port | `587` or `465` |
-| `MAIL_USERNAME` | SMTP username | `user@mailtrap.io` |
-| `MAIL_PASSWORD` | SMTP password or API key | `xxx...` |
-| `MAIL_FROM_ADDRESS` | Sender email address | `noreply@example.com` |
-
----
-
-## Checklist for First-Time Setup
-
-```bash
-# 1. Generate APP_KEY locally
-php artisan key:generate --show
-# Copy output and add as APP_KEY secret
-
-# 2. Generate or obtain SSH key
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/vps_deploy_key -N ""
-# Add public key to VPS: ~/.ssh/authorized_keys
-
-# 3. Create Docker Hub account and generate access token
-# https://hub.docker.com/
-
-# 4. Add all secrets to GitHub
-# Use Settings → Secrets and variables → Actions
-
-# 5. Test deployment
-git push origin main
-# Monitor: Actions tab in GitHub
-```
-
----
-
-## Environment Variables Used in Workflow
-
-The `.github/workflows/deploy-swarm.yml` uses these secrets to create `.env` on the deployment host:
-
-```env
-APP_NAME="madeena_cp"
-APP_DISPLAY_NAME="Madeena Company Profile"
-APP_ENV=production
-APP_DEBUG=false
-APP_KEY=${{ secrets.APP_KEY }}
-APP_URL=https://${{ secrets.APP_DOMAIN }}
-
-DB_CONNECTION=mysql
-DB_HOST=db
-DB_PORT=3306
-DB_DATABASE=${{ secrets.DB_DATABASE }}
-DB_USERNAME=${{ secrets.DB_USERNAME }}
-DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
-
-AWS_ACCESS_KEY_ID=${{ secrets.MINIO_ACCESS_KEY_ID }}
-AWS_SECRET_ACCESS_KEY=${{ secrets.MINIO_SECRET_ACCESS_KEY }}
-AWS_BUCKET=${{ secrets.MINIO_BUCKET }}
-AWS_ENDPOINT=${{ secrets.MINIO_ENDPOINT }}
-AWS_USE_PATH_STYLE_ENDPOINT=true
-AWS_DEFAULT_REGION=id
-
-CACHE_STORE=database
-SESSION_DRIVER=database
-QUEUE_CONNECTION=database
-
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-MAIL_FROM_ADDRESS=${{ secrets.MAIL_USERNAME }}
-MAIL_FROM_NAME="Madeena Company Profile"
-VITE_APP_NAME="Madeena Company Profile"
-```
-
----
-
-## Security Best Practices
-
-✅ **DO:**
-- Rotate secrets regularly
-- Use strong, unique passwords for DB and Redis
-- Store SSH keys securely (never commit to git)
-- Use Docker access tokens instead of account passwords
-- Regularly audit secret usage in Actions logs
-
-❌ **DON'T:**
-- Commit `.env` files with real secrets to git
-- Use weak or simple passwords
-- Share secret values in chat or email
-- Store secrets in code comments
-- Hardcode credentials in workflows
-
----
-
-## Testing Secrets
-
-To verify secrets are properly configured without revealing their values:
-
-```bash
-# In GitHub Actions workflow, you can test by echoing asterisks
-- name: Test secrets
-  run: |
-    echo "Docker username: ${{ secrets.DOCKER_USERNAME }}"
-    echo "VPS host: ${{ secrets.VPS_HOST }}"
-    echo "App domain: ${{ secrets.APP_DOMAIN }}"
-    # Secrets will display as **** in logs
-```
+| Secret | Description / Purpose |
+|---|---|
+| `SUDO_PASSWORD` | The system password for `SSH_USER` on the host. **Required only once** during the execution of `server-setup-deploy.yml` to set up passwordless sudo. |
+| `MAIL_USERNAME` | The SMTP server username for outgoing emails. |
+| `MAIL_PASSWORD` | The SMTP server password for outgoing emails. |
+| `SUPER_ADMIN_EMAIL` | Optional email address to bootstrap a default super administrator account in production via admin reset workflow. |
+| `SUPER_ADMIN_PASSWORD` | Optional password for the bootstrapped super administrator account. |

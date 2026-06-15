@@ -8,7 +8,7 @@ name: Server Setup — Deploy Permissions
 # storage directories without needing SUDO_PASSWORD every time.
 #
 # CUSTOMIZATION REQUIRED:
-#   1. Replace {{APP_NAME}} with your app slug (lowercase)
+#   1. Replace madeena_cp with your app slug (lowercase)
 #   2. Set REMOTE_PATH to a dedicated deploy directory, for example
 #      /var/www/my-app
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -46,7 +46,7 @@ jobs:
 
           TMP_SUDOERS="$(mktemp)"
           {
-            printf '%s\n' '# Madeena CI/CD - madeena_cp passwordless sudo for deploy directory management'
+            printf '%s\n' '# Madeena CI/CD - \"madeena_cp\" passwordless sudo for deploy directory management'
             printf '%s\n' '# Installed by: server-setup-deploy.yml'
             printf '%s ALL=(ALL) NOPASSWD: /usr/bin/mkdir, /usr/bin/chown, /usr/bin/chmod\n' "$SSH_USER"
           } > "$TMP_SUDOERS"
