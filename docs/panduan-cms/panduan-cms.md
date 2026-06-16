@@ -1,9 +1,7 @@
 # 📖 Panduan Lengkap CMS Website Madeena
 
 
-**Versi**: 1.0
-**Tanggal**: 2026-06-16
-**Disusun oleh**: Tim Teknis Madeena
+
 
 ---
 
@@ -134,7 +132,7 @@ Menu ini digunakan untuk publikasi penelitian, berita, atau pengumuman.
 
 Di dalam Konten Artikel, sistem akan secara otomatis menyimpan tulisan Anda setiap 3 detik.
 
-![Editor Artikel](./screenshots/05-artikel/artikel-edit.png)
+![Editor Artikel](./screenshots/05-artikel/artikel-editor.png)
 *Gambar 9: Tampilan Rich Editor. Perhatikan menu untuk memasukkan Persamaan (Equation) atau Tabel.*
 
 **Memasukkan Persamaan Matematika/Fisika:**

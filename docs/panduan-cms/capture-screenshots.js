@@ -51,6 +51,8 @@ async function capture(page, dirName, fileName) {
         // Try to open first block if possible
         const firstBlockToggle = page.locator('button[aria-label="Collapse"]').first();
         if (await firstBlockToggle.isVisible()) {
+            await firstBlockToggle.click({ force: true });
+            await page.waitForTimeout(500);
             await capture(page, '03-homepage', 'homepage-edit.png');
         }
 

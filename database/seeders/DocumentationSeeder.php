@@ -39,13 +39,16 @@ class DocumentationSeeder extends Seeder
                 'keywords' => ['fisika', 'material', 'semikonduktor', 'DDR', 'radiografi'],
                 'content_language' => 'id',
                 'content_json' => [
-                    [
-                        'type' => 'academic-equation',
-                        'data' => [
-                            'latex' => 'E = mc^2',
-                            'ref_id' => 'eq-1',
+                    'type' => 'doc',
+                    'content' => [
+                        [
+                            'type' => 'academic-equation',
+                            'attrs' => [
+                                'latex' => 'E = mc^2',
+                                'ref_id' => 'eq-1',
+                            ]
                         ]
-                    ],
+                    ]
                 ]
             ]
         );
