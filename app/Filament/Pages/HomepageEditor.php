@@ -89,14 +89,16 @@ class HomepageEditor extends Page implements HasForms
                 ->action('save')
                 ->color('warning'),
 
-            Action::make('publish')
+            Action::make('publish_to_prod')
                 ->label('🚀 Update Prod')
                 ->icon('heroicon-o-rocket-launch')
-                ->action('publish')
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('Update Website Live')
-                ->modalDescription(new \Illuminate\Support\HtmlString('Apakah Anda yakin ingin menerapkan perubahan draft ini ke website utama? Pengunjung akan langsung melihat perubahan ini.')),
+                ->modalDescription(new \Illuminate\Support\HtmlString('Apakah Anda yakin ingin menerapkan perubahan draft ini ke website utama? Pengunjung akan langsung melihat perubahan ini.'))
+                ->action(function () {
+                    $this->publish();
+                }),
         ];
     }
 
