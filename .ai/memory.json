@@ -40,19 +40,20 @@
   "modules": {
     "models": [
       "User",
-      "HeroBanner",
+      "Event",
       "Product",
       "Post",
       "Setting",
       "Page",
-      "InabuyerMessage"
+      "GuestMessage"
     ],
     "filament_resources": [
       "UserResource",
+      "EventResource",
+      "GuestMessageResource",
       "ProductResource",
       "PostResource",
-      "PageResource",
-      "InabuyerMessageResource"
+      "PageResource"
     ],
     "filament_pages": [
       "HomepageEditor",
@@ -63,10 +64,11 @@
     "controllers": [
       "HomeController",
       "PublicStorageController",
-      "Inabuyer2026/FeedbackController"
+      "Event\\FeedbackController",
+      "SsoController"
     ],
     "livewire_components": [
-      "Inabuyer2026Display"
+      "EventDisplay"
     ],
     "artisan_commands": [
       "CheckStorageHealth",
@@ -81,7 +83,8 @@
     "seeders": [
       "DatabaseSeeder",
       "AdminUserSeeder",
-      "HeroBannerSeeder",
+      "EventSeeder",
+      "GuestMessageSeeder",
       "ProductSeeder",
       "PostSeeder",
       "SettingSeeder",
@@ -91,17 +94,17 @@
   "routes": {
     "public": [
       "GET / (home)",
-      "GET /blog (blog.index)",
-      "GET /blog/{post:slug} (post.show)",
+      "GET /artikel (artikel.index)",
+      "GET /artikel/{post:slug} (post.show)",
       "GET /produk/{product:slug} (product.show)",
       "GET /storage/{path} (storage.public)",
       "GET /health (health check)"
     ],
-    "inabuyer2026": [
-      "GET /inabuyer2026/feedback",
-      "GET /inabuyer2026/feedback/csrf-token",
-      "POST /inabuyer2026/feedback",
-      "GET /inabuyer2026/display"
+    "events": [
+      "GET /events/{event:slug}/feedback",
+      "GET /events/{event:slug}/feedback/csrf-token",
+      "POST /events/{event:slug}/feedback",
+      "GET /events/{event:slug}/display"
     ],
     "admin": [
       "/admin (Filament dashboard — auto-registered)"
@@ -136,9 +139,13 @@
     {
       "date": "2026-06-12",
       "description": "Fixed AcademicContentRenderer to support native Filament array block structures, resolving missing frontend rendering and E2E timeouts."
+    },
+    {
+      "date": "2026-06-16",
+      "description": "Fixed production 500 error caused by missing section view in homepage editor. Added dynamic existence check before rendering."
     }
   ],
-  "last_updated": "2026-06-12T21:15:00+07:00",
+  "last_updated": "2026-06-16T08:35:00+07:00",
   "ai_bootstrapped": true,
   "testing_strategy": "Defined in .ai/rules/testing-pyramid.md (Unit > Feature > E2E)"
 }

@@ -8,8 +8,8 @@
 
 ### Key Features
 - **Public Website**: Homepage with hero banners, product catalog, blog, about section, legal/certification info, and contact details with WhatsApp integration.
-- **Admin Panel** (`/admin`): Filament v5-powered CMS (accessible via SSO or credentials) for managing hero banners, products, blog posts, pages, site settings, users, and Inabuyer 2026 event messages.
-- **Inabuyer 2026 Module**: Event feedback form with CSRF protection and a Livewire-based live display component.
+- **Admin Panel** (`/admin`): Filament v5-powered CMS (accessible via SSO or credentials) for managing products, artikel posts, pages, site settings, users, events, and guest messages.
+- **Events Module**: Event feedback form with CSRF protection and a Livewire-based live display component.
 - **Storage**: MinIO S3-compatible object storage for public media and backups (same endpoint for dev and prod).
 - **Backup**: Automated database backup upload to MinIO S3 via custom Artisan command.
 
@@ -126,7 +126,7 @@ docker stack deploy -c docker-compose.prod.yml madeena_cp
 │   ├── Console/Commands/       # Custom Artisan Commands: CheckStorageHealth (storage:check), UploadDatabaseBackup (backup:upload)
 │   ├── Filament/               # Admin panel resources, pages, auth
 │   ├── Http/Controllers/       # Public-facing controllers
-│   ├── Livewire/               # Livewire components (Inabuyer display)
+│   ├── Livewire/               # Livewire components (Event display)
 │   ├── Models/                 # Eloquent models (7 models)
 │   ├── Policies/               # Authorization policies
 │   └── Providers/              # Service providers (App)

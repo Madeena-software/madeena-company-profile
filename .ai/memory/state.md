@@ -1,6 +1,6 @@
 # Session State — Madeena Company Profile
 
-> Last updated: 2026-06-11 21:38 WIB (UTC+7)
+> Last updated: 2026-06-16 08:35 WIB (UTC+7)
 
 ---
 
@@ -26,11 +26,12 @@
 | Testing        | PHPUnit 11.x (Unit + Feature suites, mysql :memory:) |
 
 ### Major Modules
-- **Models**: User, HeroBanner, Product, Post, Setting, Page, InabuyerMessage
-- **Filament Resources**: User, HeroBanner, Product, Post, Page, InabuyerMessage + ManageSettings page
+- **Models**: User, Event, Product, Post, Setting, Page, GuestMessage
+- **Filament Resources**: User, Event, GuestMessage, Product, Post, Page
+- **Filament Pages**: HomepageEditor, SiteSettings, Auth (Login/Register), Dashboard
 - **Filament Auth**: SsoLogin (custom login page)
-- **Controllers**: HomeController, PublicStorageController, Inabuyer2026/FeedbackController, SsoController
-- **Livewire**: Inabuyer2026Display
+- **Controllers**: HomeController, PublicStorageController, Event\FeedbackController, SsoController
+- **Livewire**: EventDisplay
 - **Custom Artisan Commands**: CheckStorageHealth (`storage:check`), UploadDatabaseBackup (`backup:upload`)
 - **Service Providers**: AppServiceProvider, SocialiteServiceProvider
 
@@ -38,12 +39,12 @@
 
 ## 2. Active Goal & Priorities
 
-🎯 **Active Goal**: Single Sign-On (SSO) integration complete. Awaiting user's next primary goal.
+🎯 **Active Goal**: Maintain, optimize and align system.
 
 **Priority Queue**:
 1. ~~SSO Client Integration with `madeena-iam`~~ ✅
 2. ~~E2E, Feature and Unit testing verification~~ ✅
-3. ~~Laravel Pint style check & format~~ ✅
+3. ~~CMS architecture upgrade & Event tracking integration~~ ✅
 
 ---
 
@@ -60,6 +61,11 @@
 | 2026-06-10 | README and `.ai/` files aligned with PRD         | ✅     |
 | 2026-06-11 | SSO client integration with `madeena-iam` completed | ✅     |
 | 2026-06-11 | SSO authentication flow refined (logout & account switching) | ✅     |
+| 2026-06-12 | Academic CMS & WordPress-like CMS built          | ✅     |
+| 2026-06-12 | Testing Infrastructure aligned, coverage passed  | ✅     |
+| 2026-06-15 | Event & GuestMessage migrations implemented      | ✅     |
+| 2026-06-15 | Blog components and routes renamed to Artikel    | ✅     |
+| 2026-06-16 | Homepage resilience fixed, layout updated        | ✅     |
 
 ---
 
