@@ -1,0 +1,25 @@
+name: Fetch Production Logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch-logs:
+    runs-on: self-hosted
+    steps:
+      - name: Fetch App Logs
+        run: |
+          docker service logs madeena_cp_app --tail=500 > app_logs.txt
+      - name: Fetch Nginx Logs
+        run: |
+          docker service logs madeena_cp_nginx --tail=500 > nginx_logs.txt
+      - name: Upload App Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-logs
+          path: app_logs.txt
+      - name: Upload Nginx Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nginx-logs
+          path: nginx_logs.txt
