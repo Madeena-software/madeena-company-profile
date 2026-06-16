@@ -8,11 +8,13 @@
 
 @if(!empty($sections))
     @foreach($sections as $index => $section)
-        @include('sections.' . $section['type'], [
-            'data'    => $section['data'] ?? [],
-            'section' => $section,
-            'index'   => $index,
-        ])
+        @if(View::exists('sections.' . $section['type']))
+            @include('sections.' . $section['type'], [
+                'data'    => $section['data'] ?? [],
+                'section' => $section,
+                'index'   => $index,
+            ])
+        @endif
     @endforeach
 @else
     {{-- Fallback: minimal static page when no sections are configured --}}
