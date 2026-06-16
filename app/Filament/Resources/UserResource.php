@@ -81,6 +81,7 @@ class UserResource extends Resource
                     ->label('Email')
                     ->email()
                     ->required()
+                    ->disabled()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
                 Select::make('role')
