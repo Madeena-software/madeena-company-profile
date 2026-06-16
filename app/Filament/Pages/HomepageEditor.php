@@ -46,6 +46,7 @@ class HomepageEditor extends Page implements HasForms
                 Builder::make('sections')
                     ->label('Bagian Halaman')
                     ->blocks(BuilderBlocks::get())
+                    ->blockPickerColumns(3)
                     ->reorderable()
                     ->collapsible()
                     ->collapsed()
@@ -96,7 +97,7 @@ class HomepageEditor extends Page implements HasForms
                 $sectionId = $section['data']['section_id'] ?? '';
                 $navItems[] = [
                     'label'       => $section['data']['nav_label'] ?? ucfirst($section['type']),
-                    'anchor'      => $sectionId ? '#'.$sectionId : null,
+                    'anchor'      => $sectionId ? '#' . $sectionId : null,
                     'is_external' => false,
                 ];
             }
