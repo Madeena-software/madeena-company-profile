@@ -2,6 +2,7 @@
 
 > **Status**: Ready for execution
 > **Created**: 2026-06-16
+> **Approach**: Discovery-first — the AI agent explores the codebase to discover features dynamically
 > **Decisions by**: Faliq + AI (Grill-Me Interview)
 
 ---
@@ -10,25 +11,23 @@
 
 ### C — Context
 
-- **Project**: `madeena-company-profile` (Laravel 13 + Filament v5 + Tailwind CSS v3.4 + Alpine.js + Vite)
-- **Admin Panel**: Filament v5 at `/admin`, SSO-only auth via `madeena-iam`
-- **CMS Features**: Homepage Editor (Page Builder), PostResource (Academic Articles), PageResource (Static Pages), ProductResource, SiteSettings, InabuyerMessage
-- **Rich Text Editor**: Filament v5 native Tiptap-based `RichEditor` with custom academic blocks (FigureBlock, TableBlock, EquationBlock, ReferenceListBlock)
+- **Project**: `madeena-company-profile` (Laravel + Filament + Tailwind CSS + Alpine.js + Vite)
+- **Admin Panel**: Filament at `/admin`, SSO-only auth via `madeena-iam`
+- **CMS Features**: **Discovered at runtime** — the AI agent must scan the codebase to determine what features exist. Do NOT rely on this prompt for feature lists.
 - **End User**: Prof. Drs. Gede Bayu Suparta, M.S., Ph.D. — 61 years old, Guru Besar Departemen Fisika FMIPA UGM. Expert in Imaging Physics (CT-Scan, Digital Radiography, NDT). Founder/key researcher behind PT Madeena Karya Indonesia (DDR medical devices). **Technologically illiterate** — needs extremely clear, patient, step-by-step instructions with screenshots.
-- **CMS Prompt References** (for understanding the CMS structure):
-  - `.ai/prompt/academic-cms-editor.md` — Academic editor with custom blocks
-  - `.ai/prompt/wordpress-like-cms.md` — WordPress-like page builder CMS
 
 ### O — Objective
 
 Generate a **single comprehensive PDF-ready Markdown document** (`docs/panduan-cms/panduan-cms.md`) that serves as a complete user guide for Prof. Suparta to independently operate the CMS. The guide must include **actual screenshots** captured via Playwright from the running development CMS. Every feature must be explained in step-by-step tutorial style with numbered instructions.
+
+**The guide content is NOT hardcoded in this prompt.** The AI agent must discover all CMS features by scanning the codebase and generate documentation dynamically.
 
 ### R — Role
 
 Technical Writer specializing in:
 - Documentation for non-technical / elderly users
 - Bilingual (Indonesian primary) instructional content
-- Filament v5 admin panel UX
+- Filament admin panel UX
 - Screenshot-based tutorial creation via Playwright
 
 ### E — Expectations
@@ -42,105 +41,97 @@ Technical Writer specializing in:
 
 ---
 
-## PHASE 0: Setup & Screenshot Capture
+## PHASE 0: Feature Discovery (MANDATORY FIRST STEP)
 
-### 0.1 Environment Preparation
+> **This is the most important phase.** Before writing ANY documentation, you MUST discover what features exist in the CMS by scanning the codebase. This makes the prompt future-proof — if features change, the guide automatically adapts.
 
-Before writing the guide, prepare the environment:
+### 0.1 Discovery Scan
 
-1. **Install Playwright** in the project:
-   ```bash
-   npm install --save-dev @playwright/test
-   npx playwright install chromium
-   ```
+Scan the following directories and files to build a complete feature inventory:
 
-2. **Start the development server**:
-   ```bash
-   php artisan serve --port=8000 &
-   npm run dev &
-   ```
+#### 1. Filament Pages (`app/Filament/Pages/`)
+Read every `.php` file. For each Page, extract:
+- Class name and `$navigationLabel` / `$title`
+- `$navigationIcon` and `$navigationSort`
+- `form()` method → all form fields, sections, tabs, and their labels
+- Any action buttons (header actions, footer actions)
+- Special behaviors (preview, save, etc.)
 
-3. **Create screenshot script** at `docs/panduan-cms/capture-screenshots.js`:
-   A Playwright script that:
-   - Logs into the CMS via SSO (or seeds a test user and uses direct login)
-   - Navigates to each major CMS page
-   - Captures full-page and element-specific screenshots
-   - Saves them to `docs/panduan-cms/screenshots/` with descriptive names
+#### 2. Filament Resources (`app/Filament/Resources/`)
+Read every `*Resource.php` file. For each Resource, extract:
+- Class name, model, `$navigationLabel`, `$navigationIcon`
+- `form()` method → all form fields, tabs, sections
+- `table()` method → columns displayed in the list view
+- Related pages (Create, Edit, List, View)
 
-### 0.2 Required Screenshots
+#### 3. Rich Editor Custom Blocks (`app/Filament/RichEditorBlocks/`)
+Read every `.php` file. For each Block, extract:
+- Block ID, label, icon
+- Form schema → all fields with labels, placeholders, helper texts
+- Purpose (what content type does this block create?)
 
-Capture the following screenshots (minimum). Annotate filenames clearly:
+#### 4. Builder Blocks (`app/Filament/BuilderBlocks.php` or similar)
+Read the page builder block definitions. For each Builder block, extract:
+- Block type/key, label, icon
+- Form fields with labels and helper texts
+- What section type does this represent on the homepage/pages?
+
+#### 5. Dashboard Widgets (`app/Filament/Widgets/`)
+Read every widget file. For each widget, extract:
+- Widget type (stats, chart, table, custom)
+- What data it displays
+- Any action links/buttons
+
+#### 6. Admin Panel Provider
+Find the Filament panel provider (e.g. `AdminPanelProvider.php`) to understand:
+- Navigation structure and groups
+- Registered pages, resources, and widgets
+- Auth configuration
+
+### 0.2 Discovery Output
+
+After scanning, compile a **Feature Inventory** — an internal checklist (not included in the final guide) that lists:
 
 ```
-screenshots/
-├── 01-login/
-│   ├── login-page.png              — SSO login page
-│   ├── login-form-filled.png       — Login form with example credentials
-│   └── login-success.png           — After successful login
-│
-├── 02-dashboard/
-│   ├── dashboard-overview.png      — Full dashboard view
-│   ├── dashboard-quick-actions.png — Quick action cards
-│   └── sidebar-menu.png           — Sidebar navigation menu
-│
-├── 03-homepage/
-│   ├── homepage-editor.png         — Homepage editor full view
-│   ├── homepage-sections.png       — Section list (collapsed)
-│   ├── homepage-hero-edit.png      — Hero banner editing
-│   ├── homepage-about-edit.png     — About section editing
-│   ├── homepage-products-edit.png  — Products section
-│   ├── homepage-add-section.png    — Adding a new section
-│   ├── homepage-reorder.png        — Reordering sections (drag handle)
-│   └── homepage-preview.png        — Preview result
-│
-├── 04-artikel/
-│   ├── artikel-list.png            — Article listing page
-│   ├── artikel-create.png          — Create new article form
-│   ├── artikel-metadata-tab.png    — Metadata tab filled
-│   ├── artikel-akademik-tab.png    — Academic info tab
-│   ├── artikel-konten-tab.png      — Content editor tab
-│   ├── rich-editor-toolbar.png     — Rich text editor toolbar closeup
-│   ├── rich-editor-heading.png     — Heading selection
-│   ├── rich-editor-bold-italic.png — Bold/italic formatting
-│   ├── block-menu.png              — Custom blocks dropdown menu
-│   ├── block-figure-form.png       — Figure block form
-│   ├── block-table-form.png        — Table block form
-│   ├── block-equation-form.png     — Equation block form
-│   ├── block-references-form.png   — References block form
-│   ├── artikel-preview.png         — Article preview
-│   └── artikel-published.png       — Published article on frontend
-│
-├── 05-halaman/
-│   ├── halaman-list.png            — Pages listing
-│   ├── halaman-create.png          — Create new page
-│   └── halaman-builder.png         — Page builder in action
-│
-├── 06-produk/
-│   ├── produk-list.png             — Products listing
-│   ├── produk-create.png           — Create new product form
-│   └── produk-detail-builder.png   — Product detail page builder
-│
-├── 07-pengaturan/
-│   ├── settings-kontak.png         — Contact settings
-│   ├── settings-sosial.png         — Social media settings
-│   ├── settings-seo.png            — SEO settings
-│   ├── settings-tampilan.png       — Appearance settings
-│   └── settings-whatsapp.png       — WhatsApp button settings
-│
-└── 08-pesan/
-    ├── pesan-list.png              — Messages listing
-    └── pesan-detail.png            — Message detail view
+FEATURE INVENTORY
+=================
+
+SIDEBAR MENU (in navigation order):
+1. [icon] [label] → [Page/Resource class] — [brief description]
+2. [icon] [label] → [Page/Resource class] — [brief description]
+...
+
+RESOURCES (CRUD features):
+- [ResourceName]: [model], [field count] fields, [column count] columns
+  Fields: [field1], [field2], ...
+...
+
+CUSTOM PAGES:
+- [PageName]: [purpose], [field count] fields
+...
+
+RICH EDITOR BLOCKS:
+- [BlockName]: [label], [field count] fields
+...
+
+BUILDER BLOCKS (Page Builder):
+- [BlockName]: [label], [field count] fields
+...
+
+DASHBOARD WIDGETS:
+- [WidgetName]: [type], [purpose]
+...
 ```
 
-> **Important**: If a page or feature doesn't exist yet (hasn't been built), skip that screenshot and note it in the guide as "Fitur ini sedang dalam pengembangan." Use existing pages/features only.
+This inventory drives ALL subsequent phases. Every feature in the inventory gets a chapter (or sub-chapter) in the guide.
 
 ---
 
-## PHASE 1: Write the Guide Document
+## PHASE 1: Guide Structure
 
-### 1.0 Document Structure
+### 1.0 Fixed Chapters (Always Present)
 
-Create `docs/panduan-cms/panduan-cms.md` with the following structure:
+These chapters are always included regardless of what features are discovered:
 
 ```markdown
 # 📖 Panduan Lengkap CMS Website Madeena
@@ -154,235 +145,87 @@ Create `docs/panduan-cms/panduan-cms.md` with the following structure:
 
 ## 📋 Daftar Isi
 
-1. [Ringkasan Cepat (Cheat Sheet)](#1-ringkasan-cepat)
-2. [Masuk ke CMS (Login)](#2-masuk-ke-cms)
-3. [Mengenal Beranda (Dashboard)](#3-mengenal-dashboard)
-4. [Mengelola Halaman Utama Website (Homepage)](#4-homepage-editor)
-5. [Menulis & Mengelola Artikel](#5-menulis-artikel)
-6. [Menggunakan Editor Teks (Rich Text Editor)](#6-editor-teks)
-7. [Menyisipkan Gambar, Tabel & Persamaan](#7-blok-akademik)
-8. [Mengelola Halaman Statis](#8-halaman-statis)
-9. [Mengelola Produk](#9-produk)
-10. [Pengaturan Website](#10-pengaturan)
-11. [Melihat Pesan Masuk (Inabuyer)](#11-pesan)
-12. [Tanya Jawab & Pemecahan Masalah (FAQ)](#12-faq)
-
----
+1. Ringkasan Cepat (Cheat Sheet)
+2. Masuk ke CMS (Login)
+3. Mengenal Beranda (Dashboard)
+4. Mengelola Halaman Utama Website (Homepage)
+   ↓
+   [DYNAMICALLY GENERATED CHAPTERS FROM DISCOVERY]
+   ↓
+N-1. Pengaturan Website
+N.   Tanya Jawab & Pemecahan Masalah (FAQ)
 ```
 
-### 1.1 Chapter: Ringkasan Cepat (Cheat Sheet)
+### 1.1 Chapter: Ringkasan Cepat (Cheat Sheet) — ALWAYS FIRST
 
-Write a **1-page quick-reference** summary at the very beginning. Format as a table:
+Generate a quick-reference table based on the Feature Inventory. For EVERY discovered feature, add a row:
 
 | Saya ingin... | Langkah singkat |
 |---|---|
-| Menulis artikel baru | Klik 📝 Artikel → Buat Baru → Isi judul & konten → Simpan |
-| Menambah gambar di artikel | Di editor, klik ⊕ Blok → 📷 Tambah Gambar → Unggah file |
-| Edit halaman utama | Klik 🏠 Halaman Utama → Edit bagian → Simpan |
-| Tambah produk | Klik 📦 Produk → Buat Baru → Isi detail → Simpan |
-| Ubah nomor WhatsApp | Klik ⚙️ Pengaturan → Kontak → Ubah nomor → Simpan |
-| Lihat pesan masuk | Klik 📩 Pesan Inabuyer |
+| [action based on feature] | [2-3 step summary] |
 
 > **Design note**: Use large text, bold key actions, emoji icons. This page should be printable and pin-able next to the professor's monitor.
 
-### 1.2 Chapter: Masuk ke CMS (Login)
+### 1.2 Chapter: Masuk ke CMS (Login) — ALWAYS SECOND
 
 Step-by-step login flow:
 
-1. Explain what a CMS is (in 1-2 simple sentences): "CMS adalah 'ruang kontrol' website Anda. Dari sini Anda bisa mengubah isi website tanpa harus mengerti pemrograman."
-2. Open browser, navigate to the admin URL
-3. SSO login flow explanation with screenshots
-4. What to do if login fails (forgot password, account locked, etc.)
+1. Explain what a CMS is: "CMS adalah 'ruang kontrol' website Anda. Dari sini Anda bisa mengubah isi website tanpa harus mengerti pemrograman."
+2. Explain what a browser is, what a URL/address bar is
+3. SSO login flow with screenshots
+4. What to do if login fails
 
-**Key instructions**:
-- Explain what a "browser" is (Chrome/Firefox) — don't assume knowledge
-- Explain what a URL/address bar is
-- Show exactly where to type the admin URL
-- Show the SSO login page with labeled arrows
-- Show the dashboard after successful login
+### 1.3 Chapter: Mengenal Beranda / Dashboard — ALWAYS THIRD
 
-### 1.3 Chapter: Mengenal Beranda / Dashboard
+1. Dashboard layout with annotated screenshot
+2. Sidebar menu explanation — list EVERY menu item discovered in Phase 0, with icon and brief description:
+   - For each sidebar item: "[icon] **[label]** → [1-sentence explanation of what it does]"
+3. Quick action cards (if dashboard widgets include them)
+4. Statistics overview (if stats widget exists)
+5. Recent activity (if activity widget exists)
+6. **Transition bridge** — end with: "Sekarang Anda sudah mengenal Beranda (*Dashboard*). Mari kita mulai dengan hal yang paling penting: **mengelola tampilan halaman utama website Anda**. Klik menu 🏠 **Halaman Utama** di sebelah kiri."
 
-1. Explain the dashboard layout with annotated screenshot
-2. Explain the sidebar menu — what each icon means:
-   - 🏠 Halaman Utama → editor halaman depan website
-   - 📦 Produk → kelola daftar produk
-   - 📝 Artikel → tulis dan kelola artikel
-   - 📄 Halaman → buat halaman statis
-   - ⚙️ Pengaturan → ubah pengaturan website
-   - 👥 Pengguna → kelola akun pengguna
-   - 📩 Pesan Inabuyer → lihat pesan masuk
-3. Explain the quick action cards
-4. Explain the statistics overview
-5. Explain the recent activity feed
-6. **Transition to Homepage Editor** — end the chapter with a natural bridge:
-   > "Sekarang Anda sudah mengenal Beranda (*Dashboard*). Mari kita mulai dengan hal yang paling penting: **mengelola tampilan halaman utama website Anda**. Klik menu 🏠 **Halaman Utama** di sebelah kiri."
+### 1.4 Chapter: Mengelola Halaman Utama Website (Homepage) — ALWAYS FOURTH
 
-**Key instructions**:
-- Number and label every section of the dashboard in the screenshot
-- Use callout boxes: "💡 **Tips**: Anda selalu bisa kembali ke halaman ini dengan mengklik logo Madeena di pojok kiri atas."
-- The sidebar menu explanation serves as a "map" so the professor knows what each menu item does before diving into individual chapters
-- The transition text at the end should feel natural, like a teacher guiding the student to the next lesson
+Document the Homepage Editor page (if it exists). For each Builder block discovered in Phase 0:
+1. Explain what the section type is (in simple terms)
+2. How to edit it
+3. How to add a new one
+4. How to reorder
+5. How to delete
+6. Preview and Save
 
-### 1.4 Chapter: Mengelola Halaman Utama Website (Homepage Editor)
+### 1.5+ Chapters: DYNAMICALLY GENERATED
 
-> **Note to AI Agent**: This chapter comes right after Dashboard because it's the first thing the professor will want to manage. The Dashboard chapter ends with a transition bridge leading here.
+For each **remaining** Resource and Page discovered in Phase 0 (excluding Dashboard, Homepage, and Settings), generate a chapter following this pattern:
 
-1. **Membuka Homepage Editor** — click "🏠 Halaman Utama" in sidebar
-2. **Memahami bagian-bagian (sections)** — explain what each section type is:
-   - Hero Banner = spanduk besar di atas website
-   - Produk = etalase produk
-   - Tentang Kami = profil perusahaan
-   - Keunggulan = kartu-kartu keunggulan
-   - Sertifikasi = daftar izin dan sertifikat
-   - Kontak = informasi kontak
-   - Blog Terbaru = artikel terbaru
-   - Galeri = kumpulan foto
-   - Testimoni = testimoni pelanggan
-   - Video = video YouTube
-   - Teks Bebas = konten tulisan bebas
-3. **Mengedit bagian yang sudah ada** — click to expand, edit fields, save
-4. **Menambah bagian baru** — click "+ Tambah Bagian Baru", select type
-5. **Mengubah urutan bagian** — drag the ≡ handle to reorder
-6. **Menghapus bagian** — click delete icon (with confirmation warning)
-7. **Pratinjau (Preview)** — click "👁️ Pratinjau" button to see changes before publishing
-8. **Menyimpan perubahan** — click "💾 Simpan"
+**For Resources (CRUD features like Posts, Products, Pages, etc.):**
+1. Navigating to the list page
+2. Understanding the list table (what each column means)
+3. Creating a new record — step-by-step for every form field
+4. Editing a record
+5. Deleting a record (with safety warning)
+6. Any special features (tabs, toggles, rich editor, page builder)
 
-### 1.5 Chapter: Menulis & Mengelola Artikel
+**For Resources with Rich Text Editor:**
+Additionally document:
+- Every toolbar button (read from form schema)
+- Every custom block (from `RichEditorBlocks/`)
+- Keyboard shortcuts
+- Before/after examples of formatting
 
-Full tutorial flow:
+**For Custom Pages (like Settings):**
+1. Navigating to the page
+2. Each section/tab — step-by-step for every field
+3. Saving changes
 
-1. **Melihat daftar artikel** — navigate to article list, explain the table columns
-2. **Membuat artikel baru**:
-   - Step-by-step: Click "Buat Baru", fill in each tab
-   - Tab 1 (Metadata): Title, slug (explain auto-generate), category, cover image, publish toggle
-   - Tab 2 (Info Akademik): Abstract, keywords, authors — explain each field with examples from Prof. Suparta's actual research domain (Physics, CT-Scan, Digital Radiography)
-   - Tab 3 (Konten): Using the rich text editor (reference Chapter 6)
-3. **Mengedit artikel** — find article in list, click edit, make changes, save
-4. **Menghapus artikel** — with warning about permanent deletion
-5. **Mempublikasikan artikel** — toggle `is_published` and set `published_at`
+### 1.N-1 Chapter: Pengaturan Website — ALWAYS SECOND-TO-LAST
 
-**Key instructions**:
-- Use Prof. Suparta's research domain for examples: "Judul: *Analisis Morfologi Permukaan Sampel DDR menggunakan SEM*"
-- Every field must have an example value shown in the screenshot or described
-- Explain what "slug" means: "Slug adalah versi singkat dari judul yang digunakan di alamat website. Contoh: judul 'Analisis Morfologi' menjadi slug 'analisis-morfologi'."
-- Explain what "publish" means vs "draft"
+Document the Settings page. For each section discovered in Phase 0, explain every field.
 
-### 1.6 Chapter: Menggunakan Editor Teks (Rich Text Editor)
+### 1.N Chapter: Tanya Jawab & Pemecahan Masalah (FAQ) — ALWAYS LAST
 
-Detailed, toolbar-button-by-button guide:
-
-1. **Overview** — what the editor looks like, annotated screenshot of the toolbar
-2. **Menulis teks biasa** — just click and type
-3. **Membuat judul bagian (Heading)** — H1, H2, H3 with examples:
-   - "Gunakan Heading 2 untuk judul bab utama seperti '1. Pendahuluan', 'Metode', 'Hasil'"
-   - "Gunakan Heading 3 untuk sub-bab seperti '1.1 Latar Belakang'"
-4. **Menebalkan teks (Bold)** — select text, click B or Ctrl+B
-5. **Memiringkan teks (Italic)** — select text, click I or Ctrl+I
-6. **Menggarisbawahi teks (Underline)** — select text, click U
-7. **Superscript & Subscript** — explain for scientific notation: "Untuk menulis H₂O, ketik H, lalu pilih teks '2', dan klik tombol subscript (x₂)"
-8. **Daftar bernomor dan bullet** — ordered and unordered lists
-9. **Menyisipkan tautan (Link)** — how to add a hyperlink
-10. **Kutipan (Blockquote)** — for quotes
-11. **Undo dan Redo** — "Batal" and "Ulangi" — Ctrl+Z, Ctrl+Y
-
-**Key instructions**:
-- Explain keyboard shortcuts alongside button clicks
-- Use visual indicators: "Tombol **B** (huruf B tebal) di toolbar untuk menebalkan teks"
-- Show before/after of each formatting action
-- Add a warning: "⚠️ **Penting**: Jangan lupa menyimpan artikel Anda secara berkala dengan mengklik tombol **Simpan** di pojok kanan atas."
-
-### 1.7 Chapter: Menyisipkan Gambar, Tabel & Persamaan (Blok Akademik)
-
-Step-by-step for each custom block:
-
-1. **Cara membuka menu blok** — "Klik tombol ⊕ atau pilih 'Blok' di toolbar"
-2. **📷 Menyisipkan Gambar (Figure Block)**:
-   - Step-by-step: select block → upload image → write caption → set ref ID (explain what ref ID is) → choose size
-   - Example caption: "Morfologi permukaan sampel setelah pemanasan 500°C"
-   - Explain image size options with visual comparison
-3. **📊 Menyisipkan Tabel (Table Block)**:
-   - Step-by-step: select block → write caption → enter HTML table → set ref ID
-   - **Important**: Explain that tables use HTML format, provide a template they can copy-paste
-   - Provide a ready-made template:
-     ```
-     <table>
-       <thead>
-         <tr><th>Parameter</th><th>Nilai</th><th>Satuan</th></tr>
-       </thead>
-       <tbody>
-         <tr><td>Suhu</td><td>500</td><td>°C</td></tr>
-         <tr><td>Tekanan</td><td>1.0</td><td>atm</td></tr>
-       </tbody>
-     </table>
-     ```
-   - Explain: "Salin (*copy*) template di atas, lalu ganti isinya dengan data Anda."
-4. **∑ Menyisipkan Persamaan (Equation Block)**:
-   - Step-by-step: select block → write LaTeX → preview → set ref ID
-   - Provide common LaTeX examples from Physics:
-     - `E = mc^2`
-     - `F = ma`
-     - `\frac{\partial^2 u}{\partial t^2} = c^2 \nabla^2 u` (wave equation)
-     - `\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}`
-   - Explain: "LaTeX adalah bahasa khusus untuk menulis rumus matematika. Anda tidak perlu menghafal semuanya — gunakan contoh di atas sebagai acuan."
-5. **📚 Menyisipkan Daftar Pustaka (Reference List Block)**:
-   - Step-by-step: select block → add references one by one → fill in authors, title, journal, year, DOI
-   - Example using a real-style reference: "Suparta, G.B., et al. (2024). Digital Radiography System for NDT. *J. Phys.*"
-6. **Rujukan Silang (Cross-References)**:
-   - Explain how to type `[Gambar 1]`, `[Tabel 1]`, `[Persamaan 1]`, `[1]` in the text to create clickable references
-   - Example: "Seperti ditunjukkan pada [Gambar 1], morfologi permukaan..."
-
-### 1.8 Chapter: Mengelola Halaman Statis
-
-1. View list of static pages
-2. Create a new page (title, slug)
-3. Use the page builder to add sections (same blocks as Homepage Editor)
-4. Edit existing pages
-5. Delete pages (with warning)
-
-### 1.9 Chapter: Mengelola Produk
-
-1. View product list
-2. Create new product (name, slug, tagline, image, specifications, featured toggle)
-3. Build product detail page using the page builder
-4. Edit/delete products
-
-### 1.10 Chapter: Pengaturan Website
-
-Step-by-step for each settings section:
-
-1. **📞 Informasi Kontak** — email, phone, WhatsApp, address
-2. **🌐 Media Sosial** — Instagram, LinkedIn, YouTube URLs
-3. **🔍 SEO** — meta title, meta description (explain what SEO means in simple terms)
-4. **🔗 Navigasi Tambahan** — custom navigation links
-5. **🎨 Pengaturan Tampilan** — logo, colors, font
-6. **💬 Tombol WhatsApp** — enable/disable floating WhatsApp button
-
-### 1.11 Chapter: Melihat Pesan Masuk (Inabuyer)
-
-1. Navigate to messages
-2. View message list
-3. Read individual messages
-4. Explain that messages come from the website's contact form
-
-### 1.12 Chapter: Tanya Jawab & Pemecahan Masalah (FAQ)
-
-Write at least 10 common questions and answers:
-
-| # | Masalah | Solusi |
-|---|---|---|
-| 1 | Artikel tidak muncul di website | Pastikan toggle "Publikasikan" sudah aktif (hijau) dan tanggal publikasi sudah diisi |
-| 2 | Gambar tidak bisa diunggah | Periksa ukuran file (maksimal 5MB). Format yang didukung: JPG, PNG, WebP |
-| 3 | Lupa password | Hubungi tim teknis Madeena di [contact info] untuk reset password SSO |
-| 4 | Persamaan LaTeX tidak muncul dengan benar | Pastikan format LaTeX benar. Coba salin dari contoh yang tersedia di panduan ini |
-| 5 | Perubahan di halaman utama tidak terlihat | Pastikan Anda sudah mengklik tombol "💾 Simpan" setelah mengedit |
-| 6 | Tabel berantakan tampilannya | Periksa format HTML tabel. Gunakan template yang disediakan di Bab 7 |
-| 7 | Website lambat saat mengunggah gambar | Kompres gambar terlebih dahulu menggunakan [tool online gratis]. Idealnya di bawah 2MB |
-| 8 | Tidak bisa mengakses halaman admin | Pastikan Anda menggunakan alamat yang benar: [admin URL]. Jika masih gagal, hubungi tim teknis |
-| 9 | Artikel terhapus secara tidak sengaja | Segera hubungi tim teknis. Data mungkin masih bisa dipulihkan dari backup |
-| 10 | Cara menambah penulis di artikel | Buka tab "Info Akademik" → klik "+ Tambah Penulis" → isi nama, afiliasi, dan email |
-
-Add a final section:
+Generate FAQ entries based on discovered features. For each feature, create at least 1 common problem/solution entry. Include a "Butuh Bantuan?" section with:
 
 ```markdown
 ### 📞 Butuh Bantuan?
@@ -401,55 +244,57 @@ Jika Anda mengalami masalah yang tidak tercantum di atas, silakan hubungi:
 
 ## PHASE 2: Screenshot Strategy
 
-### 2.1 Playwright Script Guidelines
+### 2.1 Dynamic Screenshot Planning
 
-Create a Playwright script that:
+Based on the Feature Inventory from Phase 0, determine what screenshots are needed. **Do NOT use a hardcoded list.** Instead, follow these rules:
+
+**For EVERY discovered Page/Resource, capture at minimum:**
+- One **full-page overview** screenshot (list view for resources, main view for pages)
+- One **form/editor** screenshot (create or edit form)
+- One **annotated detail** screenshot for complex UI elements (toolbar, custom blocks, etc.)
+
+**Screenshot Naming Convention:**
+```
+screenshots/
+├── [NN]-[feature-slug]/
+│   ├── [feature-slug]-[view-type].png
+│   ├── [feature-slug]-[detail-type].png
+│   └── ...
+```
+
+Where:
+- `[NN]` = chapter number (2 digits, matching guide chapter order)
+- `[feature-slug]` = kebab-case feature name (e.g. `login`, `dashboard`, `artikel`, `homepage`)
+- `[view-type]` = `overview`, `create`, `edit`, `list`, `form`, `toolbar`, `preview`, etc.
+
+### 2.2 Playwright Script
+
+Create a Playwright script (`docs/panduan-cms/capture-screenshots.js`) that:
 
 1. **Sets viewport** to 1280x800 (standard laptop size)
-2. **Uses a clean state** — seed test data if needed (sample articles, products, pages)
-3. **Captures full-page screenshots** for overview pages
-4. **Captures element-specific screenshots** for UI details (toolbar, buttons, forms)
-5. **Adds red circles/arrows** for annotation where pointing at specific UI elements (use Playwright's page.evaluate to inject CSS overlays before capturing)
-6. **Names files descriptively** following the naming convention in Phase 0.2
-7. **Handles auth** — either bypass SSO for dev or use a seeded test user
+2. **Seeds test data** — create sample records using models discovered in Phase 0, with realistic Physics/DDR domain content
+3. **Handles auth** — bypass SSO for dev or use a seeded test user
+4. **Iterates through the Feature Inventory** — for each feature, navigate to its admin page and capture screenshots
+5. **Captures annotations** — use `page.evaluate()` to inject red circles, numbered callouts, and arrow pointers before capturing
 
-### 2.2 Screenshot Annotations
+### 2.3 Screenshot Annotations
 
-For key screenshots, add visual annotations:
+For key screenshots, add visual annotations via injected CSS overlays:
 
 - **Red circles** (⭕) around buttons being referenced
 - **Numbered callouts** (①②③) for multi-step screenshots
 - **Arrow pointers** (➡️) pointing to specific fields
 
-Implementation: Use Playwright's `page.evaluate()` to inject temporary CSS/HTML overlay elements before taking the screenshot.
+### 2.4 Seed Data Guidelines
 
-### 2.3 Seed Data
+Seed realistic sample data using Prof. Suparta's research domain:
+- **Article titles**: Physics/DDR/Radiography topics
+- **Author names**: Prof. Gede Bayu Suparta, with UGM affiliation
+- **Product names**: DDR-related medical devices
+- **Keywords**: CT-Scan, Radiografi Digital, Imaging Physics, NDT
+- **LaTeX equations**: Physics equations (E=mc², wave equation, etc.)
 
-Before capturing screenshots, seed realistic sample data:
-
-```php
-// Example seed data for screenshots
-Post::create([
-    'title' => 'Analisis Morfologi Permukaan Detektor DDR menggunakan SEM',
-    'slug' => 'analisis-morfologi-permukaan-detektor-ddr',
-    'content_json' => [...], // Sample Tiptap JSON with figures, equations
-    'abstract' => 'Penelitian ini menganalisis morfologi permukaan...',
-    'keywords' => ['DDR', 'SEM', 'Morfologi', 'Radiografi Digital'],
-    'authors_info' => [
-        ['name' => 'Gede Bayu Suparta', 'affiliation' => 'Departemen Fisika, FMIPA UGM', 'email' => 'gede.bayu@ugm.ac.id'],
-        ['name' => 'Ahmad Researcher', 'affiliation' => 'PT Madeena Karya Indonesia', 'email' => 'ahmad@madeena.co.id'],
-    ],
-    'is_published' => true,
-]);
-
-Product::create([
-    'name' => 'DDR Pro Series',
-    'slug' => 'ddr-pro-series',
-    'tagline' => 'Digital Direct Radiography Buatan Indonesia',
-    'is_featured' => true,
-    'is_active' => true,
-]);
-```
+> **Important**: Read the model `$fillable` arrays and database migrations to understand what fields each model has. Don't hardcode seed data — adapt to the actual model structure.
 
 ---
 
@@ -474,7 +319,7 @@ Use these consistently throughout the document:
 Embed screenshots using standard Markdown:
 
 ```markdown
-![Halaman login CMS Madeena](./screenshots/01-login/login-page.png)
+![Halaman login CMS Madeena](./screenshots/01-login/login-overview.png)
 *Gambar 1: Halaman login CMS. Masukkan email dan password Anda di kolom yang ditandai.*
 ```
 
@@ -485,23 +330,24 @@ Every tutorial step follows this pattern:
 ```markdown
 **Langkah 3**: Klik tombol **Simpan** (*Save*) di pojok kanan atas halaman.
 
-![Tombol Simpan](./screenshots/03-artikel/artikel-save-button.png)
+![Tombol Simpan](./screenshots/04-artikel/artikel-save-button.png)
 *Setelah mengklik Simpan, akan muncul notifikasi hijau "Berhasil disimpan" di pojok kanan atas.*
 ```
 
 ### 3.4 Jargon Glossary
 
-On first use of any technical term, explain it in parentheses:
+On first use of any technical term, explain it in parentheses. Common terms include (but discover more from the actual UI labels):
 
 - CMS: "CMS (*Content Management System*) adalah sistem untuk mengelola isi website"
 - URL: "URL (*Uniform Resource Locator*) adalah alamat website, contoh: `madeena.co.id`"
 - Slug: "Slug adalah versi singkat judul untuk alamat web"
-- Dashboard: "Dashboard (*Halaman Utama Panel Admin*) adalah halaman pertama setelah Anda masuk"
+- Dashboard: "Dashboard (*Beranda Panel Admin*) adalah halaman pertama setelah Anda masuk"
 - SSO: "SSO (*Single Sign-On*) adalah sistem login terpusat"
 - Toggle: "Toggle (*tombol geser*) adalah sakelar hidup/mati"
-- Publish: "Publish (*Publikasi*) berarti menampilkan artikel di website untuk umum"
-- Draft: "Draft (*Draf*) berarti artikel disimpan tapi belum ditampilkan di website"
-- LaTeX: "LaTeX (dibaca 'la-tek') adalah bahasa khusus untuk menulis rumus matematika dan sains"
+- Publish: "Publish (*Publikasi*) berarti menampilkan di website untuk umum"
+- Draft: "Draft (*Draf*) berarti disimpan tapi belum ditampilkan di website"
+
+> **Note**: Add glossary entries for ANY technical term you encounter in the CMS that the professor wouldn't understand. Don't limit yourself to this list.
 
 ### 3.5 Accessibility Guidelines
 
@@ -511,16 +357,105 @@ On first use of any technical term, explain it in parentheses:
 - Each step = ONE action only. Never combine actions.
 - Repeat important information — don't assume the reader remembers from 3 pages ago
 
+### 3.6 Physics Domain Examples
+
+When demonstrating any CMS feature, use examples from Prof. Suparta's research domain:
+- Article titles: e.g. "Analisis Morfologi Permukaan Detektor DDR menggunakan SEM"
+- Figure captions: e.g. "Morfologi permukaan sampel setelah pemanasan 500°C"
+- Table data: e.g. temperature/pressure measurement data
+- Equations: e.g. `E = mc^2`, wave equations, Gaussian integrals
+- References: e.g. "Suparta, G.B., et al. (2024). Digital Radiography System for NDT. *J. Phys.*"
+- Product names: e.g. "DDR Pro Series", "RSFD (Radiografi Sinar-X Fluoresensi Digital)"
+
+---
+
+## EXAMPLE CHAPTER TEMPLATES
+
+> **Purpose**: These are example chapters showing the expected quality and depth. Use them as a TEMPLATE for consistency, but generate actual content from codebase discovery. Do NOT copy these verbatim.
+
+### EXAMPLE A: Resource Chapter (e.g. "Menulis & Mengelola Artikel")
+
+```markdown
+## 5. Menulis & Mengelola Artikel
+
+Artikel adalah tulisan yang akan ditampilkan di halaman blog website Anda.
+Anda bisa menulis artikel tentang penelitian, berita, atau pengumuman.
+
+### 5.1 Melihat Daftar Artikel
+
+**Langkah 1**: Klik menu 📝 **Artikel** di panel sebelah kiri.
+
+![Daftar Artikel](./screenshots/05-artikel/artikel-list.png)
+*Anda akan melihat daftar semua artikel yang sudah pernah dibuat.*
+
+Pada halaman ini, Anda bisa melihat:
+- **Judul** — nama artikel
+- **Status** — Draf (*belum dipublikasikan*) atau Publikasi (*sudah tampil di website*)
+- **Tanggal** — kapan artikel dibuat
+
+### 5.2 Membuat Artikel Baru
+
+**Langkah 1**: Klik tombol **Buat Baru** (*Create*) di pojok kanan atas.
+
+![Tombol Buat Baru](./screenshots/05-artikel/artikel-create-button.png)
+
+**Langkah 2**: Isi **Judul** artikel.
+Contoh: *Analisis Morfologi Permukaan Detektor DDR menggunakan SEM*
+
+**Langkah 3**: Kolom **Slug** akan terisi otomatis. Anda tidak perlu mengubahnya.
+
+> 💡 **Apa itu Slug?** Slug adalah versi singkat dari judul yang digunakan
+> di alamat website. Contoh: judul "Analisis Morfologi" menjadi slug
+> "analisis-morfologi". Kolom ini terisi otomatis.
+
+**Langkah 4**: [continue for every field discovered in the form schema...]
+
+**Langkah N**: Klik tombol **Simpan** (*Save*) di pojok kanan atas.
+
+✅ Artikel Anda berhasil disimpan!
+```
+
+### EXAMPLE B: Rich Text Editor Toolbar Explanation
+
+```markdown
+## 6. Menggunakan Editor Teks (*Rich Text Editor*)
+
+Editor teks adalah area tempat Anda menulis isi artikel. Editor ini mirip
+dengan Microsoft Word — Anda bisa menebalkan teks, membuat judul, menyisipkan
+gambar, dan lain-lain.
+
+![Editor Teks](./screenshots/06-editor/editor-toolbar.png)
+*Tombol-tombol di atas area tulisan disebut "toolbar" (*bilah alat*).*
+
+### 6.1 Menulis Teks Biasa
+
+Cukup klik di area putih yang luas, lalu mulai mengetik.
+
+### 6.2 Menebalkan Teks (*Bold*)
+
+**Langkah 1**: Pilih (*sorot*) teks yang ingin ditebalkan dengan cara:
+klik dan tahan di awal teks, lalu seret (*drag*) ke akhir teks.
+
+**Langkah 2**: Klik tombol **B** (huruf B tebal) di toolbar.
+
+> 💡 **Cara cepat**: Anda juga bisa menekan **Ctrl+B** di keyboard
+> setelah menyorot teks.
+
+[continue for every toolbar button discovered in the RichEditor config...]
+```
+
 ---
 
 ## CONSTRAINTS & GUARDRAILS
 
-1. **Accuracy** — every screenshot must match the actual CMS UI. If a feature doesn't exist yet, note it as "Dalam pengembangan" and skip.
-2. **No assumptions** — never assume the reader knows what a button, icon, or technical term means. Explain everything.
-3. **Physics domain examples** — use examples from Prof. Suparta's research domain (CT-Scan, DDR, Digital Radiography, Imaging Physics) for all sample content.
-4. **Playwright only** — use Playwright for screenshots, NOT the browser subagent tool. Write and run a Node.js Playwright script.
-5. **Single file** — output must be one `panduan-cms.md` file with embedded screenshot references.
-6. **Follow `.ai/` protocol** — update `history.md`, `state.md`, `memory.json` at session end.
+1. **Discovery-driven** — NEVER assume a feature exists. Always verify by reading the source code first. If a feature doesn't exist in the codebase, don't document it.
+2. **Accuracy** — every screenshot must match the actual CMS UI. If a page errors or isn't built yet, note it as "Dalam pengembangan" and skip.
+3. **No assumptions about user** — never assume the reader knows what a button, icon, or technical term means. Explain everything.
+4. **Physics domain examples** — use examples from Prof. Suparta's research domain for all sample content.
+5. **Playwright only** — use Playwright for screenshots, NOT the browser subagent tool. Write and run a Node.js Playwright script.
+6. **Single file** — output must be one `panduan-cms.md` file with embedded screenshot references.
+7. **Adaptive** — if you discover features not mentioned in this prompt, document them. If features mentioned as examples don't exist, skip them. The codebase is the source of truth.
+8. **Follow `.ai/` protocol** — update `history.md`, `state.md`, `memory.json` at session end.
 
 ---
 
@@ -528,11 +463,12 @@ On first use of any technical term, explain it in parentheses:
 
 After generating the guide:
 
-1. **Visual check** — open the `.md` file in a Markdown viewer and verify all screenshots render correctly
-2. **Link check** — verify all internal links (`#section`) work
-3. **Completeness check** — verify every CMS feature is documented
+1. **Completeness check** — cross-reference the Feature Inventory against the guide. Every feature should have documentation.
+2. **Visual check** — open the `.md` file and verify all screenshot references point to existing files
+3. **Link check** — verify all internal links (`#section`) work
 4. **Tone check** — read through and ensure the language is warm, respectful, and jargon-free
 5. **Print test** — verify the document looks good when exported to PDF (reasonable page breaks, no overflow)
+6. **Accuracy check** — verify every instruction matches the actual CMS behavior
 
 ---
 
@@ -540,8 +476,9 @@ After generating the guide:
 
 Begin execution:
 1. **Load Game** — read `.ai/memory/state.md` and confirm context
-2. **Setup** — install Playwright, start dev server, seed sample data
-3. **Capture** — run Playwright script to capture all required screenshots
-4. **Write** — create `docs/panduan-cms/panduan-cms.md` following the structure above
-5. **Verify** — check completeness, accuracy, and rendering
-6. **Save Game** — update `.ai/` files with progress
+2. **Discover** — execute Phase 0: scan codebase, build Feature Inventory
+3. **Setup** — install Playwright, start dev server, seed sample data
+4. **Capture** — run Playwright script to capture screenshots for all discovered features
+5. **Write** — create `docs/panduan-cms/panduan-cms.md` with dynamically generated chapters
+6. **Verify** — check completeness, accuracy, and rendering
+7. **Save Game** — update `.ai/` files with progress
