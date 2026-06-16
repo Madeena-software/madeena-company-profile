@@ -99,6 +99,28 @@ async function capture(page, dirName, fileName) {
         await page.goto(`${BASE_URL}/admin/users`);
         await capture(page, '08-pengguna', 'pengguna-overview.png');
 
+        // 09. Events
+        await page.goto(`${BASE_URL}/admin/events`);
+        await capture(page, '09-events', 'events-overview.png');
+        
+        const firstEventEdit = page.locator('a[href*="/edit"]').first();
+        if (await firstEventEdit.isVisible()) {
+            await firstEventEdit.click();
+            await page.waitForLoadState('networkidle');
+            await capture(page, '09-events', 'events-edit.png');
+        }
+
+        // 10. Guest Messages
+        await page.goto(`${BASE_URL}/admin/guest-messages`);
+        await capture(page, '10-guest-messages', 'guest-messages-overview.png');
+
+        const firstMessageEdit = page.locator('a[href*="/edit"]').first();
+        if (await firstMessageEdit.isVisible()) {
+            await firstMessageEdit.click();
+            await page.waitForLoadState('networkidle');
+            await capture(page, '10-guest-messages', 'guest-messages-edit.png');
+        }
+
         console.log('Successfully captured all screenshots.');
     } catch (error) {
         console.error('Error capturing screenshots:', error);
