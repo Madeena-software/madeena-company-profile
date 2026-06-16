@@ -26,7 +26,7 @@ class BuilderBlocks
             self::aboutBlock(),
             self::legalitiesBlock(),
             self::contactBlock(),
-            self::blogBlock(),
+            self::artikelBlock(),
             self::galleryBlock(),
             self::testimonialBlock(),
             self::videoBlock(),
@@ -224,13 +224,14 @@ class BuilderBlocks
         ;
     }
 
-    private static function blogBlock(): Block
+    private static function artikelBlock(): Block
     {
-        return Block::make('blog')
+        return Block::make('artikel')
             ->label('📝 Artikel')
             ->icon('heroicon-o-newspaper')
-            ->schema(array_merge(self::getNavFields(false, 'Blog'), [
-                TextInput::make('section_title')->label('Judul Bagian')->default('Blog & Artikel Terbaru'),
+            ->schema(array_merge(self::getNavFields(false, 'Artikel'), [
+                TextInput::make('section_title')->label('Judul Bagian')->default('Artikel Terbaru'),
+                TextInput::make('section_subtitle')->label('Subjudul Bagian')->default('Artikel terbaru tentang inovasi teknologi kesehatan dan perkembangan industri medis'),
                 TextInput::make('category_filter')->label('Filter Penempatan (Seksi)')
                     ->placeholder('Misal: Insight, Current Project, dsb')
                     ->helperText('Ketik nama penempatan. Nama ini akan otomatis menjadi pilihan "Penempatan di Halaman Utama" saat Anda membuat postingan baru.'),

@@ -25,7 +25,7 @@ class HomeController extends Controller
                 'products' => $section['products'] = Product::where('is_active', true)
                     ->orderBy('sort_order')
                     ->get(),
-                'blog' => $section['posts'] = Post::where('is_published', true)
+                'artikel' => $section['posts'] = Post::where('is_published', true)
                     ->when(!empty($section['data']['category_filter']), function ($query) use ($section) {
                         return $query->where('placement', $section['data']['category_filter']);
                     })
@@ -50,13 +50,13 @@ class HomeController extends Controller
         ));
     }
 
-    public function blog()
+    public function artikel()
     {
         $posts = Post::where('is_published', true)
             ->orderByDesc('published_at')
             ->paginate(10);
 
-        return view('blog', compact('posts'));
+        return view('artikel', compact('posts'));
     }
 
     public function post(Post $post)

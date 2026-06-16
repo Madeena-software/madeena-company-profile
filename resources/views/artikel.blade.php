@@ -1,14 +1,24 @@
 @extends('layouts.app')
 
-@section('title', 'Blog - PT Madeena Karya Indonesia')
+@section('title', 'Artikel - PT Madeena Karya Indonesia')
 
 @section('content')
+@php
+    $homepageSections = \App\Models\Setting::getJson('homepage_sections', []);
+    $artikelSubtitle = 'Artikel terbaru tentang inovasi teknologi kesehatan dan perkembangan industri medis';
+    foreach($homepageSections as $section) {
+        if (($section['type'] ?? '') === 'artikel' && !empty($section['data']['section_subtitle'])) {
+            $artikelSubtitle = $section['data']['section_subtitle'];
+            break;
+        }
+    }
+@endphp
 <div class="bg-white">
-    <!-- Blog Header -->
+    <!-- Artikel Header -->
     <section class="pt-32 pb-16 bg-gradient-to-b from-madeena-light to-white">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-5xl md:text-6xl font-bold text-madeena-blue mb-6">Blog</h1>
-            <p class="text-xl text-gray-600">Artikel terbaru tentang inovasi teknologi kesehatan dan perkembangan industri medis</p>
+            <h1 class="text-5xl md:text-6xl font-bold text-madeena-blue mb-6">Artikel</h1>
+            <p class="text-xl text-gray-600">{{ $artikelSubtitle }}</p>
         </div>
     </section>
 
@@ -114,7 +124,7 @@
                 <div class="mb-6">
                     <i class="fas fa-newspaper text-6xl text-gray-300"></i>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-600 mb-2">Belum Ada Blog</h3>
+                <h3 class="text-2xl font-bold text-gray-600 mb-2">Belum Ada Artikel</h3>
                 <p class="text-gray-500">Artikel akan segera hadir di sini.</p>
             </div>
             @endif

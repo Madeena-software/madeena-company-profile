@@ -68,7 +68,7 @@ class PostResource extends Resource
                             // HANYA baca dari blok artikel di Halaman Utama
                             $sections = \App\Models\Setting::getJson('homepage_sections', []);
                             $homepageCats = collect($sections)
-                                ->where('type', 'blog')
+                                ->where('type', 'artikel')
                                 ->pluck('data.category_filter')
                                 ->filter()
                                 ->unique()
@@ -76,7 +76,7 @@ class PostResource extends Resource
                                 ->values();
                             
                             if ($homepageCats->isEmpty()) {
-                                return ['Blog' => 'Blog'];
+                                return ['Artikel' => 'Artikel'];
                             }
                             
                             return $homepageCats->mapWithKeys(fn($item) => [$item => $item])->toArray();

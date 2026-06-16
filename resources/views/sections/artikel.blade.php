@@ -4,7 +4,10 @@
 <section id="{{ $data['section_id'] ?? 'blog' }}" class="py-20 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14">
-            <h2 class="section-title">{{ $data['section_title'] ?? 'Blog & Artikel Terbaru' }}</h2>
+            <h2 class="section-title">{{ $data['section_title'] ?? 'Artikel Terbaru' }}</h2>
+            @if(!empty($data['section_subtitle']))
+            <p class="text-lg text-gray-600 mt-4">{{ $data['section_subtitle'] }}</p>
+            @endif
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             @foreach($posts as $post)
@@ -40,7 +43,7 @@
             @endforeach
         </div>
         <div class="text-center mt-10">
-            <a href="{{ route('blog.index') }}" class="btn-secondary">Lihat Semua {{ $data['section_title'] ?? 'Artikel' }}</a>
+            <a href="{{ route('artikel.index') }}" class="btn-secondary">Lihat Semua {{ $data['section_title'] ?? 'Artikel' }}</a>
         </div>
     </div>
 </section>
