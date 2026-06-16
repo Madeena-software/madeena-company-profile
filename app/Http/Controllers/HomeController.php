@@ -11,13 +11,20 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $sections    = Setting::getJson('homepage_sections', []);
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $isPreview = request('preview') === 'true' && $user instanceof \App\Models\User && $user->isAdmin();
+
+        if ($isPreview) {
+            $sections = Setting::getJson('homepage_sections_draft', Setting::getJson('homepage_sections', []));
+        } else {
+            $sections = Setting::getJson('homepage_sections', []);
+        }
         $seo         = Setting::getJson('seo', []);
         $contactInfo = Setting::getJson('contact_info', []);
         $socialMedia = Setting::getJson('social_media', []);
         $branding    = Setting::getJson('branding', []);
         $whatsapp    = Setting::getJson('whatsapp_button', ['enabled' => true, 'number' => '']);
-        $navItems    = HomepageEditor::getNavigation();
+        $navItems    = HomepageEditor::getNavigation($isPreview);
 
         // Inject dynamic data into auto-pull sections
         foreach ($sections as &$section) {
@@ -47,6 +54,7 @@ class HomeController extends Controller
             'branding',
             'whatsapp',
             'navItems',
+            'isPreview',
         ));
     }
 

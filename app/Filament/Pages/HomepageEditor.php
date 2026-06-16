@@ -48,7 +48,7 @@ class HomepageEditor extends Page implements HasForms
     public function mount(): void
     {
         // For standard array/json settings, retrieve with default fallback
-        $sections = Setting::getJson('homepage_sections', []);
+        $sections = Setting::getJson('homepage_sections_draft', Setting::getJson('homepage_sections', []));
 
         $this->form->fill([
             'sections' => $sections,
@@ -84,28 +84,54 @@ class HomepageEditor extends Page implements HasForms
                 ->color('info'),
 
             Action::make('save')
-                ->label('💾 Simpan')
+                ->label('💾 Simpan Draft')
                 ->icon('heroicon-o-check')
                 ->action('save')
-                ->color('success'),
+                ->color('warning'),
+
+            Action::make('publish')
+                ->label('🚀 Update Prod')
+                ->icon('heroicon-o-rocket-launch')
+                ->action('publish')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Update Website Live')
+                ->modalDescription(new \Illuminate\Support\HtmlString('Apakah Anda yakin ingin menerapkan perubahan draft ini ke website utama? Pengunjung akan langsung melihat perubahan ini.')),
         ];
     }
 
     public function save(): void
     {
         $state = $this->form->getState();
-        Setting::setJson('homepage_sections', $state['sections'] ?? []);
+        Setting::setJson('homepage_sections_draft', $state['sections'] ?? []);
 
         Notification::make()
             ->success()
-            ->title('Berhasil disimpan')
-            ->body('Halaman utama telah diperbarui.')
+            ->title('Draft Berhasil Disimpan')
+            ->body('Perubahan Anda telah disimpan sebagai draft. Gunakan Pratinjau untuk melihat perubahan.')
             ->send();
     }
 
-    public static function getNavigation(): array
+    public function publish(): void
     {
-        $sections = Setting::getJson('homepage_sections', []);
+        $draft = Setting::getJson('homepage_sections_draft', null);
+        
+        if (is_null($draft)) {
+            $draft = Setting::getJson('homepage_sections', []);
+        }
+
+        Setting::setJson('homepage_sections', $draft);
+
+        Notification::make()
+            ->success()
+            ->title('Berhasil Diupdate')
+            ->body('Halaman utama telah berhasil diterapkan ke website live.')
+            ->send();
+    }
+
+    public static function getNavigation(bool $useDraft = false): array
+    {
+        $sections = $useDraft ? Setting::getJson('homepage_sections_draft', Setting::getJson('homepage_sections', [])) : Setting::getJson('homepage_sections', []);
         $navItems = [];
 
         foreach ($sections as $section) {
