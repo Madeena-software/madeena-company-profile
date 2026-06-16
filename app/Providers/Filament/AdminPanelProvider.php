@@ -30,7 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->brandName(config('app.display_name', 'Madeena Company Profile'))
             ->login(SsoLogin::class)
-            ->profile()
+            ->profile(\App\Filament\Pages\Auth\CustomProfile::class)
             ->font('Outfit')
             ->colors([
                 'primary' => Color::Indigo,

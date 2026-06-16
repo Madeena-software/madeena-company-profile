@@ -301,7 +301,7 @@ jobs:
 
           echo "===> [3/3] Running post-deploy migrations and seeders..."
           set +e
-          MIGRATE_OUTPUT="$(docker exec "$CONTAINER" php artisan migrate --force --seed 2>&1)"
+          MIGRATE_OUTPUT="$(docker exec "$CONTAINER" php artisan migrate --force 2>&1)"
           MIGRATE_EXIT=$?
           set -e
           if [ "$MIGRATE_EXIT" -ne 0 ]; then
