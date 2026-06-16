@@ -83,7 +83,17 @@ screenshots/
 │   ├── dashboard-quick-actions.png — Quick action cards
 │   └── sidebar-menu.png           — Sidebar navigation menu
 │
-├── 03-artikel/
+├── 03-homepage/
+│   ├── homepage-editor.png         — Homepage editor full view
+│   ├── homepage-sections.png       — Section list (collapsed)
+│   ├── homepage-hero-edit.png      — Hero banner editing
+│   ├── homepage-about-edit.png     — About section editing
+│   ├── homepage-products-edit.png  — Products section
+│   ├── homepage-add-section.png    — Adding a new section
+│   ├── homepage-reorder.png        — Reordering sections (drag handle)
+│   └── homepage-preview.png        — Preview result
+│
+├── 04-artikel/
 │   ├── artikel-list.png            — Article listing page
 │   ├── artikel-create.png          — Create new article form
 │   ├── artikel-metadata-tab.png    — Metadata tab filled
@@ -99,16 +109,6 @@ screenshots/
 │   ├── block-references-form.png   — References block form
 │   ├── artikel-preview.png         — Article preview
 │   └── artikel-published.png       — Published article on frontend
-│
-├── 04-homepage/
-│   ├── homepage-editor.png         — Homepage editor full view
-│   ├── homepage-sections.png       — Section list (collapsed)
-│   ├── homepage-hero-edit.png      — Hero banner editing
-│   ├── homepage-about-edit.png     — About section editing
-│   ├── homepage-products-edit.png  — Products section
-│   ├── homepage-add-section.png    — Adding a new section
-│   ├── homepage-reorder.png        — Reordering sections (drag handle)
-│   └── homepage-preview.png        — Preview result
 │
 ├── 05-halaman/
 │   ├── halaman-list.png            — Pages listing
@@ -156,11 +156,11 @@ Create `docs/panduan-cms/panduan-cms.md` with the following structure:
 
 1. [Ringkasan Cepat (Cheat Sheet)](#1-ringkasan-cepat)
 2. [Masuk ke CMS (Login)](#2-masuk-ke-cms)
-3. [Mengenal Halaman Utama (Dashboard)](#3-mengenal-dashboard)
-4. [Menulis & Mengelola Artikel](#4-menulis-artikel)
-5. [Menggunakan Editor Teks (Rich Text Editor)](#5-editor-teks)
-6. [Menyisipkan Gambar, Tabel & Persamaan](#6-blok-akademik)
-7. [Mengelola Halaman Utama Website (Homepage)](#7-homepage-editor)
+3. [Mengenal Beranda (Dashboard)](#3-mengenal-dashboard)
+4. [Mengelola Halaman Utama Website (Homepage)](#4-homepage-editor)
+5. [Menulis & Mengelola Artikel](#5-menulis-artikel)
+6. [Menggunakan Editor Teks (Rich Text Editor)](#6-editor-teks)
+7. [Menyisipkan Gambar, Tabel & Persamaan](#7-blok-akademik)
 8. [Mengelola Halaman Statis](#8-halaman-statis)
 9. [Mengelola Produk](#9-produk)
 10. [Pengaturan Website](#10-pengaturan)
@@ -201,19 +201,54 @@ Step-by-step login flow:
 - Show the SSO login page with labeled arrows
 - Show the dashboard after successful login
 
-### 1.3 Chapter: Mengenal Halaman Utama (Dashboard)
+### 1.3 Chapter: Mengenal Beranda / Dashboard
 
 1. Explain the dashboard layout with annotated screenshot
-2. Explain the sidebar menu — what each icon means
+2. Explain the sidebar menu — what each icon means:
+   - 🏠 Halaman Utama → editor halaman depan website
+   - 📦 Produk → kelola daftar produk
+   - 📝 Artikel → tulis dan kelola artikel
+   - 📄 Halaman → buat halaman statis
+   - ⚙️ Pengaturan → ubah pengaturan website
+   - 👥 Pengguna → kelola akun pengguna
+   - 📩 Pesan Inabuyer → lihat pesan masuk
 3. Explain the quick action cards
 4. Explain the statistics overview
 5. Explain the recent activity feed
+6. **Transition to Homepage Editor** — end the chapter with a natural bridge:
+   > "Sekarang Anda sudah mengenal Beranda (*Dashboard*). Mari kita mulai dengan hal yang paling penting: **mengelola tampilan halaman utama website Anda**. Klik menu 🏠 **Halaman Utama** di sebelah kiri."
 
 **Key instructions**:
 - Number and label every section of the dashboard in the screenshot
 - Use callout boxes: "💡 **Tips**: Anda selalu bisa kembali ke halaman ini dengan mengklik logo Madeena di pojok kiri atas."
+- The sidebar menu explanation serves as a "map" so the professor knows what each menu item does before diving into individual chapters
+- The transition text at the end should feel natural, like a teacher guiding the student to the next lesson
 
-### 1.4 Chapter: Menulis & Mengelola Artikel
+### 1.4 Chapter: Mengelola Halaman Utama Website (Homepage Editor)
+
+> **Note to AI Agent**: This chapter comes right after Dashboard because it's the first thing the professor will want to manage. The Dashboard chapter ends with a transition bridge leading here.
+
+1. **Membuka Homepage Editor** — click "🏠 Halaman Utama" in sidebar
+2. **Memahami bagian-bagian (sections)** — explain what each section type is:
+   - Hero Banner = spanduk besar di atas website
+   - Produk = etalase produk
+   - Tentang Kami = profil perusahaan
+   - Keunggulan = kartu-kartu keunggulan
+   - Sertifikasi = daftar izin dan sertifikat
+   - Kontak = informasi kontak
+   - Blog Terbaru = artikel terbaru
+   - Galeri = kumpulan foto
+   - Testimoni = testimoni pelanggan
+   - Video = video YouTube
+   - Teks Bebas = konten tulisan bebas
+3. **Mengedit bagian yang sudah ada** — click to expand, edit fields, save
+4. **Menambah bagian baru** — click "+ Tambah Bagian Baru", select type
+5. **Mengubah urutan bagian** — drag the ≡ handle to reorder
+6. **Menghapus bagian** — click delete icon (with confirmation warning)
+7. **Pratinjau (Preview)** — click "👁️ Pratinjau" button to see changes before publishing
+8. **Menyimpan perubahan** — click "💾 Simpan"
+
+### 1.5 Chapter: Menulis & Mengelola Artikel
 
 Full tutorial flow:
 
@@ -222,7 +257,7 @@ Full tutorial flow:
    - Step-by-step: Click "Buat Baru", fill in each tab
    - Tab 1 (Metadata): Title, slug (explain auto-generate), category, cover image, publish toggle
    - Tab 2 (Info Akademik): Abstract, keywords, authors — explain each field with examples from Prof. Suparta's actual research domain (Physics, CT-Scan, Digital Radiography)
-   - Tab 3 (Konten): Using the rich text editor (reference Chapter 5)
+   - Tab 3 (Konten): Using the rich text editor (reference Chapter 6)
 3. **Mengedit artikel** — find article in list, click edit, make changes, save
 4. **Menghapus artikel** — with warning about permanent deletion
 5. **Mempublikasikan artikel** — toggle `is_published` and set `published_at`
@@ -233,7 +268,7 @@ Full tutorial flow:
 - Explain what "slug" means: "Slug adalah versi singkat dari judul yang digunakan di alamat website. Contoh: judul 'Analisis Morfologi' menjadi slug 'analisis-morfologi'."
 - Explain what "publish" means vs "draft"
 
-### 1.5 Chapter: Menggunakan Editor Teks (Rich Text Editor)
+### 1.6 Chapter: Menggunakan Editor Teks (Rich Text Editor)
 
 Detailed, toolbar-button-by-button guide:
 
@@ -257,7 +292,7 @@ Detailed, toolbar-button-by-button guide:
 - Show before/after of each formatting action
 - Add a warning: "⚠️ **Penting**: Jangan lupa menyimpan artikel Anda secara berkala dengan mengklik tombol **Simpan** di pojok kanan atas."
 
-### 1.6 Chapter: Menyisipkan Gambar, Tabel & Persamaan (Blok Akademik)
+### 1.7 Chapter: Menyisipkan Gambar, Tabel & Persamaan (Blok Akademik)
 
 Step-by-step for each custom block:
 
@@ -296,28 +331,6 @@ Step-by-step for each custom block:
 6. **Rujukan Silang (Cross-References)**:
    - Explain how to type `[Gambar 1]`, `[Tabel 1]`, `[Persamaan 1]`, `[1]` in the text to create clickable references
    - Example: "Seperti ditunjukkan pada [Gambar 1], morfologi permukaan..."
-
-### 1.7 Chapter: Mengelola Halaman Utama Website (Homepage Editor)
-
-1. **Membuka Homepage Editor** — click "🏠 Halaman Utama" in sidebar
-2. **Memahami bagian-bagian (sections)** — explain what each section type is:
-   - Hero Banner = spanduk besar di atas website
-   - Produk = etalase produk
-   - Tentang Kami = profil perusahaan
-   - Keunggulan = kartu-kartu keunggulan
-   - Sertifikasi = daftar izin dan sertifikat
-   - Kontak = informasi kontak
-   - Blog Terbaru = artikel terbaru
-   - Galeri = kumpulan foto
-   - Testimoni = testimoni pelanggan
-   - Video = video YouTube
-   - Teks Bebas = konten tulisan bebas
-3. **Mengedit bagian yang sudah ada** — click to expand, edit fields, save
-4. **Menambah bagian baru** — click "+ Tambah Bagian Baru", select type
-5. **Mengubah urutan bagian** — drag the ≡ handle to reorder
-6. **Menghapus bagian** — click delete icon (with confirmation warning)
-7. **Pratinjau (Preview)** — click "👁️ Pratinjau" button to see changes before publishing
-8. **Menyimpan perubahan** — click "💾 Simpan"
 
 ### 1.8 Chapter: Mengelola Halaman Statis
 
@@ -363,7 +376,7 @@ Write at least 10 common questions and answers:
 | 3 | Lupa password | Hubungi tim teknis Madeena di [contact info] untuk reset password SSO |
 | 4 | Persamaan LaTeX tidak muncul dengan benar | Pastikan format LaTeX benar. Coba salin dari contoh yang tersedia di panduan ini |
 | 5 | Perubahan di halaman utama tidak terlihat | Pastikan Anda sudah mengklik tombol "💾 Simpan" setelah mengedit |
-| 6 | Tabel berantakan tampilannya | Periksa format HTML tabel. Gunakan template yang disediakan di Bab 6 |
+| 6 | Tabel berantakan tampilannya | Periksa format HTML tabel. Gunakan template yang disediakan di Bab 7 |
 | 7 | Website lambat saat mengunggah gambar | Kompres gambar terlebih dahulu menggunakan [tool online gratis]. Idealnya di bawah 2MB |
 | 8 | Tidak bisa mengakses halaman admin | Pastikan Anda menggunakan alamat yang benar: [admin URL]. Jika masih gagal, hubungi tim teknis |
 | 9 | Artikel terhapus secara tidak sengaja | Segera hubungi tim teknis. Data mungkin masih bisa dipulihkan dari backup |
