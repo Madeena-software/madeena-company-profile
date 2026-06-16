@@ -30,7 +30,21 @@ class ProductResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    protected static function isAdminUser(): bool
+    {
+        $user = Auth::user();
+        return $user instanceof User && $user->isAdmin();
+    }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::isAdminUser();
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::isAdminUser();
+    }
 
     public static function form(Schema $schema): Schema
     {

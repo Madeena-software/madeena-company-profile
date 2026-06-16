@@ -145,7 +145,7 @@
       "description": "Fixed production 500 error caused by missing section view in homepage editor. Added dynamic existence check before rendering."
     }
   ],
-  "last_updated": "2026-06-16T08:35:00+07:00",
+  "last_updated": "2026-06-16T09:12:00+07:00",
   "ai_bootstrapped": true,
   "testing_strategy": "Defined in .ai/rules/testing-pyramid.md (Unit > Feature > E2E)"
 }

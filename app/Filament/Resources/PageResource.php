@@ -34,8 +34,21 @@ class PageResource extends Resource
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document';
 
     protected static ?string $navigationLabel = 'Halaman';
+    protected static function isAdminUser(): bool
+    {
+        $user = Auth::user();
+        return $user instanceof User && $user->isAdmin();
+    }
 
-    protected static ?int $navigationSort = 4;
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::isAdminUser();
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::isAdminUser();
+    }
 
 
 

@@ -210,3 +210,18 @@
 
 ### Result
 ✅ 500 error resolved by introducing robust view existence checks on dynamic homepage blocks. Fix deployed to production.
+
+---
+
+## 2026-06-16 — Session 14: Centralized Auth and RBAC Enhancement
+
+**Agent**: Antigravity (Gemini 3.1 Pro)
+**Objective**: Remove password field from User form and enforce RBAC where non-admin users can only manage Articles.
+
+### Actions Performed
+1. **User Form Update**: Removed the `password` field from `UserResource.php` because authentication is now centralized via `madeena-am` (IAM).
+2. **RBAC Enforcement**: Added `isAdminUser()` checks to `PageResource`, `ProductResource`, `SiteSettings`, and `HomepageEditor` to ensure they are only accessible to Admin users.
+3. **Dashboard Navigation**: Restricted `Dashboard.php` so it does not register in the sidebar for non-admin users, keeping their sidebar restricted to just the "Artikel" menu.
+
+### Result
+✅ Password field removed and RBAC successfully refined. Non-admin users now have a simplified interface focused solely on Articles.

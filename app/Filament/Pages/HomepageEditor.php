@@ -20,6 +20,22 @@ class HomepageEditor extends Page implements HasForms
     protected static ?string $title = 'Edit Halaman Utama';
     protected static ?int $navigationSort = 1;
 
+    protected static function isAdminUser(): bool
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        return $user instanceof \App\Models\User && $user->isAdmin();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::isAdminUser();
+    }
+
+    public static function canAccess(): bool
+    {
+        return static::isAdminUser();
+    }
+
     public function getMaxContentWidth(): \Filament\Support\Enums\Width | string | null
     {
         return \Filament\Support\Enums\Width::Full;

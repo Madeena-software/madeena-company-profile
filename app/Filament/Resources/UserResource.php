@@ -92,13 +92,6 @@ class UserResource extends Resource
                     ->required()
                     ->default('user')
                     ->native(false),
-                TextInput::make('password')
-                    ->label('Password')
-                    ->password()
-                    ->required(fn (string $operation): bool => $operation === 'create')
-                    ->dehydrated(fn (?string $state): bool => filled($state))
-                    ->minLength(6)
-                    ->maxLength(255),
             ])->columns(2),
         ]);
     }
