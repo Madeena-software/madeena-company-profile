@@ -225,3 +225,18 @@
 
 ### Result
 ✅ Password field removed and RBAC successfully refined. Non-admin users now have a simplified interface focused solely on Articles.
+
+---
+
+## 2026-06-16 — Session 15: CMS User Guide Generation
+
+**Agent**: Antigravity (Gemini 3.1 Pro)
+**Objective**: Generate a comprehensive CMS User Guide with actual screenshots using Playwright.
+
+### Actions Performed
+1. **Feature Discovery**: Scanned all Filament pages, resources, blocks, and widgets to build a dynamic feature inventory.
+2. **Playwright Integration**: Created `DocumentationSeeder` for realistic academic/physics test data and a Playwright script `capture-screenshots.js` that bypasses SSO locally to capture CMS UI.
+3. **Markdown Generation**: Drafted `docs/panduan-cms/panduan-cms.md` featuring all required chapters (Cheat Sheet, Login, Dashboard, Homepage, Products, Articles, Pages, Settings, Users, FAQ) and embedded the screenshots.
+
+### Result
+✅ Comprehensive CMS User Guide successfully generated and documented.

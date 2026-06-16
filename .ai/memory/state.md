@@ -66,6 +66,7 @@
 | 2026-06-15 | Event & GuestMessage migrations implemented      | ✅     |
 | 2026-06-15 | Blog components and routes renamed to Artikel    | ✅     |
 | 2026-06-16 | Homepage resilience fixed, layout updated        | ✅     |
+| 2026-06-16 | CMS User Guide generated with Playwright         | ✅     |
 
 ---
 
