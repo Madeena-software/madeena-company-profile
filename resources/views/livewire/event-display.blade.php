@@ -5,7 +5,7 @@
         lastScrollHeight: 0,
         scrollStep: 1,
         autoScroll: true,
-        storageKey: 'madeena.inabuyer2026.display.autoScroll',
+        storageKey: 'madeena.event-{{ $event->slug }}.display.autoScroll',
         init() {
             this.autoScroll = this.readAutoScrollPreference();
             this.$watch('autoScroll', (value) => this.persistAutoScrollPreference(value));

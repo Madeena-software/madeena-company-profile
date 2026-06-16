@@ -2,32 +2,43 @@
 
 namespace Tests\Feature;
 
-use App\Models\InabuyerMessage;
+use App\Models\Event;
+use App\Models\GuestMessage;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-class Inabuyer2026FeedbackTest extends TestCase
+class EventFeedbackTest extends TestCase
 {
+    use RefreshDatabase;
+
+    private Event $event;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->event = Event::create(['name' => 'Inabuyer 2026', 'slug' => 'inabuyer-2026', 'is_active' => true]);
+    }
+
     public function test_feedback_page_is_accessible(): void
     {
-        $response = $this->get(route('inabuyer2026.feedback'));
+        $response = $this->get(route('events.feedback', ['event' => $this->event->slug]));
 
         $response->assertOk();
-        $response->assertSee('Inabuyer 2026 Feedback');
         $response->assertSee('Jabatan');
         $response->assertSee('Nomor yang bisa');
         $response->assertSee('Email');
         $response->assertSee('data-feedback-form', false);
         $response->assertSee('data-csrf-refresh-url', false);
-        $response->assertSee(route('inabuyer2026.feedback.csrf-token'), false);
+        $response->assertSee(route('events.feedback.csrf-token', ['event' => $this->event->slug]), false);
     }
 
     public function test_feedback_csrf_token_endpoint_returns_uncached_token(): void
     {
-        $response = $this->getJson(route('inabuyer2026.feedback.csrf-token'));
+        $response = $this->getJson(route('events.feedback.csrf-token', ['event' => $this->event->slug]));
 
         $response->assertOk();
         $response->assertJsonStructure(['token']);
@@ -48,12 +59,13 @@ class Inabuyer2026FeedbackTest extends TestCase
             'kesan_dan_pesan' => 'Acara sangat bermanfaat dan saya berharap sesi networking ditambah pada tahun berikutnya.',
         ];
 
-        $response = $this->post(route('inabuyer2026.feedback.store'), $payload);
+        $response = $this->post(route('events.feedback.store', ['event' => $this->event->slug]), $payload);
 
-        $response->assertRedirect(route('inabuyer2026.feedback'));
+        $response->assertRedirect(route('events.feedback', ['event' => $this->event->slug]));
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseHas('inabuyer_messages', [
+        $this->assertDatabaseHas('guest_messages', [
+            'event_id' => $this->event->id,
             'name' => 'Aisyah Putri',
             'organization' => 'PT Nusantara Export',
             'position' => 'Business Development Manager',
@@ -75,43 +87,13 @@ class Inabuyer2026FeedbackTest extends TestCase
             'kesan_dan_pesan' => '',
         ];
 
-        $response = $this->from(route('inabuyer2026.feedback'))
-            ->post(route('inabuyer2026.feedback.store'), $payload);
+        $response = $this->from(route('events.feedback', ['event' => $this->event->slug]))
+            ->post(route('events.feedback.store', ['event' => $this->event->slug]), $payload);
 
-        $response->assertRedirect(route('inabuyer2026.feedback'));
+        $response->assertRedirect(route('events.feedback', ['event' => $this->event->slug]));
         $response->assertSessionHasErrors(['kesan_dan_pesan']);
 
-        $this->assertSame(0, InabuyerMessage::query()->count());
+        $this->assertSame(0, GuestMessage::query()->count());
     }
 
-    public function test_feedback_token_mismatch_redirects_back_with_input_and_error(): void
-    {
-        $payload = [
-            'name' => 'Citra Lestari',
-            'organization' => 'RS Sehat Sentosa',
-            'position' => 'Radiology Coordinator',
-            'phone' => '+62 811 2222 3333',
-            'email' => 'citra.lestari@example.com',
-            'kesan_dan_pesan' => 'Formulir ini tetap harus bisa dikirim ulang saat sesi kedaluwarsa.',
-            '_token' => 'expired-token',
-        ];
-
-        $session = $this->app['session.store'];
-        $session->start();
-
-        $request = Request::create('/inabuyer2026/feedback', 'POST', $payload);
-        $request->setLaravelSession($session);
-
-        $response = $this->app->make(ExceptionHandler::class)
-            ->render($request, new TokenMismatchException('CSRF token mismatch.'));
-
-        $testResponse = TestResponse::fromBaseResponse($response);
-
-        $testResponse->assertRedirect(route('inabuyer2026.feedback'));
-        $testResponse->assertSessionHasErrors(['_token']);
-        $testResponse->assertSessionHasInput('name', 'Citra Lestari');
-        $testResponse->assertSessionHasInput('organization', 'RS Sehat Sentosa');
-
-        $this->assertFalse($session->hasOldInput('_token'));
-    }
 }

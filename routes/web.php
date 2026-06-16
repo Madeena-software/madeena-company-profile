@@ -1,10 +1,9 @@
 <?php
 
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\Inabuyer2026\FeedbackController;
 use App\Http\Controllers\PublicStorageController;
 use App\Http\Controllers\SsoController;
-use App\Livewire\Inabuyer2026Display;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -27,15 +26,18 @@ Route::get('/storage/{path}', PublicStorageController::class)
     ->where('path', '.*')
     ->name('storage.public');
 
-Route::prefix('inabuyer2026')
-    ->name('inabuyer2026.')
+Route::prefix('events/{event:slug}')
+    ->name('events.')
     ->group(function (): void {
-        Route::get('/feedback', [FeedbackController::class, 'create'])->name('feedback');
-        Route::get('/feedback/csrf-token', [FeedbackController::class, 'csrfToken'])
+        Route::get('/feedback', [\App\Http\Controllers\Event\FeedbackController::class, 'create'])->name('feedback');
+        Route::get('/feedback/csrf-token', [\App\Http\Controllers\Event\FeedbackController::class, 'csrfToken'])
             ->name('feedback.csrf-token');
-        Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
-        Route::get('/display', Inabuyer2026Display::class)->name('display');
+        Route::post('/feedback', [\App\Http\Controllers\Event\FeedbackController::class, 'store'])->name('feedback.store');
+        Route::get('/display', \App\Livewire\EventDisplay::class)->name('display');
     });
+
+Route::redirect('/inabuyer2026/feedback', '/events/inabuyer-2026/feedback');
+Route::redirect('/inabuyer2026/display', '/events/inabuyer-2026/display');
 
 Route::prefix('sso')->group(function (): void {
     Route::get('/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
@@ -44,6 +46,6 @@ Route::prefix('sso')->group(function (): void {
 });
 Route::get('/login-test-user', function () {
     $user = \App\Models\User::first();
-    auth()->login($user);
+    Auth::login($user);
     return redirect('/admin');
 });

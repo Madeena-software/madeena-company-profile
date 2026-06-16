@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Inabuyer2026;
+namespace App\Http\Controllers\Event;
 
 use App\Http\Controllers\Controller;
-use App\Models\InabuyerMessage;
+use App\Models\Event;
+use App\Models\GuestMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,9 +12,9 @@ use Illuminate\View\View;
 
 class FeedbackController extends Controller
 {
-    public function create(): View
+    public function create(Event $event): View
     {
-        return view('inabuyer2026.feedback');
+        return view('event.feedback', compact('event'));
     }
 
     public function csrfToken(): JsonResponse
@@ -23,7 +24,7 @@ class FeedbackController extends Controller
             ->header('Cache-Control', 'no-store');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, Event $event): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -34,7 +35,8 @@ class FeedbackController extends Controller
             'kesan_dan_pesan' => ['required', 'string', 'max:5000'],
         ]);
 
-        InabuyerMessage::create([
+        GuestMessage::create([
+            'event_id' => $event->id,
             'name' => trim($validated['name'] ?? ''),
             'organization' => isset($validated['organization']) ? trim($validated['organization']) : null,
             'position' => isset($validated['position']) ? trim($validated['position']) : null,
@@ -44,7 +46,7 @@ class FeedbackController extends Controller
         ]);
 
         return redirect()
-            ->route('inabuyer2026.feedback')
+            ->route('events.feedback', ['event' => $event->slug])
             ->with('success', 'Terima kasih. Kesan dan pesan Anda telah kami terima.');
     }
 }

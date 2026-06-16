@@ -85,8 +85,8 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('inabuyer2026.feedback.store') }}" class="space-y-5"
-                    data-feedback-form data-csrf-refresh-url="{{ route('inabuyer2026.feedback.csrf-token') }}">
+                <form method="POST" action="{{ route('events.feedback.store', ['event' => $event->slug]) }}" class="space-y-5"
+                    data-feedback-form data-csrf-refresh-url="{{ route('events.feedback.csrf-token', ['event' => $event->slug]) }}">
                     @csrf
 
                     <div class="grid gap-5 md:grid-cols-2">

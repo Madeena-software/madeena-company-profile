@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class InabuyerMessage extends Model
+class GuestMessage extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'event_id',
         'name',
         'organization',
         'position',
@@ -23,12 +24,17 @@ class InabuyerMessage extends Model
         'is_visible' => 'boolean',
     ];
 
-    public function scopeVisible($query)
+    public function event()
+    {
+        return $this->belongsTo(Event::class);
+    }
+
+    public function scopeVisible(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('is_visible', true);
     }
 
-    public function scopeHidden($query)
+    public function scopeHidden(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('is_visible', false);
     }
