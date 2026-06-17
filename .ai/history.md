@@ -240,3 +240,18 @@
 
 ### Result
 ✅ Comprehensive CMS User Guide successfully generated and documented.
+
+---
+
+## 2026-06-17 — Session 16: Navigation Bug Fix (Orphaned Block Rendering)
+
+**Agent**: Antigravity (Gemini 3.1 Pro)
+**Objective**: Debug and fix an issue on the production server where a navigation item ("Insight") remains visible even after its toggle is turned off in the Filament Homepage Editor.
+
+### Actions Performed
+1. **Root Cause Analysis via `gh cli`**: Triggered the `download-backup.yml` GitHub workflow using `gh cli` to fetch the production database. Inspected the `homepage_sections` settings JSON.
+2. **Issue Identification**: Discovered that an orphaned `blog` block (from before it was renamed to `artikel` in Session 11) was still present in the database with `show_in_nav: true`. While the previous resilience fix (Session 13) prevented it from causing a 500 error in the body, `HomepageEditor::getNavigation()` was still including it in the top navigation bar because it didn't check if the block's view actually existed.
+3. **Resilience Enhancement**: Updated `HomepageEditor::getNavigation()` to skip blocks whose views no longer exist (`View::exists()`), matching the logic in `home.blade.php`. This completely hides orphaned/legacy blocks from the live navigation without requiring manual database cleanup.
+
+### Result
+✅ Navigation bug fixed by enforcing view existence checks on navigation items. Orphaned settings no longer appear in the live navbar.
