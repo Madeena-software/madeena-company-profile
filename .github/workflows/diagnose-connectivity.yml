@@ -1,0 +1,190 @@
+name: Diagnose Production Connectivity
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Production Diagnostics (Read-Only)
+    runs-on: self-hosted
+    steps:
+      - name: A. Docker & Swarm Node State
+        run: |
+          echo "=== [A] Docker & Swarm Node State ==="
+          docker info --format 'Swarm State: {{.Swarm.LocalNodeState}} | Manager: {{.Swarm.ControlAvailable}} | NodeID: {{.Swarm.NodeID}}'
+          echo ""
+          docker node ls 2>/dev/null || true
+
+      - name: B. Stack & Service State
+        run: |
+          echo "=== [B] Stack & Service State ==="
+          echo "--- docker stack ls ---"
+          docker stack ls || true
+          echo ""
+          echo "--- docker stack services madeena_cp ---"
+          docker stack services madeena_cp || true
+          echo ""
+          echo "--- docker stack ps madeena_cp (no-trunc) ---"
+          docker stack ps madeena_cp --no-trunc || true
+          echo ""
+          echo "--- docker service ls ---"
+          docker service ls || true
+          echo ""
+          for svc in madeena_cp_nginx madeena_cp_app madeena_cp_db madeena_cp_queue; do
+            echo "--- docker service ps $svc (no-trunc) ---"
+            docker service ps "$svc" --no-trunc || true
+            echo ""
+          done
+
+      - name: C. Service Inspection (Nginx & App Specs)
+        run: |
+          echo "=== [C] Service Inspection ==="
+          echo "--- nginx service inspect ---"
+          docker service inspect madeena_cp_nginx --format '
+          Service Name: {{.Spec.Name}}
+          Networks: {{json .Spec.TaskTemplate.Networks}}
+          EndpointSpec: {{json .Spec.EndpointSpec}}
+          Endpoint Ports: {{json .Endpoint.Ports}}
+          UpdateConfig: {{json .Spec.UpdateConfig}}
+          RollbackConfig: {{json .Spec.RollbackConfig}}
+          Placement: {{json .Spec.TaskTemplate.Placement}}
+          ' || true
+          echo ""
+          echo "--- app service inspect ---"
+          docker service inspect madeena_cp_app --format '
+          Service Name: {{.Spec.Name}}
+          Networks: {{json .Spec.TaskTemplate.Networks}}
+          UpdateConfig: {{json .Spec.UpdateConfig}}
+          RollbackConfig: {{json .Spec.RollbackConfig}}
+          Placement: {{json .Spec.TaskTemplate.Placement}}
+          ' || true
+
+      - name: D. Host Port State & Host Probes
+        run: |
+          echo "=== [D] Host Port State & Probing 127.0.0.1:8011 ==="
+          echo "--- ss -ltnp (filtered for port 8011 or docker) ---"
+          ss -ltnp || true
+          echo ""
+          echo "--- curl http://127.0.0.1:8011/ ---"
+          curl -sv --max-time 10 http://127.0.0.1:8011/ || echo "curl / exit code: $?"
+          echo ""
+          echo "--- curl http://127.0.0.1:8011/health ---"
+          curl -sv --max-time 10 http://127.0.0.1:8011/health || echo "curl /health exit code: $?"
+          echo ""
+          echo "--- curl http://127.0.0.1:8011/up ---"
+          curl -sv --max-time 10 http://127.0.0.1:8011/up || echo "curl /up exit code: $?"
+          echo ""
+
+      - name: E. Nginx Container & Logs
+        run: |
+          echo "=== [E] Nginx Container & Logs ==="
+          NGINX_CONTAINER="$(docker ps -q -f name=madeena_cp_nginx -f status=running | head -n 1)"
+          echo "Nginx container ID: $NGINX_CONTAINER"
+          if [ -n "$NGINX_CONTAINER" ]; then
+            docker inspect "$NGINX_CONTAINER" --format '
+            Container ID: {{.Id}}
+            Status: {{.State.Status}}
+            Health: {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}
+            '
+            echo "--- nginx -t ---"
+            docker exec "$NGINX_CONTAINER" nginx -t || true
+            echo ""
+            echo "--- default.conf ---"
+            docker exec "$NGINX_CONTAINER" cat /etc/nginx/conf.d/default.conf || true
+          else
+            echo "No running nginx container found."
+          fi
+          echo ""
+          echo "--- docker service logs madeena_cp_nginx (tail 100) ---"
+          docker service logs madeena_cp_nginx --tail=100 2>&1 || true
+
+      - name: F. App Container & Logs
+        run: |
+          echo "=== [F] App Container & Logs ==="
+          APP_CONTAINER="$(docker ps -q -f name=madeena_cp_app -f status=running | head -n 1)"
+          echo "App container ID: $APP_CONTAINER"
+          if [ -n "$APP_CONTAINER" ]; then
+            docker inspect "$APP_CONTAINER" --format '
+            Container ID: {{.Id}}
+            Status: {{.State.Status}}
+            Health: {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}
+            '
+            echo "--- PHP-FPM listening check on 127.0.0.1:9000 ---"
+            docker exec "$APP_CONTAINER" php -r '$s=@fsockopen("127.0.0.1",9000,$errno,$errstr,3); if($s){echo "PHP-FPM 127.0.0.1:9000 is LISTENING\n"; fclose($s);}else{echo "PHP-FPM connect failed: $errstr ($errno)\n";}' || true
+            echo ""
+            echo "--- App Container laravel.log (tail 100) ---"
+            docker exec "$APP_CONTAINER" tail -n 100 /var/www/html/storage/logs/laravel.log 2>&1 || echo "No laravel.log found"
+          else
+            echo "No running app container found."
+          fi
+          echo ""
+          echo "--- docker service logs madeena_cp_app (tail 100) ---"
+          docker service logs madeena_cp_app --tail=100 2>&1 || true
+
+      - name: G. Service Discovery (Nginx -> App)
+        run: |
+          echo "=== [G] Service Discovery from inside Nginx ==="
+          NGINX_CONTAINER="$(docker ps -q -f name=madeena_cp_nginx -f status=running | head -n 1)"
+          if [ -n "$NGINX_CONTAINER" ]; then
+            echo "--- /etc/resolv.conf ---"
+            docker exec "$NGINX_CONTAINER" cat /etc/resolv.conf || true
+            echo ""
+            echo "--- getent hosts madeena_cp_app ---"
+            docker exec "$NGINX_CONTAINER" getent hosts madeena_cp_app || echo "getent hosts madeena_cp_app failed"
+            echo ""
+            echo "--- getent hosts app ---"
+            docker exec "$NGINX_CONTAINER" getent hosts app || echo "getent hosts app failed"
+            echo ""
+            echo "--- nslookup madeena_cp_app 127.0.0.11 ---"
+            docker exec "$NGINX_CONTAINER" nslookup madeena_cp_app 127.0.0.11 || echo "nslookup madeena_cp_app failed"
+          else
+            echo "No running nginx container"
+          fi
+
+      - name: H. TCP Connectivity (Nginx -> App:9000)
+        run: |
+          echo "=== [H] TCP Connectivity from inside Nginx ==="
+          NGINX_CONTAINER="$(docker ps -q -f name=madeena_cp_nginx -f status=running | head -n 1)"
+          if [ -n "$NGINX_CONTAINER" ]; then
+            echo "--- Testing TCP to madeena_cp_app:9000 ---"
+            docker exec "$NGINX_CONTAINER" nc -z -v -w 3 madeena_cp_app 9000 || echo "nc to madeena_cp_app:9000 failed"
+            echo ""
+            echo "--- Testing TCP to app:9000 ---"
+            docker exec "$NGINX_CONTAINER" nc -z -v -w 3 app 9000 || echo "nc to app:9000 failed"
+          else
+            echo "No running nginx container"
+          fi
+
+      - name: I. Swarm Networks & Overlay State
+        run: |
+          echo "=== [I] Docker / Swarm Networks ==="
+          echo "--- docker network ls ---"
+          docker network ls || true
+          echo ""
+          echo "--- Overlay Networks Inspection ---"
+          for net in $(docker network ls --filter driver=overlay -q); do
+            docker network inspect "$net" --format '
+            Network: {{.Name}} (ID: {{.Id}})
+            Driver: {{.Driver}} | Scope: {{.Scope}} | Internal: {{.Internal}} | Attachable: {{.Attachable}}
+            DriverOpts: {{json .Options}}
+            IPAM Subnets: {{range .IPAM.Config}}{{.Subnet}} (Gateway: {{.Gateway}}){{end}}
+            Containers: {{json .Containers}}
+            ' || true
+          done
+          echo ""
+          echo "--- Bridge / Ingress Networks Inspection ---"
+          for net in ingress bridge docker0; do
+            docker network inspect "$net" 2>/dev/null || true
+          done
+
+      - name: J. Host Networking & Interface State
+        run: |
+          echo "=== [J] Host Networking & Interfaces ==="
+          echo "--- ip -4 addr ---"
+          ip -4 addr || true
+          echo ""
+          echo "--- ip -4 route ---"
+          ip -4 route || true
+          echo ""
+          echo "--- ip link show docker0 ---"
+          ip link show docker0 || true
