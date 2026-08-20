@@ -158,13 +158,13 @@ services:
       update_config:
         parallelism: 1
         delay: 5s
-        order: start-first
+        order: stop-first
         failure_action: rollback
         monitor: 10s
         max_failure_ratio: 0
       rollback_config:
         parallelism: 1
-        order: start-first
+        order: stop-first
       restart_policy:
         condition: any
         delay: 5s
@@ -176,7 +176,10 @@ services:
         reservations:
           memory: 32M
     ports:
-      - "8011:80"
+      - target: 80
+        published: 8011
+        protocol: tcp
+        mode: host
     volumes:
       - ./nginx/conf.d/app.conf:/etc/nginx/conf.d/default.conf:ro
       - app_public:/var/www/html/public:ro
@@ -203,9 +206,4 @@ volumes:
 networks:
   "madeena_cp_network":
     driver: overlay
-    driver_opts:
-      com.docker.network.driver.overlay.bind_interface: "0.0.0.0"
-      com.docker.network.driver.overlay.network_interface: "docker0"
-    ipam:
-      config:
-        - subnet: "10.0.11.0/24"
+    attachable: true
