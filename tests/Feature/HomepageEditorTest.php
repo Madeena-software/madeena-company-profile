@@ -192,4 +192,100 @@ class HomepageEditorTest extends TestCase
         $this->assertIsArray($published);
         $this->assertEquals('Existing Published Title', $published[0]['data']['banners'][0]['title']);
     }
+
+    public function test_rich_hero_and_cta_formatting_survives_save_and_publish_cycle()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $richSections = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'Rich Hero Title',
+                            'description' => '<p>Paragraf 1 dengan <strong>tebal</strong>.</p><p>Paragraf 2 <a href="https://example.com">link</a>.</p>',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'cta',
+                'data' => [
+                    'title' => 'Rich CTA Title',
+                    'subtitle' => '<ul><li>Fitur 1</li><li>Fitur 2</li></ul>',
+                    'button_text' => 'Hubungi',
+                    'button_url' => '#kontak',
+                ],
+            ],
+        ];
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->fillForm(['sections' => $richSections])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $draft = Setting::getJson('homepage_sections_draft');
+        $this->assertEquals('<p>Paragraf 1 dengan <strong>tebal</strong>.</p><p>Paragraf 2 <a href="https://example.com">link</a>.</p>', $draft[0]['data']['banners'][0]['description']);
+        $this->assertStringContainsString('Fitur 1', $draft[1]['data']['subtitle']);
+        $this->assertStringContainsString('Fitur 2', $draft[1]['data']['subtitle']);
+        $this->assertStringContainsString('<ul>', $draft[1]['data']['subtitle']);
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('publish');
+
+        $published = Setting::getJson('homepage_sections');
+        $this->assertEquals('<p>Paragraf 1 dengan <strong>tebal</strong>.</p><p>Paragraf 2 <a href="https://example.com">link</a>.</p>', $published[0]['data']['banners'][0]['description']);
+        $this->assertStringContainsString('Fitur 1', $published[1]['data']['subtitle']);
+        $this->assertStringContainsString('Fitur 2', $published[1]['data']['subtitle']);
+        $this->assertStringContainsString('<ul>', $published[1]['data']['subtitle']);
+    }
+
+    public function test_draft_rich_content_is_isolated_from_public_and_anonymous_preview()
+    {
+        $publishedData = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'Live Public Hero',
+                            'description' => '<p>Published live copy.</p>',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $draftData = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'Secret Draft Hero',
+                            'description' => '<p>Confidential draft copy with <strong>secret info</strong>.</p>',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        Setting::setJson('homepage_sections', $publishedData);
+        Setting::setJson('homepage_sections_draft', $draftData);
+
+        // Anonymous public visitor
+        $pubResponse = $this->get('/');
+        $pubResponse->assertSuccessful();
+        $pubResponse->assertSee('Published live copy.');
+        $pubResponse->assertDontSee('Confidential draft copy');
+
+        // Anonymous ?preview=true
+        $previewResponse = $this->get('/?preview=true');
+        $previewResponse->assertSuccessful();
+        $previewResponse->assertSee('Published live copy.');
+        $previewResponse->assertDontSee('Confidential draft copy');
+    }
 }
