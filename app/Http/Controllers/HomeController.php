@@ -3,25 +3,45 @@
 namespace App\Http\Controllers;
 
 use App\Filament\Pages\HomepageEditor;
+use App\Models\Language;
 use App\Models\Post;
 use App\Models\Product;
 use App\Models\Setting;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(): View
     {
-        return $this->renderHomepage('id');
+        $defaultLang = Language::getDefault();
+
+        return $this->renderHomepage($defaultLang);
     }
 
-    public function indexEn()
+    public function localizedHome(string $locale): View|RedirectResponse
     {
-        return $this->renderHomepage('en');
+        $lang = Language::resolveActive($locale);
+
+        if (! $lang) {
+            abort(404);
+        }
+
+        if ($lang->is_default) {
+            return redirect('/', 302);
+        }
+
+        return $this->renderHomepage($lang);
     }
 
-    protected function renderHomepage(string $locale = 'id')
+    public function indexEn(): View|RedirectResponse
     {
-        $locale = Setting::normalizeLocale($locale);
+        return $this->localizedHome('en');
+    }
+
+    protected function renderHomepage(Language $language): View
+    {
+        $locale = $language->code;
         app()->setLocale($locale);
 
         $user = \Illuminate\Support\Facades\Auth::user();
@@ -42,9 +62,9 @@ class HomeController extends Controller
                     ->orderBy('sort_order')
                     ->get(),
                 'artikel' => $section['posts'] = Post::where('is_published', true)
-                    ->when($locale === 'id', function ($query) {
-                        return $query->where(function ($q) {
-                            $q->where('content_language', 'id')
+                    ->when($language->is_default || $locale === 'id', function ($query) use ($locale) {
+                        return $query->where(function ($q) use ($locale) {
+                            $q->where('content_language', $locale)
                               ->orWhereNull('content_language');
                         });
                     }, function ($query) use ($locale) {
@@ -75,6 +95,7 @@ class HomeController extends Controller
             'navItems',
             'isPreview',
             'locale',
+            'language',
             'showLanguageSwitcher'
         ));
     }

@@ -532,4 +532,101 @@ class HomepageEditorTest extends TestCase
         $this->assertEquals('homepage_sections', Setting::homepagePublishedKey('invalid_lang'));
         $this->assertEquals('homepage_sections_draft', Setting::homepageDraftKey('../../traversal'));
     }
+
+    public function test_dynamic_language_selector_renders_active_and_hides_inactive_languages()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        \App\Models\Language::create([
+            'code' => 'de',
+            'name' => 'German',
+            'native_name' => 'Deutsch',
+            'is_active' => false,
+            'is_default' => false,
+            'sort_order' => 4,
+        ]);
+
+        $response = $this->actingAs($admin)->get(HomepageEditor::getUrl());
+        $response->assertOk();
+        $response->assertSee('data-testid="editor-lang-btn-id"', false);
+        $response->assertSee('data-testid="editor-lang-btn-en"', false);
+        $response->assertSee('data-testid="editor-lang-btn-ja"', false);
+        $response->assertSee('日本語');
+        $response->assertDontSee('data-testid="editor-lang-btn-de"', false);
+        $response->assertDontSee('Deutsch');
+    }
+
+    public function test_japanese_draft_and_publish_isolation_from_indonesian_and_english()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        // Establish ID and EN published baselines
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Hero Final'));
+        Setting::setJson('homepage_sections_draft', $this->sampleHeroSection('ID Hero Draft'));
+        Setting::setJson('homepage_sections_en', $this->sampleHeroSection('EN Hero Final'));
+        Setting::setJson('homepage_sections_en_draft', $this->sampleHeroSection('EN Hero Draft'));
+
+        $jaSections = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => '日本のイノベーション',
+                            'description' => '<p>インドネシア製の医療機器</p>',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        // 1. Save JA Draft
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'ja')
+            ->fillForm(['sections' => $jaSections])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        // Verify JA draft saved and ID/EN completely untouched
+        $jaDraft = Setting::getJson('homepage_sections_ja_draft');
+        $this->assertEquals('日本のイノベーション', $jaDraft[0]['data']['banners'][0]['title']);
+        $this->assertNull(Setting::getJson('homepage_sections_ja')); // Not published yet
+
+        $this->assertEquals('ID Hero Final', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('ID Hero Draft', Setting::getJson('homepage_sections_draft')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('EN Hero Final', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('EN Hero Draft', Setting::getJson('homepage_sections_en_draft')[0]['data']['banners'][0]['title']);
+
+        // 2. Publish JA
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'ja')
+            ->call('publish');
+
+        $jaPublished = Setting::getJson('homepage_sections_ja');
+        $this->assertEquals('日本のイノベーション', $jaPublished[0]['data']['banners'][0]['title']);
+
+        // ID and EN remain untouched
+        $this->assertEquals('ID Hero Final', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('EN Hero Final', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+    }
 }

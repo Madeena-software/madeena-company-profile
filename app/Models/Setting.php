@@ -9,35 +9,27 @@ class Setting extends Model
 {
     use HasFactory;
 
-    public const SUPPORTED_LOCALES = ['id', 'en'];
-    public const DEFAULT_LOCALE = 'id';
-
     protected $fillable = ['key', 'value', 'group'];
 
     public static function normalizeLocale(?string $locale): string
     {
-        return in_array($locale, self::SUPPORTED_LOCALES, true) ? $locale : self::DEFAULT_LOCALE;
+        return Language::normalizeCode($locale);
     }
 
-    public static function homepagePublishedKey(?string $locale = 'id'): string
+    public static function homepagePublishedKey(?string $locale = null): string
     {
-        $norm = static::normalizeLocale($locale);
-
-        return $norm === 'en' ? 'homepage_sections_en' : 'homepage_sections';
+        return Language::publishedKeyFor($locale);
     }
 
-    public static function homepageDraftKey(?string $locale = 'id'): string
+    public static function homepageDraftKey(?string $locale = null): string
     {
-        $norm = static::normalizeLocale($locale);
-
-        return $norm === 'en' ? 'homepage_sections_en_draft' : 'homepage_sections_draft';
+        return Language::draftKeyFor($locale);
     }
 
-    public static function getHomepageSections(?string $locale = 'id', bool $useDraft = false): array
+    public static function getHomepageSections(?string $locale = null, bool $useDraft = false): array
     {
-        $norm = static::normalizeLocale($locale);
-        $draftKey = static::homepageDraftKey($norm);
-        $publishedKey = static::homepagePublishedKey($norm);
+        $draftKey = static::homepageDraftKey($locale);
+        $publishedKey = static::homepagePublishedKey($locale);
 
         if ($useDraft) {
             return static::getJson($draftKey, static::getJson($publishedKey, [])) ?? [];

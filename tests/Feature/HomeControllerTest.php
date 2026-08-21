@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Post;
 use App\Models\Product;
+use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -512,5 +513,207 @@ class HomeControllerTest extends TestCase
         $artikel->assertStatus(200);
         $artikel->assertDontSee('data-testid="language-switcher-desktop"', false);
         $artikel->assertDontSee('data-testid="language-switcher-mobile"', false);
+    }
+
+    public function test_generic_localized_homepage_route_and_404_for_unsupported_language()
+    {
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections_ja', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => '日本の医療機器',
+                            'description' => '<p>インドネシア製</p>',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        // GET /ja -> 200
+        $response = $this->get('/ja');
+        $response->assertStatus(200);
+        $response->assertSee('lang="ja"', false);
+        $response->assertSee('日本の医療機器');
+
+        // GET /zz (unregistered) -> 404
+        $notFound = $this->get('/zz');
+        $notFound->assertStatus(404);
+    }
+
+    public function test_default_language_redirect_and_switching_default()
+    {
+        $ja = \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [['title' => 'ID Hero Title', 'description' => 'ID Desc']],
+                ],
+            ],
+        ]);
+
+        Setting::setJson('homepage_sections_ja', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [['title' => 'JA Hero Title', 'description' => 'JA Desc']],
+                ],
+            ],
+        ]);
+
+        // When ID is default, GET /id redirects to /
+        $this->get('/id')->assertRedirect('/');
+
+        // Now set JA as default
+        $ja->setAsDefault();
+
+        // GET / -> JA homepage
+        $home = $this->get('/');
+        $home->assertStatus(200);
+        $home->assertSee('lang="ja"', false);
+        $home->assertSee('JA Hero Title');
+
+        // GET /ja -> redirects to /
+        $this->get('/ja')->assertRedirect('/');
+
+        // GET /id -> ID homepage
+        $idHome = $this->get('/id');
+        $idHome->assertStatus(200);
+        $idHome->assertSee('lang="id"', false);
+        $idHome->assertSee('ID Hero Title');
+    }
+
+    public function test_dynamic_language_switcher_lists_all_active_languages_and_hides_inactive()
+    {
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        \App\Models\Language::create([
+            'code' => 'de',
+            'name' => 'German',
+            'native_name' => 'Deutsch',
+            'is_active' => false,
+            'is_default' => false,
+            'sort_order' => 4,
+        ]);
+
+        $response = $this->get('/');
+        $response->assertStatus(200);
+
+        // Active codes present in switcher
+        $response->assertSee('data-testid="language-switcher-desktop"', false);
+        $response->assertSee('ID');
+        $response->assertSee('EN');
+        $response->assertSee('JA');
+        $response->assertSee(url('/ja'));
+
+        // Inactive code absent
+        $response->assertDontSee('DE');
+        $response->assertDontSee(url('/de'));
+    }
+
+    public function test_data_driven_ui_labels_and_default_fallback_for_third_language()
+    {
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'ui_labels' => [
+                'navigation' => 'ナビゲーション',
+                'contact' => 'お問い合わせ',
+                // 'all_rights_reserved' is intentionally omitted to test fallback to default
+            ],
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections_ja', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [['title' => 'JA Title', 'description' => 'JA Desc']],
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/ja');
+        $response->assertStatus(200);
+        $response->assertSee('ナビゲーション');
+        $response->assertSee('お問い合わせ');
+        // Falls back to default Indonesian string
+        $response->assertSee('Seluruh hak dilindungi.');
+    }
+
+    public function test_third_language_preview_confidentiality()
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections_ja', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [['title' => 'Published JA Title', 'description' => 'Published JA Desc']],
+                ],
+            ],
+        ]);
+
+        Setting::setJson('homepage_sections_ja_draft', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [['title' => 'Draft JA Title', 'description' => 'Draft JA Desc']],
+                ],
+            ],
+        ]);
+
+        // 1. Admin with preview sees JA draft
+        $adminPreview = $this->actingAs($admin)->get('/ja?preview=true');
+        $adminPreview->assertStatus(200);
+        $adminPreview->assertSee('Draft JA Title');
+        $adminPreview->assertDontSee('Published JA Title');
+
+        // Logout
+        auth()->logout();
+
+        // 2. Anonymous with preview parameter MUST NOT see draft
+        $anonPreview = $this->get('/ja?preview=true');
+        $anonPreview->assertStatus(200);
+        $anonPreview->assertSee('Published JA Title');
+        $anonPreview->assertDontSee('Draft JA Title');
     }
 }

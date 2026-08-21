@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\BuilderBlocks;
+use App\Models\Language;
 use App\Models\Setting;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Builder;
@@ -48,7 +49,7 @@ class HomepageEditor extends Page implements HasForms
 
     public function mount(): void
     {
-        $requestedLocale = request()->query('lang', 'id');
+        $requestedLocale = request()->query('lang', Language::getDefault()->code);
         $this->loadLanguageState($requestedLocale);
     }
 
@@ -69,7 +70,7 @@ class HomepageEditor extends Page implements HasForms
 
     public function loadLanguageState(string $locale): void
     {
-        $this->activeLocale = Setting::normalizeLocale($locale);
+        $this->activeLocale = Language::normalizeCode($locale);
         $sections = Setting::getHomepageSections($this->activeLocale, true);
 
         $this->form->fill([
@@ -101,7 +102,7 @@ class HomepageEditor extends Page implements HasForms
             Action::make('preview')
                 ->label('👁️ Pratinjau')
                 ->icon('heroicon-o-eye')
-                ->url(fn () => Setting::normalizeLocale($this->activeLocale ?? ($this->data['locale'] ?? 'id')) === 'en' ? url('/en?preview=true') : url('/?preview=true'))
+                ->url(fn () => Language::homepageUrlFor($this->activeLocale, true))
                 ->openUrlInNewTab()
                 ->color('info'),
 
@@ -127,14 +128,16 @@ class HomepageEditor extends Page implements HasForms
     public function save(): void
     {
         $state = $this->form->getState();
-        $locale = Setting::normalizeLocale($this->activeLocale ?? ($state['locale'] ?? 'id'));
+        $locale = Language::normalizeCode($this->activeLocale ?? ($state['locale'] ?? null));
         $this->activeLocale = $locale;
-        $draftKey = Setting::homepageDraftKey($locale);
+        $draftKey = Language::draftKeyFor($locale);
 
         $sections = array_values($state['sections'] ?? []);
         Setting::setJson($draftKey, $sections);
 
-        $langLabel = $locale === 'en' ? 'English' : 'Indonesia';
+        $langObj = Language::resolve($locale);
+        $langLabel = $langObj ? "{$langObj->native_name} ({$langObj->code})" : strtoupper($locale);
+
         Notification::make()
             ->success()
             ->title("Draft ({$langLabel}) Berhasil Disimpan")
@@ -145,10 +148,10 @@ class HomepageEditor extends Page implements HasForms
     public function publish(): void
     {
         $state = $this->form->getState();
-        $locale = Setting::normalizeLocale($this->activeLocale ?? ($state['locale'] ?? 'id'));
+        $locale = Language::normalizeCode($this->activeLocale ?? ($state['locale'] ?? null));
         $this->activeLocale = $locale;
-        $draftKey = Setting::homepageDraftKey($locale);
-        $publishedKey = Setting::homepagePublishedKey($locale);
+        $draftKey = Language::draftKeyFor($locale);
+        $publishedKey = Language::publishedKeyFor($locale);
 
         $draft = Setting::getJson($draftKey, null);
         
@@ -159,7 +162,9 @@ class HomepageEditor extends Page implements HasForms
         $sections = array_values($draft ?? []);
         Setting::setJson($publishedKey, $sections);
 
-        $langLabel = $locale === 'en' ? 'English' : 'Indonesia';
+        $langObj = Language::resolve($locale);
+        $langLabel = $langObj ? "{$langObj->native_name} ({$langObj->code})" : strtoupper($locale);
+
         Notification::make()
             ->success()
             ->title("Berhasil Diupdate ({$langLabel})")
@@ -167,9 +172,9 @@ class HomepageEditor extends Page implements HasForms
             ->send();
     }
 
-    public static function getNavigation(bool $useDraft = false, string $language = 'id'): array
+    public static function getNavigation(bool $useDraft = false, ?string $language = null): array
     {
-        $locale = Setting::normalizeLocale($language);
+        $locale = Language::normalizeCode($language);
         $sections = Setting::getHomepageSections($locale, $useDraft);
         $navItems = [];
 

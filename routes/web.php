@@ -19,7 +19,6 @@ Route::get('/health', function () {
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/en', [HomeController::class, 'indexEn'])->name('home.en');
-Route::redirect('/id', '/');
 Route::get('/artikel', [HomeController::class, 'artikel'])->name('artikel.index');
 Route::get('/produk/{product:slug}', [HomeController::class, 'product'])->name('product.show');
 Route::get('/artikel/{post:slug}', [HomeController::class, 'post'])->name('post.show');
@@ -64,3 +63,7 @@ if (app()->environment(['local', 'testing'])) {
         return redirect('/admin');
     })->name('test-support.login');
 }
+
+Route::get('/{locale}', [HomeController::class, 'localizedHome'])
+    ->where('locale', '[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?')
+    ->name('home.locale');
