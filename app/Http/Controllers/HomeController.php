@@ -11,20 +11,29 @@ class HomeController extends Controller
 {
     public function index()
     {
+        return $this->renderHomepage('id');
+    }
+
+    public function indexEn()
+    {
+        return $this->renderHomepage('en');
+    }
+
+    protected function renderHomepage(string $locale = 'id')
+    {
+        $locale = Setting::normalizeLocale($locale);
+        app()->setLocale($locale);
+
         $user = \Illuminate\Support\Facades\Auth::user();
         $isPreview = request('preview') === 'true' && $user instanceof \App\Models\User && $user->isAdmin();
 
-        if ($isPreview) {
-            $sections = Setting::getJson('homepage_sections_draft', Setting::getJson('homepage_sections', []));
-        } else {
-            $sections = Setting::getJson('homepage_sections', []);
-        }
+        $sections = Setting::getHomepageSections($locale, $isPreview);
         $seo         = Setting::getJson('seo', []);
         $contactInfo = Setting::getJson('contact_info', []);
         $socialMedia = Setting::getJson('social_media', []);
         $branding    = Setting::getJson('branding', []);
         $whatsapp    = Setting::getJson('whatsapp_button', ['enabled' => true, 'number' => '']);
-        $navItems    = HomepageEditor::getNavigation($isPreview);
+        $navItems    = HomepageEditor::getNavigation($isPreview, $locale);
 
         // Inject dynamic data into auto-pull sections
         foreach ($sections as &$section) {
@@ -33,6 +42,14 @@ class HomeController extends Controller
                     ->orderBy('sort_order')
                     ->get(),
                 'artikel' => $section['posts'] = Post::where('is_published', true)
+                    ->when($locale === 'id', function ($query) {
+                        return $query->where(function ($q) {
+                            $q->where('content_language', 'id')
+                              ->orWhereNull('content_language');
+                        });
+                    }, function ($query) use ($locale) {
+                        return $query->where('content_language', $locale);
+                    })
                     ->when(!empty($section['data']['category_filter']), function ($query) use ($section) {
                         return $query->where('placement', $section['data']['category_filter']);
                     })
@@ -55,6 +72,7 @@ class HomeController extends Controller
             'whatsapp',
             'navItems',
             'isPreview',
+            'locale'
         ));
     }
 

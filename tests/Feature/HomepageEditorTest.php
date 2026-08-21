@@ -288,4 +288,248 @@ class HomepageEditorTest extends TestCase
         $previewResponse->assertSee('Published live copy.');
         $previewResponse->assertDontSee('Confidential draft copy');
     }
+
+    public function test_editor_loads_indonesian_and_english_content_independently()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Published Hero'));
+        Setting::setJson('homepage_sections_draft', $this->sampleHeroSection('ID Draft Hero'));
+        Setting::setJson('homepage_sections_en', $this->sampleHeroSection('EN Published Hero'));
+        Setting::setJson('homepage_sections_en_draft', $this->sampleHeroSection('EN Draft Hero'));
+
+        // Mounts with ID default
+        $component = Livewire::actingAs($admin)
+            ->test(HomepageEditor::class);
+
+        $this->assertEquals('id', $component->get('activeLocale'));
+        $data = $component->get('data');
+        $this->assertEquals('ID Draft Hero', array_values(array_values($data['sections'])[0]['data']['banners'])[0]['title']);
+
+        // Switch to English
+        $component->call('switchLanguage', 'en');
+        $this->assertEquals('en', $component->get('activeLocale'));
+        $dataEn = $component->get('data');
+        $this->assertEquals('EN Draft Hero', array_values(array_values($dataEn['sections'])[0]['data']['banners'])[0]['title']);
+    }
+
+    public function test_editor_english_does_not_fall_back_to_indonesian_content()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Published Hero'));
+        Setting::setJson('homepage_sections_draft', null);
+        Setting::setJson('homepage_sections_en', null);
+        Setting::setJson('homepage_sections_en_draft', null);
+
+        $component = Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'en');
+
+        $data = $component->get('data');
+        $this->assertEmpty($data['sections']);
+    }
+
+    public function test_save_indonesian_isolates_from_english_settings()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Published'));
+        Setting::setJson('homepage_sections_draft', null);
+        Setting::setJson('homepage_sections_en', $this->sampleHeroSection('EN Published'));
+        Setting::setJson('homepage_sections_en_draft', $this->sampleHeroSection('EN Draft'));
+
+        $newIdDraft = $this->sampleHeroSection('ID New Draft');
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'id')
+            ->fillForm(['sections' => $newIdDraft])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        // Check ID draft updated
+        $savedIdDraft = Setting::getJson('homepage_sections_draft');
+        $this->assertEquals('ID New Draft', $savedIdDraft[0]['data']['banners'][0]['title']);
+        $this->assertEquals('ID Published', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
+
+        // Check EN untouched
+        $this->assertEquals('EN Published', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('EN Draft', Setting::getJson('homepage_sections_en_draft')[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_save_english_isolates_from_indonesian_settings()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Published'));
+        Setting::setJson('homepage_sections_draft', $this->sampleHeroSection('ID Draft'));
+        Setting::setJson('homepage_sections_en', $this->sampleHeroSection('EN Published'));
+        Setting::setJson('homepage_sections_en_draft', null);
+
+        $newEnDraft = $this->sampleHeroSection('EN New Draft');
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'en')
+            ->fillForm(['sections' => $newEnDraft])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        // Check EN draft updated
+        $savedEnDraft = Setting::getJson('homepage_sections_en_draft');
+        $this->assertEquals('EN New Draft', $savedEnDraft[0]['data']['banners'][0]['title']);
+        $this->assertEquals('EN Published', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+
+        // Check ID untouched
+        $this->assertEquals('ID Published', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('ID Draft', Setting::getJson('homepage_sections_draft')[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_publish_indonesian_does_not_modify_english_settings()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('Old ID Published'));
+        Setting::setJson('homepage_sections_draft', $this->sampleHeroSection('New ID Draft'));
+        Setting::setJson('homepage_sections_en', $this->sampleHeroSection('EN Published'));
+        Setting::setJson('homepage_sections_en_draft', $this->sampleHeroSection('EN Draft'));
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'id')
+            ->call('publish');
+
+        // Check ID published updated
+        $this->assertEquals('New ID Draft', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
+
+        // Check EN untouched
+        $this->assertEquals('EN Published', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('EN Draft', Setting::getJson('homepage_sections_en_draft')[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_publish_english_does_not_modify_indonesian_settings()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Published'));
+        Setting::setJson('homepage_sections_draft', $this->sampleHeroSection('ID Draft'));
+        Setting::setJson('homepage_sections_en', $this->sampleHeroSection('Old EN Published'));
+        Setting::setJson('homepage_sections_en_draft', $this->sampleHeroSection('New EN Draft'));
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'en')
+            ->call('publish');
+
+        // Check EN published updated
+        $this->assertEquals('New EN Draft', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+
+        // Check ID untouched
+        $this->assertEquals('ID Published', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
+        $this->assertEquals('ID Draft', Setting::getJson('homepage_sections_draft')[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_navigation_isolation_between_languages()
+    {
+        $idSection = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'show_in_nav' => true,
+                    'nav_label' => 'Beranda ID',
+                    'section_id' => 'beranda',
+                ],
+            ],
+        ];
+
+        $enSection = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'show_in_nav' => true,
+                    'nav_label' => 'Home EN',
+                    'section_id' => 'home',
+                ],
+            ],
+        ];
+
+        Setting::setJson('homepage_sections', $idSection);
+        Setting::setJson('homepage_sections_en', $enSection);
+
+        $idNav = HomepageEditor::getNavigation(false, 'id');
+        $enNav = HomepageEditor::getNavigation(false, 'en');
+
+        $this->assertCount(1, $idNav);
+        $this->assertEquals('Beranda ID', $idNav[0]['label']);
+        $this->assertEquals('#beranda', $idNav[0]['anchor']);
+
+        $this->assertCount(1, $enNav);
+        $this->assertEquals('Home EN', $enNav[0]['label']);
+        $this->assertEquals('#home', $enNav[0]['anchor']);
+    }
+
+    public function test_rich_hero_and_cta_formatting_survives_english_save_and_publish_cycle()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $richSections = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'English Rich Hero Title',
+                            'description' => '<p>English paragraph 1 with <strong>bold</strong>.</p><p><a href="https://madeena.co.id/en">English link</a></p>',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'cta',
+                'data' => [
+                    'title' => 'English Rich CTA Title',
+                    'subtitle' => '<ul><li>English Benefit 1</li><li>English Benefit 2</li></ul>',
+                    'button_text' => 'Contact Us',
+                    'button_url' => '#contact',
+                ],
+            ],
+        ];
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'en')
+            ->fillForm(['sections' => $richSections])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $enDraft = Setting::getJson('homepage_sections_en_draft');
+        $this->assertEquals('<p>English paragraph 1 with <strong>bold</strong>.</p><p><a href="https://madeena.co.id/en">English link</a></p>', $enDraft[0]['data']['banners'][0]['description']);
+        $this->assertStringContainsString('English Benefit 1', $enDraft[1]['data']['subtitle']);
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'en')
+            ->call('publish');
+
+        $enPublished = Setting::getJson('homepage_sections_en');
+        $this->assertEquals('<p>English paragraph 1 with <strong>bold</strong>.</p><p><a href="https://madeena.co.id/en">English link</a></p>', $enPublished[0]['data']['banners'][0]['description']);
+        $this->assertStringContainsString('English Benefit 1', $enPublished[1]['data']['subtitle']);
+    }
+
+    public function test_invalid_language_falls_back_safely()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Hero'));
+
+        $component = Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('switchLanguage', 'fr');
+
+        $this->assertEquals('id', $component->get('activeLocale'));
+
+        $this->assertEquals('homepage_sections', Setting::homepagePublishedKey('invalid_lang'));
+        $this->assertEquals('homepage_sections_draft', Setting::homepageDraftKey('../../traversal'));
+    }
 }

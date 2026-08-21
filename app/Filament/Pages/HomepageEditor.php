@@ -44,11 +44,33 @@ class HomepageEditor extends Page implements HasForms
     protected string $view = 'filament.pages.homepage-editor';
 
     public ?array $data = [];
+    public string $activeLocale = 'id';
 
     public function mount(): void
     {
-        // For standard array/json settings, retrieve with default fallback
-        $sections = Setting::getJson('homepage_sections_draft', Setting::getJson('homepage_sections', []));
+        $requestedLocale = request()->query('lang', 'id');
+        $this->loadLanguageState($requestedLocale);
+    }
+
+    public function updatedActiveLocale($value): void
+    {
+        $this->switchLanguage($value);
+    }
+
+    public function switchLanguage(string $locale): void
+    {
+        $this->loadLanguageState($locale);
+    }
+
+    public function setLanguage(string $locale): void
+    {
+        $this->switchLanguage($locale);
+    }
+
+    public function loadLanguageState(string $locale): void
+    {
+        $this->activeLocale = Setting::normalizeLocale($locale);
+        $sections = Setting::getHomepageSections($this->activeLocale, true);
 
         $this->form->fill([
             'sections' => $sections,
@@ -79,7 +101,7 @@ class HomepageEditor extends Page implements HasForms
             Action::make('preview')
                 ->label('👁️ Pratinjau')
                 ->icon('heroicon-o-eye')
-                ->url(url('/?preview=true')) // temporary preview URL logic
+                ->url(fn () => Setting::normalizeLocale($this->activeLocale ?? ($this->data['locale'] ?? 'id')) === 'en' ? url('/en?preview=true') : url('/?preview=true'))
                 ->openUrlInNewTab()
                 ->color('info'),
 
@@ -105,35 +127,50 @@ class HomepageEditor extends Page implements HasForms
     public function save(): void
     {
         $state = $this->form->getState();
-        Setting::setJson('homepage_sections_draft', $state['sections'] ?? []);
+        $locale = Setting::normalizeLocale($this->activeLocale ?? ($state['locale'] ?? 'id'));
+        $this->activeLocale = $locale;
+        $draftKey = Setting::homepageDraftKey($locale);
 
+        $sections = array_values($state['sections'] ?? []);
+        Setting::setJson($draftKey, $sections);
+
+        $langLabel = $locale === 'en' ? 'English' : 'Indonesia';
         Notification::make()
             ->success()
-            ->title('Draft Berhasil Disimpan')
-            ->body('Perubahan Anda telah disimpan sebagai draft. Gunakan Pratinjau untuk melihat perubahan.')
+            ->title("Draft ({$langLabel}) Berhasil Disimpan")
+            ->body("Perubahan bahasa {$langLabel} telah disimpan sebagai draft. Gunakan Pratinjau untuk melihat perubahan.")
             ->send();
     }
 
     public function publish(): void
     {
-        $draft = Setting::getJson('homepage_sections_draft', null);
+        $state = $this->form->getState();
+        $locale = Setting::normalizeLocale($this->activeLocale ?? ($state['locale'] ?? 'id'));
+        $this->activeLocale = $locale;
+        $draftKey = Setting::homepageDraftKey($locale);
+        $publishedKey = Setting::homepagePublishedKey($locale);
+
+        $draft = Setting::getJson($draftKey, null);
         
         if (is_null($draft)) {
-            $draft = Setting::getJson('homepage_sections', []);
+            $draft = Setting::getJson($publishedKey, []);
         }
 
-        Setting::setJson('homepage_sections', $draft);
+        $sections = array_values($draft ?? []);
+        Setting::setJson($publishedKey, $sections);
 
+        $langLabel = $locale === 'en' ? 'English' : 'Indonesia';
         Notification::make()
             ->success()
-            ->title('Berhasil Diupdate')
-            ->body('Halaman utama telah berhasil diterapkan ke website live.')
+            ->title("Berhasil Diupdate ({$langLabel})")
+            ->body("Halaman utama ({$langLabel}) telah berhasil diterapkan ke website live.")
             ->send();
     }
 
-    public static function getNavigation(bool $useDraft = false): array
+    public static function getNavigation(bool $useDraft = false, string $language = 'id'): array
     {
-        $sections = $useDraft ? Setting::getJson('homepage_sections_draft', Setting::getJson('homepage_sections', [])) : Setting::getJson('homepage_sections', []);
+        $locale = Setting::normalizeLocale($language);
+        $sections = Setting::getHomepageSections($locale, $useDraft);
         $navItems = [];
 
         foreach ($sections as $section) {

@@ -23,7 +23,7 @@
             <img src="{{ asset('images/logo-current.png') }}" alt="Logo Madeena" class="w-32 h-32 mx-auto mb-6 object-contain">
             <h1 class="text-4xl font-bold mb-4">PT Madeena Karya Indonesia</h1>
             <p class="text-xl text-white/80 mb-8">Know Sciences, Learn Engineering, Create Technology, Develop Business.</p>
-            <a href="/admin" class="btn-primary">Kelola Website di Admin</a>
+            <a href="/admin" class="btn-primary">{{ __('ui.manage_website_in_admin') }}</a>
         </div>
     </section>
 @endif

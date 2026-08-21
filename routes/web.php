@@ -18,6 +18,8 @@ Route::get('/health', function () {
 });
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/en', [HomeController::class, 'indexEn'])->name('home.en');
+Route::redirect('/id', '/');
 Route::get('/artikel', [HomeController::class, 'artikel'])->name('artikel.index');
 Route::get('/produk/{product:slug}', [HomeController::class, 'product'])->name('product.show');
 Route::get('/artikel/{post:slug}', [HomeController::class, 'post'])->name('post.show');

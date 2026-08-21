@@ -35,7 +35,7 @@
                         @endif
                         <a href="{{ route('post.show', ['post' => $post->slug ?: $post->id]) }}"
                            class="text-madeena-teal font-semibold text-sm hover:text-madeena-blue transition-colors">
-                            Baca <i class="fas fa-arrow-right ml-1"></i>
+                            {{ __('ui.read') }} <i class="fas fa-arrow-right ml-1"></i>
                         </a>
                     </div>
                 </div>
@@ -43,7 +43,7 @@
             @endforeach
         </div>
         <div class="text-center mt-10">
-            <a href="{{ route('artikel.index') }}" class="btn-secondary">Lihat Semua {{ $data['section_title'] ?? 'Artikel' }}</a>
+            <a href="{{ route('artikel.index') }}" class="btn-secondary">{{ __('ui.view_all', ['title' => $data['section_title'] ?? __('ui.articles')]) }}</a>
         </div>
     </div>
 </section>

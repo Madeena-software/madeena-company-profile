@@ -214,4 +214,207 @@ class HomeControllerTest extends TestCase
         $response->assertDontSee('whitespace-nowrap', false);
         $response->assertSee('break-words', false);
     }
+
+    public function test_indonesian_and_english_routes_render_corresponding_content()
+    {
+        \App\Models\Setting::setJson('homepage_sections', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'Inovasi Radiografi Indonesia',
+                            'description' => 'Solusi teknologi kesehatan karya anak bangsa.',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        \App\Models\Setting::setJson('homepage_sections_en', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'Indonesian Radiography Innovation',
+                            'description' => 'Healthcare technology solutions made in Indonesia.',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        // GET / -> Indonesian
+        $idResponse = $this->get('/');
+        $idResponse->assertStatus(200);
+        $idResponse->assertSee('Inovasi Radiografi Indonesia');
+        $idResponse->assertDontSee('Healthcare technology solutions made in Indonesia.');
+        $idResponse->assertSee('lang="id"', false);
+
+        // GET /en -> English
+        $enResponse = $this->get('/en');
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee('Indonesian Radiography Innovation');
+        $enResponse->assertDontSee('Solusi teknologi kesehatan karya anak bangsa.');
+        $enResponse->assertSee('lang="en"', false);
+
+        // GET /id -> Redirects to /
+        $redirectResponse = $this->get('/id');
+        $redirectResponse->assertRedirect('/');
+    }
+
+    public function test_public_language_switcher_links_and_active_states()
+    {
+        $idResponse = $this->get('/');
+        $idResponse->assertStatus(200);
+        $idResponse->assertSee(url('/en'));
+
+        $enResponse = $this->get('/en');
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee(url('/'));
+    }
+
+    public function test_admin_and_anonymous_preview_isolation_for_both_languages()
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Setting::setJson('homepage_sections', [
+            [
+                'type' => 'hero',
+                'data' => ['banners' => [['title' => 'Live ID Hero']]],
+            ],
+        ]);
+        \App\Models\Setting::setJson('homepage_sections_draft', [
+            [
+                'type' => 'hero',
+                'data' => ['banners' => [['title' => 'Draft ID Hero']]],
+            ],
+        ]);
+        \App\Models\Setting::setJson('homepage_sections_en', [
+            [
+                'type' => 'hero',
+                'data' => ['banners' => [['title' => 'Live EN Hero']]],
+            ],
+        ]);
+        \App\Models\Setting::setJson('homepage_sections_en_draft', [
+            [
+                'type' => 'hero',
+                'data' => ['banners' => [['title' => 'Draft EN Hero']]],
+            ],
+        ]);
+
+        // Admin preview ID
+        $adminIdPreview = $this->actingAs($admin)->get('/?preview=true');
+        $adminIdPreview->assertStatus(200);
+        $adminIdPreview->assertSee('Draft ID Hero');
+        $adminIdPreview->assertDontSee('Live ID Hero');
+
+        // Admin preview EN
+        $adminEnPreview = $this->actingAs($admin)->get('/en?preview=true');
+        $adminEnPreview->assertStatus(200);
+        $adminEnPreview->assertSee('Draft EN Hero');
+        $adminEnPreview->assertDontSee('Live EN Hero');
+
+        // Anonymous preview ID
+        auth()->logout();
+        $anonIdPreview = $this->get('/?preview=true');
+        $anonIdPreview->assertStatus(200);
+        $anonIdPreview->assertSee('Live ID Hero');
+        $anonIdPreview->assertDontSee('Draft ID Hero');
+
+        // Anonymous preview EN
+        $anonEnPreview = $this->get('/en?preview=true');
+        $anonEnPreview->assertStatus(200);
+        $anonEnPreview->assertSee('Live EN Hero');
+        $anonEnPreview->assertDontSee('Draft EN Hero');
+    }
+
+    public function test_article_section_filters_posts_by_content_language()
+    {
+        $user = \App\Models\User::factory()->create();
+
+        // Indonesian Post
+        Post::create([
+            'title' => 'Berita Teknologi Medis Nasional',
+            'slug' => 'berita-medis-nasional',
+            'content_json' => [],
+            'excerpt' => 'Karya inovasi anak bangsa.',
+            'content_language' => 'id',
+            'user_id' => $user->id,
+            'published_at' => now(),
+            'is_published' => true,
+        ]);
+
+        // English Post
+        Post::create([
+            'title' => 'National Medical Technology News',
+            'slug' => 'national-med-tech-news',
+            'content_json' => [],
+            'excerpt' => 'Innovative products from Indonesia.',
+            'content_language' => 'en',
+            'user_id' => $user->id,
+            'published_at' => now(),
+            'is_published' => true,
+        ]);
+
+        $articleSectionConfig = [
+            [
+                'type' => 'artikel',
+                'data' => [
+                    'section_title' => 'Latest Articles',
+                    'posts_count' => 5,
+                ],
+            ],
+        ];
+
+        \App\Models\Setting::setJson('homepage_sections', $articleSectionConfig);
+        \App\Models\Setting::setJson('homepage_sections_en', $articleSectionConfig);
+
+        // ID homepage must see ID post and NOT EN post
+        $idResponse = $this->get('/');
+        $idResponse->assertStatus(200);
+        $idResponse->assertSee('Berita Teknologi Medis Nasional');
+        $idResponse->assertDontSee('National Medical Technology News');
+
+        // EN homepage must see EN post and NOT ID post
+        $enResponse = $this->get('/en');
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee('National Medical Technology News');
+        $enResponse->assertDontSee('Berita Teknologi Medis Nasional');
+    }
+
+    public function test_english_homepage_renders_rich_copy_and_localized_static_labels()
+    {
+        \App\Models\Setting::setJson('homepage_sections_en', [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'English Innovation',
+                            'description' => '<p>Leading radiography technology in <strong>Indonesia</strong>.</p>',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'cta',
+                'data' => [
+                    'title' => 'Contact Us Today',
+                    'subtitle' => '<p>Get in touch for consultations.</p>',
+                    'button_text' => 'Contact',
+                    'button_url' => '#contact',
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/en');
+        $response->assertStatus(200);
+        $response->assertSee('Leading radiography technology in <strong>Indonesia</strong>.', false);
+        $response->assertSee('Get in touch for consultations.');
+        $response->assertSee('Navigation');
+        $response->assertSee('Contact');
+        $response->assertSee('All rights reserved.');
+    }
 }
