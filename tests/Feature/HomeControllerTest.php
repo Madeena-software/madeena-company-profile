@@ -633,7 +633,8 @@ class HomeControllerTest extends TestCase
         $response->assertSee(url('/ja'));
 
         // Inactive code absent
-        $response->assertDontSee('DE');
+        $response->assertDontSee('data-testid="lang-link-de"', false);
+        $response->assertDontSee('Deutsch');
         $response->assertDontSee(url('/de'));
     }
 
@@ -715,5 +716,194 @@ class HomeControllerTest extends TestCase
         $anonPreview->assertStatus(200);
         $anonPreview->assertSee('Published JA Title');
         $anonPreview->assertDontSee('Draft JA Title');
+    }
+
+    public function test_non_id_default_language_switches_homepage_content_language_without_affecting_explicit_id_routes()
+    {
+        $user = \App\Models\User::factory()->create();
+
+        $postJa = Post::create([
+            'title' => '日本の医療機器最新記事',
+            'slug' => 'nihon-no-iryou-kiki',
+            'content' => 'Japanese Content',
+            'user_id' => $user->id,
+            'is_published' => true,
+            'published_at' => now(),
+            'content_language' => 'ja',
+        ]);
+
+        $postId = Post::create([
+            'title' => 'Artikel Bahasa Indonesia',
+            'slug' => 'artikel-bahasa-indonesia',
+            'content' => 'Indonesian Content',
+            'user_id' => $user->id,
+            'is_published' => true,
+            'published_at' => now(),
+            'content_language' => 'id',
+        ]);
+
+        $ja = \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        // Set Japanese as the default language
+        $ja->setAsDefault();
+
+        $articleSection = [
+            [
+                'type' => 'artikel',
+                'data' => [
+                    'section_title' => 'Articles Section',
+                    'posts_count' => 10,
+                ],
+            ],
+        ];
+
+        Setting::setJson('homepage_sections', $articleSection);
+        Setting::setJson('homepage_sections_ja', $articleSection);
+
+        // 1. GET / -> JA default homepage
+        $jaHome = $this->get('/');
+        $jaHome->assertStatus(200);
+        $jaHome->assertSee('lang="ja"', false);
+        $jaHome->assertSee('日本の医療機器最新記事');
+        $jaHome->assertDontSee('Artikel Bahasa Indonesia');
+
+        // 2. GET /id -> ID homepage
+        $idHome = $this->get('/id');
+        $idHome->assertStatus(200);
+        $idHome->assertSee('lang="id"', false);
+        $idHome->assertSee('Artikel Bahasa Indonesia');
+        $idHome->assertDontSee('日本の医療機器最新記事');
+    }
+
+    public function test_third_language_ui_labels_with_placeholders_render_without_lang_files()
+    {
+        $user = \App\Models\User::factory()->create();
+
+        Post::create([
+            'title' => '最新のイノベーション記事',
+            'slug' => 'saishin-innovation',
+            'content' => 'JA Body',
+            'user_id' => $user->id,
+            'is_published' => true,
+            'published_at' => now(),
+            'content_language' => 'ja',
+        ]);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'ui_labels' => [
+                'read' => '読む',
+                'view_all' => 'すべての:titleを見る',
+                'articles' => '記事',
+                'manage_website_in_admin' => '管理画面でウェブサイトを管理',
+            ],
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        // 1. Artikel section with custom section title
+        Setting::setJson('homepage_sections_ja', [
+            [
+                'type' => 'artikel',
+                'data' => [
+                    'section_title' => '最新ニュース',
+                    'posts_count' => 3,
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/ja');
+        $response->assertStatus(200);
+        $response->assertSee('読む');
+        $response->assertSee('すべての最新ニュースを見る');
+        $response->assertDontSee('Baca');
+        $response->assertDontSee('Lihat Semua');
+
+        // 2. Empty homepage fallback test
+        Setting::setJson('homepage_sections_ja', []);
+
+        $emptyResponse = $this->get('/ja');
+        $emptyResponse->assertStatus(200);
+        $emptyResponse->assertSee('管理画面でウェブサイトを管理');
+        $emptyResponse->assertDontSee('Kelola Website di Admin');
+    }
+
+    public function test_scalable_language_switcher_with_small_vs_five_plus_languages_and_preview_query_retention()
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+
+        // 1. Small language set (ID + EN): inline layout
+        $smallResponse = $this->get('/');
+        $smallResponse->assertStatus(200);
+        $smallResponse->assertSee('data-layout="inline"', false);
+        $smallResponse->assertDontSee('data-layout="dropdown"', false);
+
+        // 2. Add 3 more active languages and 1 inactive language (5 active total: id, en, ja, ar, fr; 1 inactive: de)
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        \App\Models\Language::create([
+            'code' => 'ar',
+            'name' => 'Arabic',
+            'native_name' => 'العربية',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 4,
+        ]);
+
+        \App\Models\Language::create([
+            'code' => 'fr',
+            'name' => 'French',
+            'native_name' => 'Français',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 5,
+        ]);
+
+        \App\Models\Language::create([
+            'code' => 'de',
+            'name' => 'German',
+            'native_name' => 'Deutsch',
+            'is_active' => false,
+            'is_default' => false,
+            'sort_order' => 6,
+        ]);
+
+        // 3. Large language set: scalable dropdown layout rendered
+        $largeResponse = $this->get('/');
+        $largeResponse->assertStatus(200);
+        $largeResponse->assertSee('data-layout="dropdown"', false);
+        $largeResponse->assertSee('data-testid="language-dropdown-toggle"', false);
+        $largeResponse->assertSee('data-testid="mobile-language-dropdown-toggle"', false);
+        $largeResponse->assertSee('日本語');
+        $largeResponse->assertSee('العربية');
+        $largeResponse->assertSee('Français');
+        // Inactive language is absent
+        $largeResponse->assertDontSee('Deutsch');
+        $largeResponse->assertDontSee('/de');
+
+        // 4. Admin preview URL preservation
+        $previewResponse = $this->actingAs($admin)->get('/?preview=true');
+        $previewResponse->assertStatus(200);
+        $previewResponse->assertSee(url('/en?preview=true'));
+        $previewResponse->assertSee(url('/ja?preview=true'));
+        $previewResponse->assertSee(url('/ar?preview=true'));
+        $previewResponse->assertSee(url('/fr?preview=true'));
     }
 }

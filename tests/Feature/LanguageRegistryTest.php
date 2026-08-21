@@ -146,4 +146,50 @@ class LanguageRegistryTest extends TestCase
         $this->actingAs($nonAdmin);
         $this->get('/admin/languages')->assertForbidden();
     }
+
+    public function test_key_mapping_persists_indonesian_legacy_keys_even_when_non_id_language_is_default(): void
+    {
+        $ja = Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        $ja->setAsDefault();
+
+        $this->assertSame('ja', Language::getDefault()->code);
+        $this->assertSame('homepage_sections', Language::publishedKeyFor('id'));
+        $this->assertSame('homepage_sections_draft', Language::draftKeyFor('id'));
+        $this->assertSame('homepage_sections_ja', Language::publishedKeyFor('ja'));
+        $this->assertSame('homepage_sections_ja_draft', Language::draftKeyFor('ja'));
+    }
+
+    public function test_ui_label_placeholder_interpolation_and_fallback(): void
+    {
+        $ja = Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'ui_labels' => [
+                'read' => '読む',
+                'view_all' => 'すべての:titleを見る',
+                'articles' => '記事',
+            ],
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        // Direct key with replacement
+        $this->assertSame('読む', $ja->getUiLabel('read'));
+        $this->assertSame('すべての記事を見る', $ja->getUiLabel('view_all', ['title' => '記事']));
+        $this->assertSame('すべての最新ニュースを見る', $ja->getUiLabel('view_all', ['title' => '最新ニュース']));
+
+        // Key missing in JA falls back to default ID language ui_labels with replacement
+        $this->assertSame('Seluruh hak dilindungi.', $ja->getUiLabel('all_rights_reserved'));
+        $this->assertSame('Navigasi', $ja->getUiLabel('navigation'));
+    }
 }

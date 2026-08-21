@@ -62,14 +62,7 @@ class HomeController extends Controller
                     ->orderBy('sort_order')
                     ->get(),
                 'artikel' => $section['posts'] = Post::where('is_published', true)
-                    ->when($language->is_default || $locale === 'id', function ($query) use ($locale) {
-                        return $query->where(function ($q) use ($locale) {
-                            $q->where('content_language', $locale)
-                              ->orWhereNull('content_language');
-                        });
-                    }, function ($query) use ($locale) {
-                        return $query->where('content_language', $locale);
-                    })
+                    ->where('content_language', $locale)
                     ->when(!empty($section['data']['category_filter']), function ($query) use ($section) {
                         return $query->where('placement', $section['data']['category_filter']);
                     })

@@ -265,23 +265,46 @@ class Language extends Model
         return $default->homepageUrl($isPreview);
     }
 
-    public function getUiLabel(string $key, ?string $fallback = null): string
+    public function getUiLabel(string $key, string|array|null $fallback = null, array $replace = []): string
     {
-        if (! empty($this->ui_labels[$key])) {
-            return (string) $this->ui_labels[$key];
+        if (is_array($fallback)) {
+            $replace = $fallback;
+            $fallback = null;
         }
 
-        if (! $this->is_default) {
+        $text = null;
+
+        if (! empty($this->ui_labels[$key])) {
+            $text = (string) $this->ui_labels[$key];
+        } elseif (! $this->is_default) {
             $defaultLang = static::getDefault();
             if (! empty($defaultLang->ui_labels[$key])) {
-                return (string) $defaultLang->ui_labels[$key];
+                $text = (string) $defaultLang->ui_labels[$key];
             }
         }
 
-        if ($fallback !== null) {
-            return $fallback;
+        if ($text === null) {
+            if ($fallback !== null) {
+                $text = $fallback;
+            } else {
+                $translated = __("ui.{$key}", $replace);
+                if ($translated !== "ui.{$key}") {
+                    return $translated;
+                }
+                $text = $key;
+            }
         }
 
-        return __("ui.{$key}");
+        if (! empty($replace)) {
+            foreach ($replace as $placeholder => $val) {
+                $text = str_replace(
+                    [':' . $placeholder, ':' . strtoupper($placeholder), ':' . ucfirst($placeholder)],
+                    (string) $val,
+                    $text
+                );
+            }
+        }
+
+        return $text;
     }
 }
