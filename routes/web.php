@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Event\FeedbackController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PublicStorageController;
 use App\Http\Controllers\SsoController;
+use App\Livewire\EventDisplay;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -30,11 +33,14 @@ Route::get('/storage/{path}', PublicStorageController::class)
 Route::prefix('events/{event:slug}')
     ->name('events.')
     ->group(function (): void {
-        Route::get('/feedback', [\App\Http\Controllers\Event\FeedbackController::class, 'create'])->name('feedback');
-        Route::get('/feedback/csrf-token', [\App\Http\Controllers\Event\FeedbackController::class, 'csrfToken'])
+        Route::get('/feedback', [FeedbackController::class, 'create'])->name('feedback');
+        Route::get('/feedback/csrf-token', [FeedbackController::class, 'csrfToken'])
+            ->middleware('throttle:event-feedback-csrf')
             ->name('feedback.csrf-token');
-        Route::post('/feedback', [\App\Http\Controllers\Event\FeedbackController::class, 'store'])->name('feedback.store');
-        Route::get('/display', \App\Livewire\EventDisplay::class)->name('display');
+        Route::post('/feedback', [FeedbackController::class, 'store'])
+            ->middleware('throttle:event-feedback-submission')
+            ->name('feedback.store');
+        Route::get('/display', EventDisplay::class)->name('display');
     });
 
 Route::redirect('/inabuyer2026/feedback', '/events/inabuyer-2026/feedback');
@@ -49,7 +55,7 @@ if (app()->environment(['local', 'testing'])) {
     Route::get('/test-support/login', function () {
         $email = config('auth.filament_admin_email', 'admin@madeena.local');
 
-        $user = \App\Models\User::query()
+        $user = User::query()
             ->where('email', $email)
             ->where('role', 'admin')
             ->first();

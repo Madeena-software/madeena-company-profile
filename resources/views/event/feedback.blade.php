@@ -89,6 +89,11 @@
                     data-feedback-form data-csrf-refresh-url="{{ route('events.feedback.csrf-token', ['event' => $event->slug]) }}">
                     @csrf
 
+                    <div class="hidden" aria-hidden="true" style="display: none;">
+                        <label for="website">Website</label>
+                        <input id="website" name="website" type="text" value="" tabindex="-1" autocomplete="off">
+                    </div>
+
                     <div class="grid gap-5 md:grid-cols-2">
                         <div>
                             <label for="name" class="mb-2 block text-sm font-semibold text-slate-700">Nama <span
