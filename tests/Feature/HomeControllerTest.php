@@ -417,4 +417,100 @@ class HomeControllerTest extends TestCase
         $response->assertSee('Contact');
         $response->assertSee('All rights reserved.');
     }
+
+    public function test_legacy_public_routes_preserve_indonesian_locale_under_ambient_english()
+    {
+        // Force ambient application locale to English
+        app()->setLocale('en');
+        config(['app.locale' => 'en']);
+
+        $user = \App\Models\User::factory()->create();
+
+        $post = Post::create([
+            'title' => 'Artikel Berbahasa Indonesia',
+            'slug' => 'artikel-berbahasa-indonesia',
+            'content_json' => [],
+            'excerpt' => 'Ringkasan artikel Indonesia.',
+            'content_language' => 'id',
+            'user_id' => $user->id,
+            'published_at' => now(),
+            'is_published' => true,
+        ]);
+
+        $product = Product::create([
+            'name' => 'Produk Radiografi Indonesia',
+            'slug' => 'produk-radiografi-indonesia',
+            'content_json' => [],
+            'is_active' => true,
+        ]);
+
+        $page = \App\Models\Page::create([
+            'title' => 'Tentang Perusahaan Kami',
+            'slug' => 'tentang-perusahaan-kami',
+            'content_json' => [],
+            'content_language' => 'id',
+            'user_id' => $user->id,
+        ]);
+
+        // 1. GET /artikel
+        $artikelResponse = $this->get('/artikel');
+        $artikelResponse->assertStatus(200);
+        $artikelResponse->assertSee('lang="id"', false);
+        $artikelResponse->assertSee('Navigasi');
+        $artikelResponse->assertSee('Kontak');
+        $artikelResponse->assertSee('Seluruh hak dilindungi.');
+        $artikelResponse->assertDontSee('data-testid="language-switcher-desktop"', false);
+        $artikelResponse->assertDontSee('data-testid="language-switcher-mobile"', false);
+
+        // 2. GET /artikel/{slug}
+        $postResponse = $this->get('/artikel/' . $post->slug);
+        $postResponse->assertStatus(200);
+        $postResponse->assertSee('lang="id"', false);
+        $postResponse->assertSee('Navigasi');
+        $postResponse->assertSee('Kontak');
+        $postResponse->assertSee('Seluruh hak dilindungi.');
+        $postResponse->assertDontSee('data-testid="language-switcher-desktop"', false);
+        $postResponse->assertDontSee('data-testid="language-switcher-mobile"', false);
+
+        // 3. GET /produk/{slug}
+        $productResponse = $this->get('/produk/' . $product->slug);
+        $productResponse->assertStatus(200);
+        $productResponse->assertSee('lang="id"', false);
+        $productResponse->assertSee('Navigasi');
+        $productResponse->assertSee('Kontak');
+        $productResponse->assertSee('Seluruh hak dilindungi.');
+        $productResponse->assertDontSee('data-testid="language-switcher-desktop"', false);
+        $productResponse->assertDontSee('data-testid="language-switcher-mobile"', false);
+
+        // 4. GET /halaman/{slug}
+        $pageResponse = $this->get('/halaman/' . $page->slug);
+        $pageResponse->assertStatus(200);
+        $pageResponse->assertSee('lang="id"', false);
+        $pageResponse->assertSee('Navigasi');
+        $pageResponse->assertSee('Kontak');
+        $pageResponse->assertSee('Seluruh hak dilindungi.');
+        $pageResponse->assertDontSee('data-testid="language-switcher-desktop"', false);
+        $pageResponse->assertDontSee('data-testid="language-switcher-mobile"', false);
+    }
+
+    public function test_language_switcher_is_only_visible_on_homepage_routes()
+    {
+        // 1. GET / -> Has switcher
+        $homeId = $this->get('/');
+        $homeId->assertStatus(200);
+        $homeId->assertSee('data-testid="language-switcher-desktop"', false);
+        $homeId->assertSee('data-testid="language-switcher-mobile"', false);
+
+        // 2. GET /en -> Has switcher
+        $homeEn = $this->get('/en');
+        $homeEn->assertStatus(200);
+        $homeEn->assertSee('data-testid="language-switcher-desktop"', false);
+        $homeEn->assertSee('data-testid="language-switcher-mobile"', false);
+
+        // 3. GET /artikel -> Switcher hidden
+        $artikel = $this->get('/artikel');
+        $artikel->assertStatus(200);
+        $artikel->assertDontSee('data-testid="language-switcher-desktop"', false);
+        $artikel->assertDontSee('data-testid="language-switcher-mobile"', false);
+    }
 }

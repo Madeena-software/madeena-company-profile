@@ -63,6 +63,8 @@ class HomeController extends Controller
         }
         unset($section);
 
+        $showLanguageSwitcher = true;
+
         return view('home', compact(
             'sections',
             'seo',
@@ -72,35 +74,52 @@ class HomeController extends Controller
             'whatsapp',
             'navItems',
             'isPreview',
-            'locale'
+            'locale',
+            'showLanguageSwitcher'
         ));
     }
 
     public function artikel()
     {
+        app()->setLocale('id');
+        $locale = 'id';
+        $showLanguageSwitcher = false;
+
         $posts = Post::where('is_published', true)
             ->orderByDesc('published_at')
             ->paginate(10);
 
-        return view('artikel', compact('posts'));
+        return view('artikel', compact('posts', 'locale', 'showLanguageSwitcher'));
     }
 
     public function post(Post $post)
     {
         abort_if(! $post->is_published, 404);
 
-        return view('post', compact('post'));
+        app()->setLocale('id');
+        $locale = 'id';
+        $showLanguageSwitcher = false;
+
+        return view('post', compact('post', 'locale', 'showLanguageSwitcher'));
     }
 
     public function product(Product $product)
     {
         abort_if(! $product->is_active, 404);
 
-        return view('product', compact('product'));
+        app()->setLocale('id');
+        $locale = 'id';
+        $showLanguageSwitcher = false;
+
+        return view('product', compact('product', 'locale', 'showLanguageSwitcher'));
     }
 
     public function page(\App\Models\Page $page)
     {
-        return view('page', compact('page'));
+        app()->setLocale('id');
+        $locale = 'id';
+        $showLanguageSwitcher = false;
+
+        return view('page', compact('page', 'locale', 'showLanguageSwitcher'));
     }
 }

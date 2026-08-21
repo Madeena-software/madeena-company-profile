@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ $locale ?? app()->getLocale() }}">
+<html lang="{{ isset($locale) ? \App\Models\Setting::normalizeLocale($locale) : 'id' }}">
 
 <head>
     <meta charset="UTF-8">
@@ -51,13 +51,14 @@
 
 <body class="font-sans bg-white text-gray-900 antialiased">
     @php
-    $currentLang = $locale ?? app()->getLocale();
+    $currentLang = isset($locale) ? \App\Models\Setting::normalizeLocale($locale) : 'id';
     $navItems = $navItems ?? \App\Filament\Pages\HomepageEditor::getNavigation(false, $currentLang);
     $contactInfo = $contactInfo ?? \App\Models\Setting::getJson('contact_info', []);
     $socialMedia = $socialMedia ?? \App\Models\Setting::getJson('social_media', []);
     $whatsappBtn = $whatsapp ?? \App\Models\Setting::getJson('whatsapp_button', ['enabled' => true, 'number' => '']);
     $homeBaseUrl = $currentLang === 'en' ? url('/en') : url('/');
     $previewQuery = request('preview') === 'true' ? '?preview=true' : '';
+    $showLanguageSwitcher = $showLanguageSwitcher ?? false;
     @endphp
 
     <header class="fixed top-0 left-0 right-0 z-50 bg-madeena-blue/95 backdrop-blur-sm shadow-lg" x-data="{ open: false }">
@@ -81,8 +82,9 @@
                     @endif
                     @endforeach
 
+                    @if(!empty($showLanguageSwitcher))
                     {{-- Compact Language Selector --}}
-                    <div class="flex items-center text-xs font-semibold border border-white/30 rounded-full px-2.5 py-1 text-white gap-1.5 ml-2">
+                    <div class="flex items-center text-xs font-semibold border border-white/30 rounded-full px-2.5 py-1 text-white gap-1.5 ml-2" data-testid="language-switcher-desktop">
                         @if($currentLang === 'en')
                             <a href="{{ url('/' . $previewQuery) }}" class="text-white/70 hover:text-white transition-colors" title="Indonesia">ID</a>
                             <span class="text-white/40">|</span>
@@ -93,6 +95,7 @@
                             <a href="{{ url('/en' . $previewQuery) }}" class="text-white/70 hover:text-white transition-colors" title="English">EN</a>
                         @endif
                     </div>
+                    @endif
                 </nav>
 
                 <button @click="open = !open" class="md:hidden text-white p-2">
@@ -110,8 +113,9 @@
                 @endif
                 @endforeach
 
+                @if(!empty($showLanguageSwitcher))
                 {{-- Mobile Language Selector --}}
-                <div class="pt-2 border-t border-white/10 flex items-center justify-between px-1">
+                <div class="pt-2 border-t border-white/10 flex items-center justify-between px-1" data-testid="language-switcher-mobile">
                     <span class="text-xs text-white/70 font-medium">{{ __('ui.language') }}:</span>
                     <div class="inline-flex items-center text-xs font-semibold border border-white/30 rounded-full px-2.5 py-1 text-white gap-1.5">
                         @if($currentLang === 'en')
@@ -125,6 +129,7 @@
                         @endif
                     </div>
                 </div>
+                @endif
             </div>
         </div>
     </header>
