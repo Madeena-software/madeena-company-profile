@@ -16,7 +16,7 @@ if (!fs.existsSync(artifactsDir)) {
   const page = await context.newPage();
   
   // Login to get session cookies
-  await page.goto('http://localhost:8011/login-test-user', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:8011/test-support/login', { waitUntil: 'networkidle' });
   
   console.log(`Testing Admin Light Mode`);
   await page.goto('http://localhost:8011/admin', { waitUntil: 'networkidle' });

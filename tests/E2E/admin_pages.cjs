@@ -38,7 +38,7 @@ const baseUrl = 'http://localhost:8011';
     const page = await context.newPage();
     
     // Login to get session cookies
-    await page.goto(`${baseUrl}/login-test-user`, { waitUntil: 'networkidle' });
+    await page.goto(`${baseUrl}/test-support/login`, { waitUntil: 'networkidle' });
     
     for (const route of routes) {
       console.log(`Testing Admin ${vp.name} - ${route.name}`);

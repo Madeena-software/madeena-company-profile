@@ -37,8 +37,8 @@ async function capture(page, dirName, fileName) {
         await page.goto(`${BASE_URL}/admin/login`);
         await capture(page, '01-login', 'login-overview.png');
 
-        // Magic Login
-        await page.goto(`${BASE_URL}/login-test-user`);
+        // Test Support Login
+        await page.goto(`${BASE_URL}/test-support/login`);
         await page.waitForURL('**/admin');
         
         // 02. Dashboard

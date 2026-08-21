@@ -44,8 +44,21 @@ Route::prefix('sso')->group(function (): void {
     Route::get('/silent', [SsoController::class, 'silentRedirect'])->name('sso.silent');
     Route::get('/callback', [SsoController::class, 'callback'])->name('sso.callback');
 });
-Route::get('/login-test-user', function () {
-    $user = \App\Models\User::first();
-    Auth::login($user);
-    return redirect('/admin');
-});
+if (app()->environment(['local', 'testing'])) {
+    Route::get('/test-support/login', function () {
+        $email = config('auth.filament_admin_email', 'admin@madeena.local');
+        $user = \App\Models\User::where('email', $email)->first();
+
+        if (! $user) {
+            $user = \App\Models\User::where('role', 'admin')->first();
+        }
+
+        if (! $user) {
+            abort(404, 'Test user not found.');
+        }
+
+        Auth::login($user);
+
+        return redirect('/admin');
+    })->name('test-support.login');
+}
