@@ -96,4 +96,22 @@ class EventFeedbackTest extends TestCase
         $this->assertSame(0, GuestMessage::query()->count());
     }
 
+    public function test_feedback_page_preserves_indonesian_locale_under_ambient_english(): void
+    {
+        // Force ambient application locale to English
+        app()->setLocale('en');
+        config(['app.locale' => 'en']);
+
+        $response = $this->get(route('events.feedback', ['event' => $this->event->slug]));
+
+        $response->assertOk();
+        $response->assertSee('lang="id"', false);
+        $response->assertSee('Navigasi');
+        $response->assertSee('Kontak');
+        $response->assertSee('Seluruh hak dilindungi.');
+        $response->assertSee('Kesan dan Pesan Anda untuk Booth Madeena');
+        $response->assertSee('Form Feedback Booth Madeena');
+        $response->assertDontSee('data-testid="language-switcher-desktop"', false);
+        $response->assertDontSee('data-testid="language-switcher-mobile"', false);
+    }
 }

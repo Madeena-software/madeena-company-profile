@@ -14,7 +14,11 @@ class FeedbackController extends Controller
 {
     public function create(Event $event): View
     {
-        return view('event.feedback', compact('event'));
+        app()->setLocale('id');
+        $locale = 'id';
+        $showLanguageSwitcher = false;
+
+        return view('event.feedback', compact('event', 'locale', 'showLanguageSwitcher'));
     }
 
     public function csrfToken(): JsonResponse
