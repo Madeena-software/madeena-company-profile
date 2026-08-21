@@ -533,7 +533,7 @@ class HomepageEditorTest extends TestCase
         $this->assertEquals('homepage_sections_draft', Setting::homepageDraftKey('../../traversal'));
     }
 
-    public function test_dynamic_language_selector_renders_active_and_hides_inactive_languages()
+    public function test_dynamic_language_selector_renders_all_registered_languages_with_active_and_inactive_distinction()
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
@@ -561,8 +561,9 @@ class HomepageEditorTest extends TestCase
         $response->assertSee('data-testid="editor-lang-btn-en"', false);
         $response->assertSee('data-testid="editor-lang-btn-ja"', false);
         $response->assertSee('日本語');
-        $response->assertDontSee('data-testid="editor-lang-btn-de"', false);
-        $response->assertDontSee('Deutsch');
+        $response->assertSee('data-testid="editor-lang-btn-de"', false);
+        $response->assertSee('Deutsch');
+        $response->assertSee('data-testid="badge-inactive-de"', false);
     }
 
     public function test_japanese_draft_and_publish_isolation_from_indonesian_and_english()
@@ -628,5 +629,287 @@ class HomepageEditorTest extends TestCase
         // ID and EN remain untouched
         $this->assertEquals('ID Hero Final', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
         $this->assertEquals('EN Hero Final', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_duplicate_homepage_to_target_language_creates_target_draft_only()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $ja = \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => false,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        $sourceContent = $this->sampleHeroSection('ID Published Hero Content');
+        Setting::setJson('homepage_sections', $sourceContent);
+        Setting::setJson('homepage_sections_draft', null);
+        Setting::setJson('homepage_sections_en', $this->sampleHeroSection('EN Content'));
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'ja')
+            ->assertHasNoFormErrors();
+
+        // 1. Target draft created with exact source content
+        $jaDraft = Setting::getJson('homepage_sections_ja_draft');
+        $this->assertIsArray($jaDraft);
+        $this->assertEquals('ID Published Hero Content', $jaDraft[0]['data']['banners'][0]['title']);
+
+        // 2. Target published remains null
+        $this->assertNull(Setting::getJson('homepage_sections_ja'));
+
+        // 3. Source content remains untouched
+        $this->assertEquals('ID Published Hero Content', Setting::getJson('homepage_sections')[0]['data']['banners'][0]['title']);
+        $this->assertNull(Setting::getJson('homepage_sections_draft'));
+
+        // 4. Other language (EN) remains untouched
+        $this->assertEquals('EN Content', Setting::getJson('homepage_sections_en')[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_duplicate_source_draft_takes_precedence_over_published_source()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('Published ID Content'));
+        Setting::setJson('homepage_sections_draft', $this->sampleHeroSection('Draft ID Content'));
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'ja');
+
+        $jaDraft = Setting::getJson('homepage_sections_ja_draft');
+        $this->assertIsArray($jaDraft);
+        // Persisted draft takes precedence over published
+        $this->assertEquals('Draft ID Content', $jaDraft[0]['data']['banners'][0]['title']);
+        $this->assertNull(Setting::getJson('homepage_sections_ja'));
+    }
+
+    public function test_duplicate_published_fallback_when_no_source_draft_exists()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('Only Published ID'));
+        Setting::setJson('homepage_sections_draft', null);
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'ja');
+
+        $jaDraft = Setting::getJson('homepage_sections_ja_draft');
+        $this->assertIsArray($jaDraft);
+        $this->assertEquals('Only Published ID', $jaDraft[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_duplicate_empty_source_is_rejected_and_mutates_nothing()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections', null);
+        Setting::setJson('homepage_sections_draft', null);
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'ja');
+
+        $this->assertNull(Setting::getJson('homepage_sections_ja_draft'));
+        $this->assertNull(Setting::getJson('homepage_sections_ja'));
+    }
+
+    public function test_duplicate_target_protection_blocks_when_target_draft_or_published_exists()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => true,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Source'));
+
+        // Case A: Target draft exists -> BLOCK
+        Setting::setJson('homepage_sections_ja_draft', $this->sampleHeroSection('Existing JA Draft'));
+        Setting::setJson('homepage_sections_ja', null);
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'ja');
+
+        // Existing JA draft unchanged
+        $this->assertEquals('Existing JA Draft', Setting::getJson('homepage_sections_ja_draft')[0]['data']['banners'][0]['title']);
+
+        // Case B: Target published exists -> BLOCK
+        Setting::setJson('homepage_sections_ja_draft', null);
+        Setting::setJson('homepage_sections_ja', $this->sampleHeroSection('Existing JA Published'));
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'ja');
+
+        // Target draft is NOT created and published unchanged
+        $this->assertNull(Setting::getJson('homepage_sections_ja_draft'));
+        $this->assertEquals('Existing JA Published', Setting::getJson('homepage_sections_ja')[0]['data']['banners'][0]['title']);
+    }
+
+    public function test_duplicate_same_language_is_blocked()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Source'));
+        Setting::setJson('homepage_sections_draft', null);
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'id');
+
+        $this->assertNull(Setting::getJson('homepage_sections_draft'));
+    }
+
+    public function test_duplicate_unregistered_target_fails_closed()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Source'));
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'zz');
+
+        $this->assertNull(Setting::getJson('homepage_sections_zz_draft'));
+        $this->assertNull(Setting::getJson('homepage_sections_zz'));
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', '../../invalid');
+
+        $this->assertNull(Setting::getJson('homepage_sections_../../invalid_draft'));
+    }
+
+    public function test_duplicate_preserves_rich_content_and_structure_fidelity()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => false,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        $richSource = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'show_in_nav' => true,
+                    'nav_label' => 'Beranda',
+                    'section_id' => 'hero-sec',
+                    'banners' => [
+                        [
+                            'title' => 'Inovasi Digital Radiography',
+                            'subtitle' => 'Made in Indonesia',
+                            'description' => '<p>Deskripsi <strong>tebal</strong> dengan link <a href="https://madeena.id">Madeena</a></p>',
+                            'image' => 'banners/hero.jpg',
+                            'button_text' => 'Pelajari Selengkapnya',
+                            'button_url' => '#products',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'cta',
+                'data' => [
+                    'title' => 'Hubungi Kami Hari Ini',
+                    'subtitle' => '<ul><li>Layanan 24/7</li><li>Garansi Resmi</li></ul>',
+                    'button_text' => 'Kontak',
+                    'button_url' => '#contact',
+                ],
+            ],
+        ];
+
+        Setting::setJson('homepage_sections', $richSource);
+        Setting::setJson('homepage_sections_draft', null);
+
+        Livewire::actingAs($admin)
+            ->test(HomepageEditor::class)
+            ->call('duplicateToLanguage', 'ja');
+
+        $jaDraft = Setting::getJson('homepage_sections_ja_draft');
+        $this->assertEquals($richSource, $jaDraft);
+        $this->assertEquals('<p>Deskripsi <strong>tebal</strong> dengan link <a href="https://madeena.id">Madeena</a></p>', $jaDraft[0]['data']['banners'][0]['description']);
+        $this->assertEquals('<ul><li>Layanan 24/7</li><li>Garansi Resmi</li></ul>', $jaDraft[1]['data']['subtitle']);
+    }
+
+    public function test_editor_renders_version_status_badges_and_inactive_languages()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => false,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        Setting::setJson('homepage_sections', $this->sampleHeroSection('ID Published'));
+        Setting::setJson('homepage_sections_draft', null);
+        Setting::setJson('homepage_sections_en', null);
+        Setting::setJson('homepage_sections_en_draft', null);
+        Setting::setJson('homepage_sections_ja_draft', $this->sampleHeroSection('JA Draft Only'));
+        Setting::setJson('homepage_sections_ja', null);
+
+        $response = $this->actingAs($admin)->get(HomepageEditor::getUrl());
+        $response->assertStatus(200);
+
+        // All languages listed in editor selector
+        $response->assertSee('data-testid="editor-lang-btn-id"', false);
+        $response->assertSee('data-testid="editor-lang-btn-en"', false);
+        $response->assertSee('data-testid="editor-lang-btn-ja"', false);
+
+        // Status badges
+        $response->assertSee('data-testid="badge-default-id"', false);
+        $response->assertSee('data-testid="badge-published-id"', false);
+
+        $response->assertSee('data-testid="badge-empty-en"', false);
+
+        $response->assertSee('data-testid="badge-inactive-ja"', false);
+        $response->assertSee('data-testid="badge-draft-ja"', false);
     }
 }

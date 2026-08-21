@@ -76,7 +76,7 @@ class LanguageResource extends Resource
 
                     Toggle::make('is_active')
                         ->label('Aktif')
-                        ->default(true)
+                        ->default(false)
                         ->disabled(fn ($record) => $record?->is_default ?? false)
                         ->helperText('Bahasa default harus selalu aktif.'),
 

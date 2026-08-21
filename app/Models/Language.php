@@ -224,7 +224,7 @@ class Language extends Model
 
     public static function normalizeCode(?string $code): string
     {
-        $lang = static::resolveActive($code);
+        $lang = static::resolve($code);
 
         return $lang ? $lang->code : static::getDefault()->code;
     }
@@ -256,7 +256,7 @@ class Language extends Model
             return $language->homepageUrl($isPreview);
         }
 
-        $lang = static::resolveActive($language);
+        $lang = $isPreview ? static::resolve($language) : static::resolveActive($language);
         if ($lang) {
             return $lang->homepageUrl($isPreview);
         }

@@ -106,6 +106,46 @@ class HomepageEditor extends Page implements HasForms
                 ->openUrlInNewTab()
                 ->color('info'),
 
+            Action::make('duplicate_to_language')
+                ->label('📋 Duplikat ke Bahasa Lain')
+                ->icon('heroicon-o-document-duplicate')
+                ->color('gray')
+                ->modalHeading('Duplikat Halaman Utama ke Bahasa Lain')
+                ->modalDescription('Draft bahasa target akan dibuat dari versi sumber (draft jika ada, atau versi publik). Simpan draft sumber terlebih dahulu jika ingin menyertakan perubahan terbaru.')
+                ->modalSubmitActionLabel('Duplikat sebagai Draft')
+                ->form([
+                    \Filament\Forms\Components\Placeholder::make('source_info')
+                        ->label('Bahasa Sumber')
+                        ->content(function () {
+                            $sourceLang = Language::resolve($this->activeLocale);
+                            return $sourceLang
+                                ? "{$sourceLang->native_name} ({$sourceLang->code})"
+                                : strtoupper($this->activeLocale);
+                        }),
+
+                    \Filament\Forms\Components\Select::make('target_language')
+                        ->label('Pilih Bahasa Target')
+                        ->required()
+                        ->options(function () {
+                            $currentCode = Language::normalizeCode($this->activeLocale);
+                            return Language::getAll()
+                                ->filter(fn (Language $l) => $l->code !== $currentCode)
+                                ->mapWithKeys(function (Language $l) {
+                                    $status = $l->is_active ? 'Aktif' : 'Nonaktif';
+                                    $draftKey = Language::draftKeyFor($l->code);
+                                    $publishedKey = Language::publishedKeyFor($l->code);
+                                    $hasContent = Setting::getJson($draftKey) !== null || Setting::getJson($publishedKey) !== null;
+                                    $suffix = $hasContent ? ' (Sudah Ada Versi)' : '';
+                                    return [$l->code => "{$l->native_name} ({$l->code}) - {$status}{$suffix}"];
+                                })
+                                ->toArray();
+                        })
+                        ->helperText('Hanya bahasa terdaftar yang belum memiliki versi homepage yang dapat disalin.'),
+                ])
+                ->action(function (array $data) {
+                    $this->duplicateToLanguage($data['target_language'] ?? null);
+                }),
+
             Action::make('save')
                 ->label('💾 Simpan Draft')
                 ->icon('heroicon-o-check')
@@ -200,5 +240,89 @@ class HomepageEditor extends Page implements HasForms
         }
 
         return $navItems;
+    }
+
+    public function duplicateToLanguage(?string $targetLocale): void
+    {
+        $sourceLocale = Language::normalizeCode($this->activeLocale);
+        $targetCode = $targetLocale ? strtolower(trim((string) $targetLocale)) : null;
+
+        if (! $targetCode || ! Language::validateCode($targetCode)) {
+            Notification::make()
+                ->danger()
+                ->title('Bahasa Target Tidak Valid')
+                ->body('Bahasa target yang dipilih tidak valid atau tidak terdaftar.')
+                ->send();
+            return;
+        }
+
+        $targetLang = Language::resolve($targetCode);
+        if (! $targetLang) {
+            Notification::make()
+                ->danger()
+                ->title('Bahasa Target Tidak Terdaftar')
+                ->body('Bahasa target tidak ditemukan dalam sistem.')
+                ->send();
+            return;
+        }
+
+        if ($sourceLocale === $targetLang->code) {
+            Notification::make()
+                ->danger()
+                ->title('Bahasa Target Tidak Boleh Sama')
+                ->body('Bahasa sumber dan bahasa target tidak boleh sama.')
+                ->send();
+            return;
+        }
+
+        // Target protection: Block if target draft or target published already exists
+        $targetDraftKey = Language::draftKeyFor($targetLang->code);
+        $targetPublishedKey = Language::publishedKeyFor($targetLang->code);
+
+        if (Setting::getJson($targetDraftKey) !== null || Setting::getJson($targetPublishedKey) !== null) {
+            Notification::make()
+                ->warning()
+                ->title('Versi Target Sudah Ada')
+                ->body("Versi homepage untuk {$targetLang->native_name} ({$targetLang->code}) sudah ada. Silakan edit versi tersebut.")
+                ->send();
+            return;
+        }
+
+        // Resolve source content: persisted draft first, then published fallback
+        $sourceDraftKey = Language::draftKeyFor($sourceLocale);
+        $sourcePublishedKey = Language::publishedKeyFor($sourceLocale);
+
+        $sourceSections = Setting::getJson($sourceDraftKey);
+        if ($sourceSections === null) {
+            $sourceSections = Setting::getJson($sourcePublishedKey);
+        }
+
+        if ($sourceSections === null || (is_array($sourceSections) && empty($sourceSections))) {
+            Notification::make()
+                ->warning()
+                ->title('Konten Sumber Kosong')
+                ->body('Tidak ada konten sumber yang dapat diduplikasi.')
+                ->send();
+            return;
+        }
+
+        // Write ONLY target draft
+        $duplicatedSections = array_values($sourceSections);
+        Setting::setJson($targetDraftKey, $duplicatedSections);
+
+        // Switch editor active language and reload form
+        $this->activeLocale = $targetLang->code;
+        $this->form->fill([
+            'sections' => $duplicatedSections,
+        ]);
+
+        $sourceLang = Language::resolve($sourceLocale);
+        $sourceLabel = $sourceLang ? $sourceLang->native_name : strtoupper($sourceLocale);
+
+        Notification::make()
+            ->success()
+            ->title("Draft {$targetLang->native_name} Berhasil Dibuat")
+            ->body("Draft {$targetLang->native_name} berhasil dibuat dari {$sourceLabel}. Silakan terjemahkan dan tinjau sebelum dipublikasikan.")
+            ->send();
     }
 }

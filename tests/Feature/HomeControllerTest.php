@@ -906,4 +906,77 @@ class HomeControllerTest extends TestCase
         $previewResponse->assertSee(url('/ar?preview=true'));
         $previewResponse->assertSee(url('/fr?preview=true'));
     }
+
+    public function test_inactive_language_preview_security_and_activation_flow()
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+        $user = \App\Models\User::factory()->create(['role' => 'user']);
+
+        $ja = \App\Models\Language::create([
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native_name' => '日本語',
+            'is_active' => false,
+            'is_default' => false,
+            'sort_order' => 3,
+        ]);
+
+        $jaDraft = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'JA Draft Secret Preview',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $jaPublished = [
+            [
+                'type' => 'hero',
+                'data' => [
+                    'banners' => [
+                        [
+                            'title' => 'JA Published Live Hero',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        Setting::setJson('homepage_sections_ja_draft', $jaDraft);
+        Setting::setJson('homepage_sections_ja', $jaPublished);
+
+        // 1. Guest normal route -> 404
+        $this->get('/ja')->assertNotFound();
+
+        // 2. Guest preview attempt -> 404
+        $this->get('/ja?preview=true')->assertNotFound();
+
+        // 3. Non-admin preview attempt -> 404
+        $this->actingAs($user)->get('/ja?preview=true')->assertNotFound();
+
+        // 4. Admin preview -> 200 OK & sees draft content
+        $adminPreview = $this->actingAs($admin)->get('/ja?preview=true');
+        $adminPreview->assertStatus(200);
+        $adminPreview->assertSee('JA Draft Secret Preview');
+        $adminPreview->assertDontSee('JA Published Live Hero');
+
+        // 5. Public switcher excludes inactive JA
+        $homeResponse = $this->get('/');
+        $homeResponse->assertStatus(200);
+        $homeResponse->assertDontSee('data-testid="lang-link-ja"', false);
+        $homeResponse->assertDontSee('/ja');
+
+        // 6. Activate JA -> public GET /ja becomes available with published content
+        $ja->update(['is_active' => true]);
+
+        $publicJa = $this->get('/ja');
+        $publicJa->assertStatus(200);
+        $publicJa->assertSee('JA Published Live Hero');
+        $publicJa->assertDontSee('JA Draft Secret Preview');
+    }
 }

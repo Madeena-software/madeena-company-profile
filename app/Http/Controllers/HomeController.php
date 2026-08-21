@@ -21,13 +21,21 @@ class HomeController extends Controller
 
     public function localizedHome(string $locale): View|RedirectResponse
     {
-        $lang = Language::resolveActive($locale);
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $isAdmin = $user instanceof \App\Models\User && $user->isAdmin();
+        $isPreview = request('preview') === 'true' && $isAdmin;
+
+        $lang = $isPreview ? Language::resolve($locale) : Language::resolveActive($locale);
 
         if (! $lang) {
             abort(404);
         }
 
-        if ($lang->is_default) {
+        if (! $lang->is_active && ! $isPreview) {
+            abort(404);
+        }
+
+        if ($lang->is_default && ! $isPreview) {
             return redirect('/', 302);
         }
 

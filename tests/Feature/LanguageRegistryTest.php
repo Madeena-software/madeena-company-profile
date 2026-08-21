@@ -192,4 +192,12 @@ class LanguageRegistryTest extends TestCase
         $this->assertSame('Seluruh hak dilindungi.', $ja->getUiLabel('all_rights_reserved'));
         $this->assertSame('Navigasi', $ja->getUiLabel('navigation'));
     }
+
+    public function test_language_create_page_defaults_is_active_to_false(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin);
+        $this->get('/admin/languages/create')->assertOk();
+    }
 }
