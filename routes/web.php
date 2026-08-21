@@ -47,11 +47,11 @@ Route::prefix('sso')->group(function (): void {
 if (app()->environment(['local', 'testing'])) {
     Route::get('/test-support/login', function () {
         $email = config('auth.filament_admin_email', 'admin@madeena.local');
-        $user = \App\Models\User::where('email', $email)->first();
 
-        if (! $user) {
-            $user = \App\Models\User::where('role', 'admin')->first();
-        }
+        $user = \App\Models\User::query()
+            ->where('email', $email)
+            ->where('role', 'admin')
+            ->first();
 
         if (! $user) {
             abort(404, 'Test user not found.');
