@@ -451,6 +451,8 @@ class HomeControllerTest extends TestCase
             'content_json' => [],
             'content_language' => 'id',
             'user_id' => $user->id,
+            'is_published' => true,
+            'published_at' => now(),
         ]);
 
         // 1. GET /artikel

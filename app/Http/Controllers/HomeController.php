@@ -78,7 +78,9 @@ class HomeController extends Controller
                     ->take((int) ($section['data']['posts_count'] ?? 3))
                     ->get(),
                 'contact' => $section['contact'] = $contactInfo,
-                'about' => $section['page'] = \App\Models\Page::find($section['data']['page_id'] ?? null),
+                'about' => $section['page'] = $isPreview
+                    ? \App\Models\Page::find($section['data']['page_id'] ?? null)
+                    : \App\Models\Page::where('is_published', true)->find($section['data']['page_id'] ?? null),
                 default => null,
             };
         }
@@ -138,10 +140,18 @@ class HomeController extends Controller
 
     public function page(\App\Models\Page $page)
     {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $isAdmin = $user instanceof \App\Models\User && $user->isAdmin();
+        $isPreview = request('preview') === 'true' && $isAdmin;
+
+        if (! $page->is_published && ! $isPreview) {
+            abort(404);
+        }
+
         app()->setLocale('id');
         $locale = 'id';
         $showLanguageSwitcher = false;
 
-        return view('page', compact('page', 'locale', 'showLanguageSwitcher'));
+        return view('page', compact('page', 'locale', 'showLanguageSwitcher', 'isPreview'));
     }
 }
