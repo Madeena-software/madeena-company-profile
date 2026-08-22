@@ -5,8 +5,8 @@
 **CLEAR — NO DEPENDENCY SECURITY BLOCKER IDENTIFIED**
 
 - **Node/NPM Audit Scope**:
-  - **Vulnerable Packages in Metadata**: 8 package entries (1 Moderate, 5 High, 2 Critical by package).
-  - **Distinct NPM Security Advisories**: 42 unique advisory IDs (1 Critical, 21 High, 19 Moderate, 1 Low).
+  - **Vulnerable Package Entries in Metadata**: 8 package entries (1 Moderate, 5 High, 2 Critical by package).
+  - **Distinct NPM Security Advisories**: 42 unique advisory IDs (1 Critical, 18 High, 22 Moderate, 1 Low; sum = 42).
   - **Production-Tree (`--omit=dev`) Advisories**: 0 vulnerabilities (`katex@^0.17.0` has 0 advisories).
   - **Production Browser Runtime Packages**: 1 package (`axios@1.13.6`), where all 28 reported advisories are either Node.js-adapter-specific (SSRF, proxy bypass, HTTP stream headers, cloud metadata exfiltration) or require global prototype pollution gadgets that are absent in Madeena.
   - **Production Build-Time Packages**: 3 packages (`vite`, `postcss`, `nanoid`) executing in ephemeral build containers on trusted repository source files.
@@ -16,11 +16,11 @@
 
 - **Composer / PHP Locked Dependencies Scope**:
   - **Distinct Affected Packages**: 18 packages in production `composer.lock`.
-  - **Distinct Advisories**: 46 advisories.
-  - **Severity Distribution**: 1 Critical, 9 High, 30 Medium, 5 Low, 1 Untyped (None).
+  - **Distinct Advisories**: 46 advisories (1 Critical, 9 High, 30 Medium, 5 Low, 1 Untyped).
   - **Abandoned Packages**: 0.
-  - **Critical / High Reachability**: All 10 Critical and High advisories (`mtdowling/jmespath.php`, `filament/filament`, `guzzlehttp/guzzle`, `laravel/framework`, `league/commonmark` [4], `symfony/http-kernel`, `symfony/mime`) are installed and vulnerable by version, but repository code and runtime configuration evidence demonstrate that their required exploit prerequisites (e.g. user-supplied JMESPath expressions, MFA recovery codes, untrusted Markdown parsing, Symfony controller attributes, raw mail header construction) are absent in Madeena.
-  - **Credible Production Exploit Paths**: 0.
+  - **Vulnerable by Version**: YES (all 18 packages are locked at versions with upstream advisories).
+  - **Critical / High Reachability**: All 10 Critical and High advisories (`mtdowling/jmespath.php`, `filament/filament`, `guzzlehttp/guzzle`, `laravel/framework`, `league/commonmark` [4], `symfony/http-kernel`, `symfony/mime`) have been analyzed against repository code and runtime configuration. Required exploit prerequisites (e.g. user-supplied JMESPath expressions, MFA recovery codes, attacker-controlled outbound request hosts, untrusted Markdown parsing, Symfony controller attributes, raw mail header construction) are absent in Madeena.
+  - **Credible Production Exploit Paths Identified**: 0.
 
 - **Remediation Plan**: Full candidate remediation matrices for both npm and Composer are established below for execution in Task #10B.
 
@@ -28,9 +28,9 @@
 
 ## 1. Audit Metadata & Toolchain
 
-- **Audited Git Baseline SHA**: `01211921d58308f375b7f29939b05e0ab74cd5d6` (branch: `develop`)
+- **Audited Git Baseline SHA**: `136675a3a9129e8f0ad8da369ef86c917ed0ef79` (branch: `develop`)
 - **Main Branch Baseline SHA**: `009b1a65e1216d8c097606c51019b3947d2ba574`
-- **Audit Timestamp UTC**: `2026-08-22 04:26:20 UTC` (re-verified `2026-08-22 05:48:00 UTC`)
+- **Audit Timestamp UTC**: `2026-08-22 04:26:20 UTC` (re-verified `2026-08-22 06:00:00 UTC`)
 - **Node.js**: `v22.22.1`
 - **npm**: `9.2.0`
 - **PHP**: `8.5.4 (cli)` (Zend Engine v4.5.4 / OPcache v8.5.4)
@@ -54,7 +54,7 @@ Production containerization is defined in [Dockerfile](file:///var/www/madeena-c
    - Neither `node` nor `npm` binaries exist in the production runtime container.
 
 ### Execution Boundaries
-- **Production Server Runtime**: 0 Node.js packages execute on the production server. Composer dependencies installed via `--no-dev` ARE present in production vendor.
+- **Production Server Runtime**: 0 Node.js packages execute on the production server. Composer dependencies installed via `--no-dev` ARE physically present in production vendor (`/var/www/html/vendor`).
 - **Production Browser Runtime**: Only static JS/CSS assets compiled into `public/build/` are served to web visitors.
 - **Build Infrastructure Runtime**: Vite, PostCSS, and esbuild execute only during Docker image assembly or local compilation.
 
@@ -63,12 +63,13 @@ Production containerization is defined in [Dockerfile](file:///var/www/madeena-c
 ## 3. NPM Audit Summary
 
 ### Full Tree Audit (`npm audit`)
-- **Vulnerable Packages in Metadata**: 8 package entries (1 Moderate, 5 High, 2 Critical)
+- **Vulnerable Packages in Metadata**: 8 package entries (1 Moderate, 5 High, 2 Critical by package)
 - **Distinct Security Advisories**: 42 unique advisory IDs
   - Critical: 1 (`GHSA-w7jw-789q-3m8p` on `shell-quote`)
-  - High: 21 (14 on `axios`, 2 on `nanoid`, 2 on `postcss`, 1 on `form-data`, 1 on `shell-quote`, 2 on `vite`)
-  - Moderate: 19 (13 on `axios`, 1 on `follow-redirects`, 2 on `postcss`, 2 on `vite`)
+  - High: 18 (10 on `axios`, 2 on `nanoid`, 2 on `postcss`, 1 on `form-data`, 1 on `shell-quote`, 2 on `vite`)
+  - Moderate: 22 (17 on `axios`, 1 on `follow-redirects`, 2 on `postcss`, 2 on `vite`)
   - Low: 1 (`GHSA-xhjh-pmcv-23jw` on `axios`)
+  - Sum: 1 + 18 + 22 + 1 = 42
 - **Exit Code**: `1`
 
 ### Production-Tree Audit (`npm audit --omit=dev`)
@@ -137,23 +138,23 @@ All 28 advisories affect `axios@1.13.6`. In Madeena, Axios is assigned to `windo
 
 ## 5. Composer Critical & High Reachability Analysis
 
-Composer packages installed via `composer install --no-dev` ARE present in the production PHP container (`/var/www/html/vendor`). Below is the complete reachability analysis for all **1 Critical** and **9 High** advisories:
+Composer packages installed via `composer install --no-dev` ARE physically present in the production PHP container (`/var/www/html/vendor`). Below is the reachability analysis for all **1 Critical** and **9 High** advisories:
 
 ### 1. `mtdowling/jmespath.php` — CRITICAL (`PKSA-mnyp-475s-ywph` / `CVE-2026-54133` / `GHSA-pcw8-m77r-2528`)
 - **Locked Version**: `2.8.0` (required by `aws/aws-sdk-php@3.384.2` <- `league/flysystem-aws-s3-v3@3.34.0`)
-- **Affected Range**: `<2.9.1` | **Patched Version**: `2.9.1`
+- **Affected Range**: `<2.9.1` | **Authoritative Patched Version**: `2.9.1`
 - **Production Runtime Presence**: YES (`vendor/mtdowling/jmespath.php`)
 - **Vulnerable Feature**: `JmesPath\CompilerRuntime` compiles unescaped function names in custom JMESPath expressions into PHP code, allowing code execution if an attacker supplies or controls the JMESPath expression and `JP_PHP_COMPILE` is enabled or `CompilerRuntime` is instantiated.
 - **Repository Usage & Search Evidence**:
-  - project codebase grep search for `JmesPath`, `CompilerRuntime`, `JP_PHP_COMPILE`, and `jmespath`: **0 occurrences in application code**.
+  - Project codebase grep search for `JmesPath`, `CompilerRuntime`, `JP_PHP_COMPILE`, and `jmespath`: **0 occurrences in application code**.
   - AWS SDK / MinIO S3 integration in [PublicStorageController.php](file:///var/www/madeena-company-profile/app/Http/Controllers/PublicStorageController.php), [CheckStorageHealth.php](file:///var/www/madeena-company-profile/app/Console/Commands/CheckStorageHealth.php), and [UploadDatabaseBackup.php](file:///var/www/madeena-company-profile/app/Console/Commands/UploadDatabaseBackup.php) interacts strictly with Laravel `Storage::disk('public')` / `Storage::disk('enterprise_backups')` file streaming operations.
   - AWS SDK uses JMESPath internally for static client waiter response evaluation where expression strings are hardcoded in the SDK definitions, not taken from user input.
 - **Exploit Prerequisites Present**: **NO**.
-- **Reachability Conclusion**: Installed and vulnerable by version; **no reachable exploit path under current application usage**.
+- **Reachability Conclusion**: Installed and vulnerable by version; **0 credible production exploit paths identified under current repository and runtime configuration**.
 
 ### 2. `filament/filament` — HIGH (`PKSA-nsry-m1tp-jzr9` / `CVE-2026-48505` / `GHSA-mc5j-f6wx-h9qh`)
 - **Locked Version**: `v5.5.2` (required by root `composer.json`)
-- **Affected Range**: `>=5.0.0,<5.6.5|>=4.0.0,<4.11.5` | **Patched Version**: `5.6.5`
+- **Affected Range**: `>=5.0.0,<5.6.5|>=4.0.0,<4.11.5` | **Authoritative Patched Version**: `5.6.5`
 - **Production Runtime Presence**: YES (`vendor/filament/filament`)
 - **Vulnerable Feature**: Multi-factor authentication (app-based) recovery codes can be reused concurrently before invalidation.
 - **Repository Usage & Search Evidence**:
@@ -164,17 +165,20 @@ Composer packages installed via `composer install --no-dev` ARE present in the p
 - **Reachability Conclusion**: Installed and vulnerable by version; **feature is not enabled under current configuration**.
 
 ### 3. `guzzlehttp/guzzle` — HIGH (`PKSA-gcrk-3vtt-1r14` / `CVE-2026-69246` / `GHSA-v5mv-p594-2x33`)
-- **Locked Version**: `7.10.0` (required by `laravel/framework`, `socialiteproviders/laravelpassport`)
-- **Affected Range**: `>=8.0.0,<8.0.1|<7.15.2` | **Patched Version**: `7.15.2` / `8.0.1`
+- **Locked Version**: `7.10.0` (required by `laravel/framework`, `socialiteproviders/laravelpassport`, `aws/aws-sdk-php`)
+- **Affected Range**: `<7.15.2` (for 7.x) | `>=8.0.0,<8.0.1` (for 8.x) | **Authoritative Patched Version**: `7.15.2` (or `8.0.1`)
 - **Production Runtime Presence**: YES (`vendor/guzzlehttp/guzzle`)
 - **Vulnerable Feature**: Noncanonical hostnames can bypass host-based allowlist/redirect checks.
-- **Repository Usage & Search Evidence**: Outbound HTTP requests in Madeena are made exclusively via Laravel `Http::` in [SsoController.php](file:///var/www/madeena-company-profile/app/Http/Controllers/SsoController.php) against trusted, statically configured IAM endpoints (`config('services.madeena_iam.url')`). No dynamic host-checking or user-provided redirect URLs are processed by Guzzle.
+- **Repository Execution Paths & Evidence**:
+  1. **SSO / IAM Outbound HTTP**: In [SsoController.php](file:///var/www/madeena-company-profile/app/Http/Controllers/SsoController.php), outbound HTTP PATCH is sent via Laravel `Http::` using config key `config('services.laravelpassport.host')` (sourced from `env('MADEENA_IAM_URL')`). Socialite OAuth token/userinfo endpoints are similarly fixed to the configured IAM host.
+  2. **AWS SDK / Flysystem S3 / MinIO Storage**: AWS SDK uses Guzzle as its HTTP transport handler for S3 API calls (PutObject, GetObject, HeadObject) configured via `config('filesystems.disks.public.endpoint')` (`env('AWS_ENDPOINT')`).
+  3. **Public Storage Route ([PublicStorageController.php](file:///var/www/madeena-company-profile/app/Http/Controllers/PublicStorageController.php))**: Incoming visitor requests to `/storage/{path}` control strictly the S3 object key/path inside the bucket after traversal sanitization. The visitor CANNOT control the network request host, authority, Host header, or redirect validation logic.
 - **Exploit Prerequisites Present**: **NO**.
-- **Reachability Conclusion**: Installed and vulnerable by version; **no reachable exploit path under current application usage**.
+- **Reachability Conclusion**: Installed and vulnerable by version; **0 credible production exploit paths identified under current repository and runtime configuration**.
 
 ### 4. `laravel/framework` — HIGH (`PKSA-3r5d-mb8f-1qw9` / `GHSA-5vg9-5847-vvmq`)
 - **Locked Version**: `v13.0.0` (required by root `composer.json`)
-- **Affected Range**: `<12.60.0|>=13.0.0,<=13.9.0` | **Patched Version**: `13.9.1`
+- **Affected Range**: `>=13.0.0,<=13.9.0` (Laravel 13) | `<12.60.0` (Laravel 12) | **Authoritative Patched Version**: `13.10.0` (for Laravel 13) / `12.60.0` (for Laravel 12)
 - **Production Runtime Presence**: YES (`vendor/laravel/framework`)
 - **Vulnerable Feature**: CRLF injection in default `email` validation rule when email string is subsequently passed into raw mail transport headers.
 - **Repository Usage & Search Evidence**: Form feedback submissions validate email (`'email' => ['nullable', 'email:rfc,dns', 'max:255']`), but Madeena does not send outgoing emails or construct raw mail headers from visitor submissions (messages are stored directly in MySQL via `GuestMessage::create`).
@@ -183,7 +187,7 @@ Composer packages installed via `composer install --no-dev` ARE present in the p
 
 ### 5–8. `league/commonmark` — HIGH (4 Advisories: `GHSA-mh25-x5hq-wrqp`, `GHSA-jfm3-95jq-q3rf`, `GHSA-g2gp-3wwq-f4ph`, `GHSA-2q4p-g7hv-5rgv` / `CVE-2026-71488`)
 - **Locked Version**: `2.6.2` (required by `laravel/framework`, `filament/forms`)
-- **Affected Range**: `<2.9.0` | **Patched Version**: `2.9.0`
+- **Affected Range**: `<2.9.0` | **Authoritative Patched Version**: `2.9.0`
 - **Production Runtime Presence**: YES (`vendor/league/commonmark`)
 - **Vulnerable Feature**: Denial of service (ReDoS / quadratic time / collision loops) when parsing maliciously crafted Markdown inputs with duplicate footnotes, colliding slugs, or adjacent inline attribute blocks.
 - **Repository Usage & Search Evidence**: Public visitors cannot submit Markdown to server-side CommonMark parsers. Research articles use structured Tiptap JSON (`content_json`), static pages use Filament Builder JSON, and public event feedback messages are plain text strings stored and escaped without Markdown conversion.
@@ -192,7 +196,7 @@ Composer packages installed via `composer install --no-dev` ARE present in the p
 
 ### 9. `symfony/http-kernel` — HIGH (`PKSA-dw7n-x7f5-zf63` / `CVE-2026-45075` / `GHSA-6439-2f28-8p8q`)
 - **Locked Version**: `v8.0.8` (required by `laravel/framework`)
-- **Affected Range**: `>=7.4.0,<7.4.12|>=8.0.0,<8.0.12` | **Patched Version**: `8.0.12`
+- **Affected Range**: `>=7.4.0,<7.4.12|>=8.0.0,<8.0.12` | **Authoritative Patched Version**: `8.0.12`
 - **Production Runtime Presence**: YES (`vendor/symfony/http-kernel`)
 - **Vulnerable Feature**: HEAD request method filter bypass on Symfony controller attributes (`#[IsGranted(..., methods: ['GET'])]`, `#[IsSignatureValid]`, `#[IsCsrfTokenValid]`).
 - **Repository Usage & Search Evidence**:
@@ -203,7 +207,7 @@ Composer packages installed via `composer install --no-dev` ARE present in the p
 
 ### 10. `symfony/mime` — HIGH (`PKSA-2n2k-66v2-bwg3` / `CVE-2026-45067` / `GHSA-qpmx-3rfj-7rhv`)
 - **Locked Version**: `v8.0.8` (required by `laravel/framework`, `symfony/mailer`)
-- **Affected Range**: `<8.0.12` | **Patched Version**: `8.0.12`
+- **Affected Range**: `>=8.0.0,<8.0.12` | **Authoritative Patched Version**: `8.0.12`
 - **Production Runtime Presence**: YES (`vendor/symfony/mime`)
 - **Vulnerable Feature**: Email Header / SMTP Command Injection via CRLF in `Symfony\Component\Mime\Address`.
 - **Repository Usage & Search Evidence**: Madeena does not instantiate `Symfony\Component\Mime\Address` with user-supplied data or transmit outgoing emails based on visitor submissions.
@@ -252,12 +256,12 @@ During `npm ci`, npm inspects package install scripts. The repository's package 
 
 ### 8.1 Composer Production Dependencies Remediation Matrix
 
-| Package | Locked Version | Primary Advisory | Patched Version | Direct / Transitive | Production Runtime? | Current Reachability | Semver / Constraint Impact | Proposed #10B Action |
+| Package | Locked Version | Primary Advisory | Authoritative Patched Version | Direct / Transitive | Production Runtime? | Current Reachability | Semver / Constraint Impact | Proposed #10B Action |
 |---|---|---|---|---|---|---|---|---|
 | `mtdowling/jmespath.php` | `2.8.0` | `GHSA-pcw8-m77r-2528` (Critical) | `^2.9.1` | Transitive (`aws/aws-sdk-php`) | Yes | None (no user JMESPath input) | Minor/Patch within AWS SDK constraints | Update lockfile in #10B |
 | `filament/filament` | `v5.5.2` | `GHSA-mc5j-f6wx-h9qh` (High) | `^5.6.5` | Direct (`^5.0`) | Yes | None (MFA recovery codes not enabled) | Minor within `^5.0` | Update in #10B |
-| `guzzlehttp/guzzle` | `7.10.0` | `GHSA-v5mv-p594-2x33` (High) | `^7.15.2` | Transitive (`laravel/framework`) | Yes | None (static IAM endpoints only) | Minor within `^7.0` | Update lockfile in #10B |
-| `laravel/framework` | `v13.0.0` | `GHSA-5vg9-5847-vvmq` (High) | `^13.9.1` | Direct (`^13.0`) | Yes | None (no outgoing email transport) | Minor within `^13.0` | Update in #10B |
+| `guzzlehttp/guzzle` | `7.10.0` | `GHSA-v5mv-p594-2x33` (High) | `^7.15.2` | Transitive (`laravel/framework`) | Yes | None (static IAM/S3 endpoints only) | Minor within `^7.0` | Update lockfile in #10B |
+| `laravel/framework` | `v13.0.0` | `GHSA-5vg9-5847-vvmq` (High) | `^13.10.0` | Direct (`^13.0`) | Yes | None (no outgoing email transport) | Minor within `^13.0` | Update in #10B |
 | `league/commonmark` | `2.6.2` | `GHSA-2q4p-g7hv-5rgv` (High) | `^2.9.0` | Transitive (`laravel/framework`) | Yes | None (no untrusted Markdown input) | Minor within `^2.0` | Update lockfile in #10B |
 | `symfony/http-kernel` | `v8.0.8` | `GHSA-6439-2f28-8p8q` (High) | `^8.0.12` | Transitive (`laravel/framework`) | Yes | None (Symfony attributes not used) | Patch within `^8.0` | Update lockfile in #10B |
 | `symfony/mime` | `v8.0.8` | `GHSA-qpmx-3rfj-7rhv` (High) | `^8.0.12` | Transitive (`laravel/framework`) | Yes | None (no outgoing email transport) | Patch within `^8.0` | Update lockfile in #10B |
