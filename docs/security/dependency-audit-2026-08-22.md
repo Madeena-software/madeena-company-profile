@@ -28,9 +28,9 @@
 
 ## 1. Audit Metadata & Toolchain
 
-- **Audited Git Baseline SHA**: `136675a3a9129e8f0ad8da369ef86c917ed0ef79` (branch: `develop`)
+- **Audited Git Baseline SHA**: `c94688cc1e0875eca5950935a0d39b974d93a62f` (branch: `develop`)
 - **Main Branch Baseline SHA**: `009b1a65e1216d8c097606c51019b3947d2ba574`
-- **Audit Timestamp UTC**: `2026-08-22 04:26:20 UTC` (re-verified `2026-08-22 06:00:00 UTC`)
+- **Audit Timestamp UTC**: `2026-08-22 04:26:20 UTC` (re-verified `2026-08-22 08:35:00 UTC`)
 - **Node.js**: `v22.22.1`
 - **npm**: `9.2.0`
 - **PHP**: `8.5.4 (cli)` (Zend Engine v4.5.4 / OPcache v8.5.4)
@@ -136,7 +136,34 @@ All 28 advisories affect `axios@1.13.6`. In Madeena, Axios is assigned to `windo
 
 ---
 
-## 5. Composer Critical & High Reachability Analysis
+## 5. Composer Lock Inventory Evidence
+
+The table below documents the exact locked versions parsed directly from `composer.lock` for all 18 security-affected Composer packages alongside their advisory counts and highest severity:
+
+| Package | Exact Locked Version | Advisory Count | Highest Severity |
+|---|---|---|---|
+| `filament/actions` | `v5.5.2` | 1 | Medium |
+| `filament/filament` | `v5.5.2` | 3 | High |
+| `filament/infolists` | `v5.5.2` | 1 | Medium |
+| `filament/tables` | `v5.5.2` | 1 | Medium |
+| `guzzlehttp/guzzle` | `7.10.0` | 9 | High |
+| `guzzlehttp/psr7` | `2.9.0` | 4 | Medium |
+| `laravel/framework` | `v13.5.0` | 3 | High |
+| `league/commonmark` | `2.8.2` | 6 | High |
+| `mtdowling/jmespath.php` | `2.8.0` | 1 | Critical |
+| `phpseclib/phpseclib` | `3.0.53` | 1 | Medium |
+| `symfony/html-sanitizer` | `v8.0.8` | 5 | Medium |
+| `symfony/http-foundation` | `v8.0.8` | 1 | Medium |
+| `symfony/http-kernel` | `v8.0.8` | 1 | High |
+| `symfony/mailer` | `v8.0.8` | 1 | Medium |
+| `symfony/mime` | `v8.0.8` | 2 | High |
+| `symfony/polyfill-intl-idn` | `v1.36.0` | 1 | Low |
+| `symfony/routing` | `v8.0.8` | 2 | Medium |
+| `symfony/yaml` | `v8.0.8` | 3 | Low |
+
+---
+
+## 6. Composer Critical & High Reachability Analysis
 
 Composer packages installed via `composer install --no-dev` ARE physically present in the production PHP container (`/var/www/html/vendor`). Below is the reachability analysis for all **1 Critical** and **9 High** advisories:
 
@@ -177,7 +204,7 @@ Composer packages installed via `composer install --no-dev` ARE physically prese
 - **Reachability Conclusion**: Installed and vulnerable by version; **0 credible production exploit paths identified under current repository and runtime configuration**.
 
 ### 4. `laravel/framework` — HIGH (`PKSA-3r5d-mb8f-1qw9` / `GHSA-5vg9-5847-vvmq`)
-- **Locked Version**: `v13.0.0` (required by root `composer.json`)
+- **Locked Version**: `v13.5.0` (required by root `composer.json`)
 - **Affected Range**: `>=13.0.0,<=13.9.0` (Laravel 13) | `<12.60.0` (Laravel 12) | **Authoritative Patched Version**: `13.10.0` (for Laravel 13) / `12.60.0` (for Laravel 12)
 - **Production Runtime Presence**: YES (`vendor/laravel/framework`)
 - **Vulnerable Feature**: CRLF injection in default `email` validation rule when email string is subsequently passed into raw mail transport headers.
@@ -186,7 +213,7 @@ Composer packages installed via `composer install --no-dev` ARE physically prese
 - **Reachability Conclusion**: Installed and vulnerable by version; **no mail sending path exists in application**.
 
 ### 5–8. `league/commonmark` — HIGH (4 Advisories: `GHSA-mh25-x5hq-wrqp`, `GHSA-jfm3-95jq-q3rf`, `GHSA-g2gp-3wwq-f4ph`, `GHSA-2q4p-g7hv-5rgv` / `CVE-2026-71488`)
-- **Locked Version**: `2.6.2` (required by `laravel/framework`, `filament/forms`)
+- **Locked Version**: `2.8.2` (required by `laravel/framework`, `filament/forms`)
 - **Affected Range**: `<2.9.0` | **Authoritative Patched Version**: `2.9.0`
 - **Production Runtime Presence**: YES (`vendor/league/commonmark`)
 - **Vulnerable Feature**: Denial of service (ReDoS / quadratic time / collision loops) when parsing maliciously crafted Markdown inputs with duplicate footnotes, colliding slugs, or adjacent inline attribute blocks.
@@ -216,7 +243,7 @@ Composer packages installed via `composer install --no-dev` ARE physically prese
 
 ---
 
-## 6. Composer Medium & Low Advisories Summary (36 Advisories across 12 Packages)
+## 7. Composer Medium & Low Advisories Summary (36 Advisories across 12 Packages)
 
 All remaining Composer advisories represent locked upstream vendor dependencies in `composer.lock`:
 
@@ -239,7 +266,7 @@ All remaining Composer advisories represent locked upstream vendor dependencies 
 
 ---
 
-## 7. Install-Script & Supply-Chain Security Observation
+## 8. Install-Script & Supply-Chain Security Observation
 
 During `npm ci`, npm inspects package install scripts. The repository's package lock contains one package with an active postinstall script:
 
@@ -252,21 +279,21 @@ During `npm ci`, npm inspects package install scripts. The repository's package 
 
 ---
 
-## 8. Candidate Remediation Matrices (for Task #10B)
+## 9. Candidate Remediation Matrices (for Task #10B)
 
-### 8.1 Composer Production Dependencies Remediation Matrix
+### 9.1 Composer Production Dependencies Remediation Matrix
 
 | Package | Locked Version | Primary Advisory | Authoritative Patched Version | Direct / Transitive | Production Runtime? | Current Reachability | Semver / Constraint Impact | Proposed #10B Action |
 |---|---|---|---|---|---|---|---|---|
 | `mtdowling/jmespath.php` | `2.8.0` | `GHSA-pcw8-m77r-2528` (Critical) | `^2.9.1` | Transitive (`aws/aws-sdk-php`) | Yes | None (no user JMESPath input) | Minor/Patch within AWS SDK constraints | Update lockfile in #10B |
 | `filament/filament` | `v5.5.2` | `GHSA-mc5j-f6wx-h9qh` (High) | `^5.6.5` | Direct (`^5.0`) | Yes | None (MFA recovery codes not enabled) | Minor within `^5.0` | Update in #10B |
 | `guzzlehttp/guzzle` | `7.10.0` | `GHSA-v5mv-p594-2x33` (High) | `^7.15.2` | Transitive (`laravel/framework`) | Yes | None (static IAM/S3 endpoints only) | Minor within `^7.0` | Update lockfile in #10B |
-| `laravel/framework` | `v13.0.0` | `GHSA-5vg9-5847-vvmq` (High) | `^13.10.0` | Direct (`^13.0`) | Yes | None (no outgoing email transport) | Minor within `^13.0` | Update in #10B |
-| `league/commonmark` | `2.6.2` | `GHSA-2q4p-g7hv-5rgv` (High) | `^2.9.0` | Transitive (`laravel/framework`) | Yes | None (no untrusted Markdown input) | Minor within `^2.0` | Update lockfile in #10B |
+| `laravel/framework` | `v13.5.0` | `GHSA-5vg9-5847-vvmq` (High) | `^13.10.0` | Direct (`^13.0`) | Yes | None (no outgoing email transport) | Minor within `^13.0` | Update in #10B |
+| `league/commonmark` | `2.8.2` | `GHSA-2q4p-g7hv-5rgv` (High) | `^2.9.0` | Transitive (`laravel/framework`) | Yes | None (no untrusted Markdown input) | Minor within `^2.0` | Update lockfile in #10B |
 | `symfony/http-kernel` | `v8.0.8` | `GHSA-6439-2f28-8p8q` (High) | `^8.0.12` | Transitive (`laravel/framework`) | Yes | None (Symfony attributes not used) | Patch within `^8.0` | Update lockfile in #10B |
 | `symfony/mime` | `v8.0.8` | `GHSA-qpmx-3rfj-7rhv` (High) | `^8.0.12` | Transitive (`laravel/framework`) | Yes | None (no outgoing email transport) | Patch within `^8.0` | Update lockfile in #10B |
 
-### 8.2 Node / NPM Dependencies Remediation Matrix
+### 9.2 Node / NPM Dependencies Remediation Matrix
 
 | Package | Current Version | Candidate Fixed Version | Direct / Transitive | Semver Impact | Expected Lockfile Impact | Expected Build Risk | Proposed #10B Action |
 |---|---|---|---|---|---|---|---|
@@ -281,7 +308,7 @@ During `npm ci`, npm inspects package install scripts. The repository's package 
 
 ---
 
-## 9. Verification & Build Reproducibility Evidence
+## 10. Verification & Build Reproducibility Evidence
 
 The current lockfile and build pipeline were fully reproduced and verified locally:
 
