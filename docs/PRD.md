@@ -393,7 +393,7 @@ flowchart TD
 
 ```mermaid
 erDiagram
-    USER ||--o{ POST : authors
+    USER o|--o{ POST : authors
     USER {
         bigint id PK
         string sso_id UK
@@ -402,7 +402,7 @@ erDiagram
         string role
         string password
     }
-    EVENT ||--o{ GUEST_MESSAGE : collects
+    EVENT o|--o{ GUEST_MESSAGE : collects
     EVENT {
         bigint id PK
         string name
