@@ -69,7 +69,7 @@ docker compose up -d
 docker compose -f docker-compose.simulation.yml up -d
 ```
 
-> ℹ️ Production deployments are managed automatically via GitHub Actions CI/CD (`.github/workflows/deploy-swarm.yml`) running on Docker Swarm.
+> ℹ️ Production deployments are managed via a repository-controlled GitHub Actions Swarm deployment workflow (`.github/workflows/deploy-swarm.yml`) dispatched manually.
 
 ## Testing
 

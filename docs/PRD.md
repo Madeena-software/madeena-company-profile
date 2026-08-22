@@ -2,7 +2,7 @@
 # Madeena Company Profile
 
 > **Status**: Approved Living Document
-> **Version**: 3.0 (Synchronized with Multilingual Homepage, Page Lifecycle, and Event Hardening)
+> **Version**: 3.1 (Synchronized with Storage Invariants, Event Gating Truth, and Workflow Dispatch Semantics)
 > **Repository**: [https://github.com/Madeena-software/madeena-company-profile](https://github.com/Madeena-software/madeena-company-profile)
 
 ---
@@ -32,8 +32,8 @@ The platform serves two primary audiences:
 | Application Server | Nginx + PHP 8.4-FPM | Multi-stage Alpine container |
 | Object Storage | MinIO (S3-compatible) | `league/flysystem-aws-s3-v3` |
 | Identity & Auth | Madeena IAM SSO | OAuth2 (`socialiteproviders/laravelpassport`) |
-| Container Orchestration | Docker Swarm | Stack deployment via GitHub Actions |
-| CI/CD Pipeline | GitHub Actions | Workflows under `.github/workflows/` |
+| Container Orchestration | Docker Swarm | Stack deployment via GitHub Actions runner |
+| CI/CD Pipeline | GitHub Actions | Workflows under `.github/workflows/` (dispatched via `workflow_dispatch`) |
 | Development Server Port | `8011` | `composer dev` executes `php artisan serve --port=8011` |
 
 ### 1.3 Key Public & Administrative URLs
@@ -42,21 +42,22 @@ The platform serves two primary audiences:
 |---|---|---|
 | `/` | Default language homepage (resolved via `Language::getDefault()`, e.g. `id`) | No |
 | `/{locale}` | Localized homepage for active language (e.g. `/en`) | No (Active only; Admin for preview) |
-| `/en` | Shortcut route to English homepage | No |
+| `/en` | Shortcut convenience/compatibility route to English homepage (`HomeController::indexEn()`) | No |
 | `/artikel` | Academic article and research publication index | No |
 | `/artikel/{post:slug}` | Individual academic article detail page with KaTeX equations and citations | No |
 | `/produk/{product:slug}` | Product specification and detail page | No |
 | `/halaman/{page:slug}` | Custom static page (requires publication or admin preview) | No |
 | `/events/{event:slug}/feedback` | Public event guestbook feedback form (requires active event) | No |
-| `/events/{event:slug}/feedback/csrf-token` | Rate-limited CSRF token refresh endpoint for feedback form | No |
-| `/events/{event:slug}/display` | Real-time Livewire display for live event exhibition boards | No |
+| `/events/{event:slug}/feedback/csrf-token` | Rate-limited CSRF token refresh endpoint for feedback form (requires active event) | No |
+| `/events/{event:slug}/display` | Real-time Livewire display for live event exhibition boards (not active-gated) | No |
 | `/inabuyer2026/feedback` | Legacy redirect to `/events/inabuyer-2026/feedback` | No |
 | `/inabuyer2026/display` | Legacy redirect to `/events/inabuyer-2026/display` | No |
 | `/storage/{path}` | Public object storage proxy serving S3 media assets | No |
 | `/health` | JSON database connectivity check | No |
 | `/up` | Application health endpoint | No |
 | `/admin` | Filament CMS administrative control panel | Yes (`admin` / `user`) |
-| `/sso/redirect` | Redirects user to Madeena IAM for SSO authentication | No |
+| `/sso/redirect` | Redirects user to Madeena IAM for SSO authentication (`prompt=login`) | No |
+| `/sso/silent` | Silent SSO check redirecting to Madeena IAM with `prompt=none` | No |
 | `/sso/callback` | OAuth2 callback handler from Madeena IAM | No |
 | `/test-support/login` | Automated testing support login endpoint | Local/Testing only |
 
@@ -68,7 +69,7 @@ The platform serves two primary audiences:
 
 1. **Public Visitor**
    - General public, medical facility procurement teams, clinical researchers, and event attendees.
-   - Read-only access to published public content across active languages; ability to submit event feedback during active events.
+   - Read-only access to published public content across active languages; ability to submit event feedback during active events and view exhibition display boards.
 2. **System Administrator (`role: admin`)**
    - Corporate leadership and IT managers (e.g. Prof. Gede Bayu Suparta).
    - Full administrative control over all CMS resources, Homepage layout, Language registry, Site Settings, Page publication, Event management, and User accounts.
@@ -84,7 +85,8 @@ The platform serves two primary audiences:
 | Inactive Language Homepage Preview | 👁️ (`?preview=true`) | ❌ | ❌ |
 | Product & Article Public Detail Pages | 👁️ | 👁️ | 👁️ |
 | Custom Pages (`/halaman/{slug}`) | 👁️ (Draft & Published) | 👁️ (Published only) | 👁️ (Published only) |
-| Event Feedback Form & Live Display | 👁️ ✍️ | 👁️ ✍️ | 👁️ ✍️ (Active events) |
+| Event Feedback Form (`/events/{slug}/feedback`) | 👁️ ✍️ | 👁️ ✍️ | 👁️ ✍️ (Active events only) |
+| Event Live Display (`/events/{slug}/display`) | 👁️ | 👁️ | 👁️ (All existing events) |
 | Filament CMS Dashboard | ✅ | ✅ | ❌ |
 | Homepage Editor (`/admin/homepage-editor`) | ✅ Full CRUD / Publish | ❌ Hidden | ❌ |
 | Language Registry (`/admin/languages`) | ✅ Full CRUD / Default | ❌ Hidden | ❌ |
@@ -106,8 +108,8 @@ The platform serves two primary audiences:
 - **Status**: Implemented
 - **Description**: Full-page responsive landing constructed via Filament's Builder blocks. Supports separate draft and published states per language.
 - **Key Mechanics**:
-  - Default language (Indonesian `id`) maps to Setting keys `homepage_sections` (published) and `homepage_sections_draft` (draft).
-  - Additional registered languages use `homepage_sections_{code}` and `homepage_sections_{code}_draft`.
+  - **Indonesian Legacy Storage Invariant**: Indonesian (`id`) permanently maps to unsuffixed Setting keys `homepage_sections` (published) and `homepage_sections_draft` (draft).
+  - **Non-Indonesian Languages**: Every non-Indonesian language maps to language-scoped keys `homepage_sections_{code}` and `homepage_sections_{code}_draft` (e.g. `homepage_sections_en`, `homepage_sections_ja`). This rule holds even if a non-Indonesian language is set as default.
   - Admin can save draft (`💾 Simpan Draft`), preview via `?preview=true`, and promote draft to live production (`🚀 Update Prod`).
   - Active/inactive toggle on languages restricts public visibility while allowing administrative preparation and private preview.
   - Duplication tool (`duplicateToLanguage`) copies source draft/published layout into target language draft without overwriting existing target versions.
@@ -153,11 +155,11 @@ The platform serves two primary audiences:
 - **Description**: Generic event guestbook module for exhibition booths and symposiums.
 - **Key Mechanics**:
   - Multi-event architecture supporting distinct events with slug-based routing.
-  - Active gate (`is_active`): Inactive events immediately 404 on feedback form, CSRF token endpoint, and submissions.
+  - **Feedback Gating (`is_active`)**: Inactive events immediately 404 on the feedback form (`GET /events/{slug}/feedback`), CSRF token endpoint (`GET /events/{slug}/feedback/csrf-token`), and submission endpoint (`POST /events/{slug}/feedback`).
+  - **Live Exhibition Display**: `/events/{event:slug}/display` streams visible messages (`is_visible=true`) via Livewire for any valid event route, without active-status gating.
   - Rate limiting: 60/min on CSRF token refresh (`no-store`), 30/min per IP on submissions, 3 submissions per 10 minutes per contact fingerprint.
   - Anti-spam: Passive honeypot field (`website`) silently drops bot entries.
   - Duplicate suppression: Re-submissions with identical details within 2 minutes are safely ignored.
-  - Real-time Livewire display at `/events/{event:slug}/display` with HTML-escaped output.
 
 #### F-007: Public Storage Proxy
 - **Status**: Implemented
@@ -169,7 +171,7 @@ The platform serves two primary audiences:
 
 #### F-009: Identity & Authentication
 - **Status**: Implemented
-- **Description**: Dual authentication supporting Madeena IAM SSO (OAuth2) and local session-based credentials. Automated test login support is strictly restricted to `local` and `testing` environments.
+- **Description**: Dual authentication supporting Madeena IAM SSO (OAuth2 via redirect, silent check, and callback) and local session-based credentials. Automated test login support is strictly restricted to `local` and `testing` environments.
 
 #### F-010: Automated Database Backups
 - **Status**: Implemented
@@ -186,6 +188,7 @@ The following requirements are documented for architectural alignment but are **
 - **D-003: Multi-Version Revision Snapshots for Pages & Products**: Storing immutable draft version histories for Pages and Products (prior to live publication) is deferred; current editing modifies the record directly.
 - **D-004: Pre-Submission Moderation Queue**: Administrative approval gating before event guest messages appear on live exhibition screens is deferred; submissions currently default to visible.
 - **D-005: Automated Translation Integration**: Automated machine translation (e.g. Google Translate API / DeepL) during homepage duplication is deferred; translations are performed manually.
+- **D-006: Event Display Active Gating**: Gating the exhibition display route (`/events/{slug}/display`) behind `Event->is_active` is deferred; it currently renders visible messages for all existing events.
 
 ---
 
@@ -222,9 +225,9 @@ flowchart TD
     C --> D["Edit Builder Sections"]
 
     D --> E{"Action Selected"}
-    E -- "Simpan Draft" --> F["Save to homepage_sections_{code}_draft"]
+    E -- "Simpan Draft" --> F["Save to homepage_sections_draft (ID) or homepage_sections_{code}_draft"]
     E -- "Pratinjau" --> G["Open /{code}?preview=true in new tab"]
-    E -- "Update Prod" --> H["Copy Draft to homepage_sections_{code}"]
+    E -- "Update Prod" --> H["Copy Draft to homepage_sections (ID) or homepage_sections_{code}"]
     H --> I["Live Homepage Updated for Visitors"]
 
     E -- "Duplikat ke Bahasa Lain" --> J{"Target already has content?"}
@@ -254,20 +257,24 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Visitor opens /events/{slug}/feedback"] --> B{"Event is_active?"}
-    B -- No --> C["Return 404 Not Found"]
-    B -- Yes --> D["Render Feedback Form"]
+    subgraph Feedback Collection
+        A["Visitor opens /events/{slug}/feedback"] --> B{"Event is_active?"}
+        B -- No --> C["Return 404 Not Found"]
+        B -- Yes --> D["Render Feedback Form"]
 
-    D --> E["Visitor submits Form (POST)"]
-    E --> F{"Honeypot filled?"}
-    F -- Yes (Bot) --> G["Silently accept & discard"]
-    F -- No --> H{"Rate limit & Duplicate check"}
-    H -- Fails --> I["Return Throttle Error / Discard Duplicate"]
-    H -- Passes --> J["Create GuestMessage record (is_visible=true)"]
-    J --> K["Flash Success Message to Visitor"]
+        D --> E["Visitor submits Form (POST)"]
+        E --> F{"Honeypot filled?"}
+        F -- Yes (Bot) --> G["Silently accept & discard"]
+        F -- No --> H{"Rate limit & Duplicate check"}
+        H -- Fails --> I["Return Throttle Error / Discard Duplicate"]
+        H -- Passes --> J["Create GuestMessage record (is_visible=true)"]
+        J --> K["Flash Success Message to Visitor"]
+    end
 
-    L["Exhibition Display at /events/{slug}/display"] --> M["Livewire polls is_visible=true messages"]
-    J --> M
+    subgraph Exhibition Display
+        L["Exhibition Display at /events/{slug}/display"] --> M["Livewire polls is_visible=true messages"]
+        J --> M
+    end
 ```
 
 ---
@@ -478,5 +485,5 @@ erDiagram
 
 ### 6.3 Deployment & Infrastructure
 - **Container Architecture**: Multi-stage Docker build producing an optimized Alpine PHP 8.4-FPM and Nginx container stack.
-- **Swarm Orchestration**: Managed via Docker Swarm on self-hosted runners using GitHub Actions (`deploy-swarm.yml`). Production web port is published on host port `8011`.
+- **Swarm Orchestration**: Managed via Docker Swarm on self-hosted runners using GitHub Actions (`deploy-swarm.yml`). Deployments are executed via manual dispatch (`workflow_dispatch`). Production web port is published on host port `8011`.
 - **Database Backup Verification**: Automated cron execution of `backup:upload` ensures S3 backup retention and integrity verification.

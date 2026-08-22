@@ -27,15 +27,15 @@ The repository serves two core purposes:
 
 ## Repository / Branch Workflow
 
-- **`main`**: Production release branch. Reflects live container deployments. Never commit directly to `main` and never force-push.
-- **`develop`**: Active integration branch. All development and delivery tasks operate on `develop`.
+- **`main`**: Production release source branch. Branch HEAD must not be assumed to equal the currently deployed live production SHA (live production state must be verified through GitHub Actions deployment/diagnostic evidence). As an operational snapshot, `main` at `009b1a6` had deployment run #32432823917 cancelled, while last confirmed live deploy was run #32380250857 at `e823ea2`. Never commit directly to `main` and never force-push.
+- **`develop`**: Active integration and development branch. All development and delivery tasks operate on `develop`.
 - **Delivery Governance**: Controlled by the canonical `.agents/AGENTS.md` contract and `.agents/software-workflow.md`.
-- **Deployment**: Automatic Swarm deployment executed via `.github/workflows/deploy-swarm.yml`. Developers and agents do not execute direct manual SSH or production mutations.
+- **Deployment**: Repository-controlled GitHub Actions deployment workflow (`.github/workflows/deploy-swarm.yml`) executed on self-hosted Swarm runners via manual dispatch (`workflow_dispatch`). Developers and agents do not execute direct manual SSH or production mutations.
 
 ## Authentication and Roles
 
 - **Authentication Providers**:
-  - **Madeena IAM SSO**: OAuth2 flow via `/sso/redirect` and `/sso/callback`. Matches or auto-provisions local `User` records with `sso_id`.
+  - **Madeena IAM SSO**: OAuth2 flow via `/sso/redirect`, `/sso/silent`, and `/sso/callback`. Matches or auto-provisions local `User` records with `sso_id`.
   - **Local Credentials**: Standard Filament login form using email and bcrypt password.
   - **Local/Testing Bypass**: Route `/test-support/login` logs in the configured test administrator in `local` or `testing` environments only. (Production test-login bypass is completely removed).
 - **User Roles & Policies**:
@@ -48,7 +48,7 @@ The repository serves two core purposes:
 |---|---|---|---|
 | `/` | `GET` | Homepage for default language (`Language::getDefault()`, e.g. `id`) | Public |
 | `/{locale}` | `GET` | Localized homepage for active language (e.g. `/en`). Redirects to `/` if default language. | Public (Active languages) / Admin (`?preview=true` for inactive) |
-| `/en` | `GET` | Convenience route for English homepage | Public (routes to `localizedHome('en')`) |
+| `/en` | `GET` | Convenience/compatibility route for English homepage (`HomeController::indexEn()` -> `localizedHome('en')`) | Public |
 | `/artikel` | `GET` | Paginated article and research blog index | Public |
 | `/artikel/{post:slug}` | `GET` | Individual article detail page with academic typesetting | Public (requires `is_published=true`) |
 | `/produk/{product:slug}` | `GET` | Individual product detail page | Public (requires `is_active=true`) |
@@ -56,14 +56,15 @@ The repository serves two core purposes:
 | `/events/{event:slug}/feedback` | `GET` | Event feedback form | Public (requires `is_active=true`) |
 | `/events/{event:slug}/feedback/csrf-token` | `GET` | CSRF token refresh endpoint (`no-store`, rate-limited) | Public (requires `is_active=true`) |
 | `/events/{event:slug}/feedback` | `POST` | Event feedback submission (rate-limited, honeypot, duplicate check) | Public (requires `is_active=true`) |
-| `/events/{event:slug}/display` | `GET` | Real-time Livewire event display for exhibition screens | Public |
+| `/events/{event:slug}/display` | `GET` | Real-time Livewire event display for exhibition screens | Public (displays visible messages for existing event; not active-gated) |
 | `/inabuyer2026/feedback` | `GET` | Legacy redirect to `/events/inabuyer-2026/feedback` | Public |
 | `/inabuyer2026/display` | `GET` | Legacy redirect to `/events/inabuyer-2026/display` | Public |
 | `/storage/{path}` | `GET` | Public storage proxy streaming assets from S3 `public` disk | Public |
 | `/health` | `GET` | Database connectivity health check (JSON response) | Public / Monitoring |
 | `/up` | `GET` | Built-in Laravel application health route | Public / Infrastructure |
 | `/admin` | `GET` | Filament CMS administrative portal | Authenticated (`admin` / `user`) |
-| `/sso/redirect` | `GET` | Redirects visitor to Madeena IAM login | Public |
+| `/sso/redirect` | `GET` | Redirects visitor to Madeena IAM login (`prompt=login`) | Public |
+| `/sso/silent` | `GET` | Silent SSO check redirecting to Madeena IAM with `prompt=none` | Public |
 | `/sso/callback` | `GET` | Handles OAuth2 callback from Madeena IAM | Public |
 | `/test-support/login` | `GET` | Automated test support login | `local` / `testing` environments only |
 
@@ -74,7 +75,7 @@ The repository serves two core purposes:
 - **`Product`**: Commercial product catalog. Fields: `name`, `slug`, `tagline`, `specifications` (JSON key-value), `content_json` (Filament Builder blocks), `image_path`, `is_featured`, `is_active`, `sort_order`.
 - **`Post`**: Research and news articles. Fields: `user_id`, `title`, `slug`, `excerpt`, `content_json` (Tiptap Academic JSON), `abstract`, `keywords` (JSON array), `authors_info` (JSON array), `content_language` (e.g. `id`, `en`), `enable_auto_numbering`, `cover_image`, `category` (topic string), `placement` (homepage section placement string), `is_published`, `published_at`. (Note: Categorization is stored directly on `Post`; no normalized `Category` table exists).
 - **`Page`**: Custom static pages. Fields: `title`, `slug`, `content_json` (Builder blocks), `content_language`, `enable_auto_numbering`, `show_in_header`, `show_in_footer`, `summary`, `is_published`, `published_at`.
-- **`Event`**: Generic event entity. Fields: `name`, `slug`, `description`, `is_active`, `starts_at`, `ends_at`. Controls public availability of the feedback form and exhibition display.
+- **`Event`**: Generic event entity. Fields: `name`, `slug`, `description`, `is_active`, `starts_at`, `ends_at`. Controls public availability of the feedback collection endpoints.
 - **`GuestMessage`**: Event visitor impressions and messages. Fields: `event_id`, `name`, `organization`, `position`, `phone`, `email`, `kesan_dan_pesan`, `is_visible`.
 - **`User`**: Admin and author accounts. Fields: `sso_id`, `name`, `email`, `password`, `role`. `isAdmin()` returns true if `role === 'admin'` or matches configured admin email.
 
@@ -93,12 +94,13 @@ The repository serves two core purposes:
 ## Homepage Architecture
 
 - **Data-Driven Registry**: Homepage localization is powered by dynamic `Language` records rather than hardcoded locales.
-- **Key-Value Storage Strategy**:
-  - Default language (Indonesian `id`) uses backward-compatible keys: `homepage_sections` (published live) and `homepage_sections_draft` (draft).
-  - Non-default languages use language-scoped keys: `homepage_sections_{code}` (published live) and `homepage_sections_{code}_draft` (draft).
+- **Key-Value Storage Strategy (Indonesian Legacy Invariant)**:
+  - Indonesian (`id`) **permanently** owns the unsuffixed legacy keys: `homepage_sections` (published live) and `homepage_sections_draft` (draft).
+  - Every non-Indonesian language **always** uses language-scoped suffixed keys: `homepage_sections_{code}` (published live) and `homepage_sections_{code}_draft` (draft) (e.g. `homepage_sections_en`, `homepage_sections_ja`).
+  - This storage separation is tied strictly to the language code (`id` vs non-`id`), **not** to the dynamic concept of `is_default`. Even if Japanese (`ja`) or English (`en`) is designated as `is_default = true`, `ja` still uses `homepage_sections_ja` / `homepage_sections_ja_draft`, while `id` continues to use `homepage_sections` / `homepage_sections_draft`.
 - **Draft vs. Published Workflow**:
-  - `💾 Simpan Draft`: Persists current editor state to `homepage_sections_{code}_draft`.
-  - `🚀 Update Prod`: Copies draft content into `homepage_sections_{code}` to make it live for public visitors.
+  - `💾 Simpan Draft`: Persists current editor state to `homepage_sections_draft` (for `id`) or `homepage_sections_{code}_draft` (for non-`id`).
+  - `🚀 Update Prod`: Copies draft content into `homepage_sections` (for `id`) or `homepage_sections_{code}` (for non-`id`) to make it live for public visitors.
 - **Language Visibility & Private Preview**:
   - Public visitors can only access active languages (`Language->is_active = true`). Inactive languages return 404.
   - Authenticated administrators can preview inactive or draft language homepages using `?preview=true`.
@@ -135,13 +137,13 @@ The repository serves two core purposes:
 ## Event Feedback & Hardening
 
 - **Generic Multi-Event Architecture**: Replaces previous single-event logic with generic `Event` and `GuestMessage` relationships.
-- **Active Event Gating**: `Event->is_active = false` immediately causes feedback form, CSRF token endpoint, and submission endpoints to return 404.
+- **Active Event Gating**: `Event->is_active = false` immediately gates feedback collection (feedback form `GET`, CSRF refresh `GET`, and submission `POST` endpoints return 404).
+- **Event Live Display**: `/events/{slug}/display` uses Livewire to stream `is_visible = true` messages to presentation screens with auto-escaped HTML. It remains reachable for any valid event route regardless of `is_active` (active-gating display is deferred). Submissions default to `is_visible = true` (pre-submission moderation queue is deferred).
 - **Submission Hardening**:
   - **CSRF Token Endpoint**: `GET /events/{slug}/feedback/csrf-token` provides fresh tokens with `Cache-Control: no-store` and rate limiting (60 requests/min per IP).
   - **Rate Limiting**: `POST /events/{slug}/feedback` is rate-limited to 30 requests/min per IP, and 3 submissions per 10 minutes per contact identity (SHA-256 fingerprint of normalized email, phone, or name/organization).
   - **Passive Honeypot**: Hidden `website` field silently discards bot submissions without throwing errors.
   - **Duplicate Suppression**: Re-submissions matching the same name, organization, message, and contact info within a 2-minute window are silently suppressed.
-- **Live Display**: `/events/{slug}/display` uses Livewire to stream `is_visible = true` messages to presentation screens with auto-escaped HTML. Submissions default to `is_visible = true` (pre-submission moderation queue is deferred).
 
 ## Storage
 
@@ -153,7 +155,7 @@ The repository serves two core purposes:
 
 - **Docker Swarm Stack**: Composed of `app` (PHP 8.4-FPM), `queue` (artisan worker), `nginx` (web proxy publishing host port 8011), and `db` (MySQL 8.4).
 - **Production Port**: Published web port is `8011`.
-- **CI/CD Pipeline**: GitHub Actions workflows on self-hosted runners execute automated test suites and deploy container updates to Swarm via `.github/workflows/deploy-swarm.yml`.
+- **CI/CD Pipeline**: GitHub Actions workflows on self-hosted runners execute automated test suites. Swarm deployment (`.github/workflows/deploy-swarm.yml`) is triggered via manual dispatch (`workflow_dispatch`).
 
 ## Testing / Quality Gates
 
@@ -173,4 +175,5 @@ The repository serves two core purposes:
 - **Localized URL Route Groups**: Pages, Articles, and Products currently use single top-level route patterns (`/halaman/{slug}`, `/artikel/{slug}`, `/produk/{slug}`) rather than localized prefix route groups (e.g. `/en/articles/{slug}`).
 - **Page/Product Revision Snapshots**: Editing an already-published Page or Product mutates the live database record directly; separate draft revision snapshots for pages are deferred.
 - **Dormant Page Navigation Attributes**: `Page` attributes `show_in_header` and `show_in_footer` are not currently consumed by public navigation (public navigation is driven by homepage sections and `nav_custom_links`).
+- **Event Display Active Gating**: Gating the `/events/{slug}/display` screen behind `Event->is_active` is deferred; it currently remains reachable for all valid event routes.
 - **Event Message Pre-Moderation**: Guest messages default to `is_visible = true` upon submission; an administrative approval queue prior to display is deferred.
