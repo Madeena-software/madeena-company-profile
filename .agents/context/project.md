@@ -172,6 +172,7 @@ The repository serves two core purposes:
   - `Pint Quality Ratchet` (`scripts/pint-ratchet.sh`): Enforces zero code style violations on all PHP files added or touched since baseline `6f6ec58662f6e5b8db3fe6ecf9b6aa281da50f87`.
   - `Reusable HTTP Smoke Script` (`scripts/http-smoke.sh`): Safe, read-only GET endpoint verification for post-deployment release gate validation against explicit target URLs.
   - `Localhost HTTP Smoke in CI`: Executes ephemeral server and migration against a temporary SQLite database to verify live HTTP response contracts prior to merge.
+  - `Dependency Security Baseline`: Audited in `docs/security/dependency-audit-2026-08-22.md` with release disposition CLEAR (0 production-reachable npm vulnerabilities; non-breaking patches queued for #10B).
 
 ## Current Known Technical Debt / Deferred Scope
 
