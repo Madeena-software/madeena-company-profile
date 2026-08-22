@@ -2,7 +2,7 @@
 # Madeena Company Profile
 
 > **Status**: Approved Living Document
-> **Version**: 3.1 (Synchronized with Storage Invariants, Event Gating Truth, and Workflow Dispatch Semantics)
+> **Version**: 3.2 (Synchronized with Cumulative Database Migration Schema Truth)
 > **Repository**: [https://github.com/Madeena-software/madeena-company-profile](https://github.com/Madeena-software/madeena-company-profile)
 
 ---
@@ -287,12 +287,12 @@ flowchart TD
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | bigint | PK, auto-increment | Primary key |
+| `sso_id` | varchar(255) | nullable, unique | Madeena IAM identifier |
 | `name` | varchar(255) | required | Full name |
 | `email` | varchar(255) | required, unique | Account email |
-| `sso_id` | varchar(255) | nullable, unique | Madeena IAM identifier |
-| `role` | varchar(255) | default: 'user' | Access role: `'admin'` or `'user'` |
-| `password` | varchar(255) | nullable | Bcrypt-hashed password |
 | `email_verified_at` | timestamp | nullable | Email verification timestamp |
+| `password` | varchar(255) | nullable | Bcrypt-hashed password (nullable for SSO users) |
+| `role` | varchar(255) | default: 'user' | Access role: `'admin'` or `'user'` |
 
 #### `languages`
 | Column | Type | Constraints | Description |
@@ -302,7 +302,7 @@ flowchart TD
 | `name` | varchar(100) | required | English language name |
 | `native_name` | varchar(100) | required | Native display name (e.g. `Bahasa Indonesia`) |
 | `ui_labels` | json | nullable | Key-value dictionary of UI translations |
-| `is_active` | boolean | default: false | Public exposure toggle |
+| `is_active` | boolean | default: true (DB) / false (CMS create form) | Public exposure toggle (DB migration default is `true`; Filament `LanguageResource` create form intentionally defaults to `false` for newly drafted languages) |
 | `is_default` | boolean | default: false | Default fallback language toggle |
 | `sort_order` | integer | default: 0 | Display sequence in switcher |
 
@@ -312,7 +312,7 @@ flowchart TD
 | `id` | bigint | PK, auto-increment | Primary key |
 | `key` | varchar(255) | required, unique | Configuration key identifier |
 | `value` | text | nullable | String or JSON-encoded configuration payload |
-| `group` | varchar(255) | nullable | Logical grouping identifier |
+| `group` | varchar(255) | default: 'general' | Logical grouping identifier |
 
 #### `products`
 | Column | Type | Constraints | Description |
@@ -321,8 +321,8 @@ flowchart TD
 | `name` | varchar(255) | required | Product name |
 | `slug` | varchar(255) | required, unique | URL slug |
 | `tagline` | varchar(255) | nullable | Short product tagline |
-| `specifications` | json | nullable | Key-value technical specifications |
 | `content_json` | json | nullable | Filament Builder layout data |
+| `specifications` | json | nullable | Key-value technical specifications |
 | `image_path` | varchar(255) | nullable | S3 path to product featured image |
 | `is_featured` | boolean | default: false | Featured product toggle |
 | `is_active` | boolean | default: true | Public availability toggle |
@@ -332,21 +332,21 @@ flowchart TD
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | bigint | PK, auto-increment | Primary key |
-| `user_id` | bigint | FK → `users.id` | Author reference |
+| `user_id` | bigint | nullable, FK → `users.id` (onDelete: set null) | Author reference |
 | `title` | varchar(255) | required | Article title |
 | `slug` | varchar(255) | required, unique | URL slug |
 | `excerpt` | text | nullable | Brief summary |
-| `content_json` | json | required | Academic Tiptap JSON content |
+| `content_json` | json | nullable | Academic Tiptap JSON content |
 | `abstract` | text | nullable | Scientific paper abstract |
 | `keywords` | json | nullable | Array of keyword tags |
 | `authors_info` | json | nullable | Array of additional authors and affiliations |
-| `content_language`| varchar(10) | default: 'id' | Language identifier for filtering |
+| `content_language`| varchar(255) | default: 'id' | Language identifier for filtering |
 | `enable_auto_numbering` | boolean | default: true | Section/Figure/Table auto-numbering toggle |
 | `cover_image` | varchar(255) | nullable | S3 path to cover image |
 | `category` | varchar(255) | nullable | Topic classification string |
 | `placement` | varchar(255) | nullable | Homepage section placement string |
 | `is_published` | boolean | default: false | Publication status |
-| `published_at` | datetime | nullable | Publication timestamp |
+| `published_at` | timestamp | nullable | Publication timestamp |
 
 #### `pages`
 | Column | Type | Constraints | Description |
@@ -354,14 +354,14 @@ flowchart TD
 | `id` | bigint | PK, auto-increment | Primary key |
 | `title` | varchar(255) | required | Page title |
 | `slug` | varchar(255) | required, unique | URL slug |
-| `content_json` | json | required | Filament Builder layout data |
-| `content_language`| varchar(10) | default: 'id' | Content language code |
-| `enable_auto_numbering` | boolean | default: true | Auto-numbering toggle |
 | `show_in_header` | boolean | default: false | Header navigation flag (dormant) |
 | `show_in_footer` | boolean | default: false | Footer navigation flag (dormant) |
 | `summary` | text | nullable | Brief summary |
 | `is_published` | boolean | default: false | Publication status |
-| `published_at` | datetime | nullable | Publication timestamp |
+| `published_at` | timestamp | nullable | Publication timestamp |
+| `content_json` | json | nullable | Filament Builder layout data |
+| `content_language`| varchar(255) | default: 'id' | Content language code |
+| `enable_auto_numbering` | boolean | default: true | Auto-numbering toggle |
 
 #### `events`
 | Column | Type | Constraints | Description |
@@ -371,16 +371,16 @@ flowchart TD
 | `slug` | varchar(255) | required, unique | URL slug |
 | `description` | text | nullable | Event description |
 | `is_active` | boolean | default: true | Public availability toggle |
-| `starts_at` | datetime | nullable | Event start timestamp |
-| `ends_at` | datetime | nullable | Event end timestamp |
+| `starts_at` | timestamp | nullable | Event start timestamp |
+| `ends_at` | timestamp | nullable | Event end timestamp |
 
 #### `guest_messages`
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | bigint | PK, auto-increment | Primary key |
-| `event_id` | bigint | FK → `events.id` | Event reference |
+| `event_id` | bigint | nullable, FK → `events.id` (onDelete: set null) | Event reference |
 | `name` | varchar(255) | required | Visitor name |
-| `organization` | varchar(255) | required | Visitor organization / institution |
+| `organization` | varchar(255) | nullable | Visitor organization / institution |
 | `position` | varchar(255) | nullable | Visitor job title |
 | `phone` | varchar(50) | nullable | Contact phone number |
 | `email` | varchar(255) | nullable | Contact email |
@@ -396,9 +396,9 @@ erDiagram
     USER ||--o{ POST : authors
     USER {
         bigint id PK
+        string sso_id UK
         string name
         string email UK
-        string sso_id UK
         string role
         string password
     }
