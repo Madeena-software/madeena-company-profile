@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Event;
 use App\Models\GuestMessage;
+use App\Services\EventFeedbackRateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -70,6 +71,167 @@ class EventFeedbackTest extends TestCase
             ->assertNotFound();
 
         $this->assertSame(0, GuestMessage::query()->count());
+    }
+
+    public function test_inactive_event_never_returns_429_even_when_exhausting_rate_limits(): void
+    {
+        $inactiveEvent = Event::create([
+            'name' => 'Past Exhibition 2',
+            'slug' => 'past-exhibition-2',
+            'is_active' => false,
+        ]);
+
+        // Exhaust POST rate limit threshold (35 requests > 30 threshold)
+        for ($i = 1; $i <= 35; $i++) {
+            $payload = [
+                'name' => "Visitor {$i}",
+                'organization' => "PT Inactive {$i}",
+                'email' => "visitor{$i}@inactive.example",
+                'kesan_dan_pesan' => "Message {$i}",
+            ];
+
+            $response = $this->post(route('events.feedback.store', ['event' => $inactiveEvent->slug]), $payload);
+            $response->assertNotFound();
+            $this->assertNotSame(429, $response->getStatusCode());
+        }
+
+        $this->assertSame(0, GuestMessage::query()->count());
+
+        // Exhaust CSRF rate limit threshold (65 requests > 60 threshold)
+        for ($i = 1; $i <= 65; $i++) {
+            $response = $this->getJson(route('events.feedback.csrf-token', ['event' => $inactiveEvent->slug]));
+            $response->assertNotFound();
+            $this->assertNotSame(429, $response->getStatusCode());
+        }
+
+        // Normal GET form requests also remain 404
+        $this->get(route('events.feedback', ['event' => $inactiveEvent->slug]))
+            ->assertNotFound();
+    }
+
+    public function test_rate_limiter_keys_do_not_contain_plaintext_pii_or_raw_ip(): void
+    {
+        $email = 'Aisyah@example.com';
+        $phone = '+62 812 3456 7890';
+        $ip = '192.168.1.100';
+        $eventId = $this->event->id;
+
+        $emailFingerprint = EventFeedbackRateLimiter::fingerprintContact([
+            'email' => $email,
+            'phone' => $phone,
+        ]);
+        $phoneFingerprint = EventFeedbackRateLimiter::fingerprintContact([
+            'phone' => $phone,
+        ]);
+        $fallbackFingerprint = EventFeedbackRateLimiter::fingerprintContact([
+            'name' => '  Aisyah Putri  ',
+            'organization' => '  PT Nusantara  ',
+        ]);
+
+        $ipKey = EventFeedbackRateLimiter::ipKey($eventId, $ip);
+        $csrfKey = EventFeedbackRateLimiter::csrfKey($eventId, $ip);
+        $contactKey = EventFeedbackRateLimiter::contactKey($eventId, $emailFingerprint);
+
+        // Ensure digests are valid SHA-256 strings
+        $this->assertSame(64, strlen($emailFingerprint));
+        $this->assertSame(64, strlen($phoneFingerprint));
+        $this->assertSame(64, strlen($fallbackFingerprint));
+
+        $this->assertSame(hash('sha256', 'email:aisyah@example.com'), $emailFingerprint);
+        $this->assertSame(hash('sha256', 'phone:6281234567890'), $phoneFingerprint);
+        $this->assertSame(hash('sha256', 'contact:Aisyah Putri:PT Nusantara'), $fallbackFingerprint);
+
+        // Ensure keys do NOT contain plaintext PII or raw IP
+        $this->assertStringNotContainsString('Aisyah@example.com', $contactKey);
+        $this->assertStringNotContainsString('aisyah@example.com', $contactKey);
+        $this->assertStringNotContainsString('+62 812 3456 7890', $contactKey);
+        $this->assertStringNotContainsString('6281234567890', $contactKey);
+        $this->assertStringNotContainsString('192.168.1.100', $ipKey);
+        $this->assertStringNotContainsString('192.168.1.100', $csrfKey);
+
+        // Ensure expected key pattern with SHA-256 digest
+        $this->assertStringStartsWith("event-feedback:post:ip:{$eventId}:", $ipKey);
+        $this->assertStringStartsWith("event-feedback:csrf:{$eventId}:", $csrfKey);
+        $this->assertStringStartsWith("event-feedback:post:contact:{$eventId}:", $contactKey);
+    }
+
+    public function test_contact_normalization_maps_different_cases_and_phone_formats_to_same_bucket(): void
+    {
+        // Email casing normalization check
+        $fpUpper = EventFeedbackRateLimiter::fingerprintContact(['email' => 'AISYAH@EXAMPLE.COM']);
+        $fpLower = EventFeedbackRateLimiter::fingerprintContact(['email' => 'aisyah@example.com']);
+        $this->assertSame($fpUpper, $fpLower);
+
+        // Phone formatting normalization check
+        $fpFormatted = EventFeedbackRateLimiter::fingerprintContact(['phone' => '+62 812-3456-7890']);
+        $fpSpaced = EventFeedbackRateLimiter::fingerprintContact(['phone' => '+62 812 3456 7890']);
+        $this->assertSame($fpFormatted, $fpSpaced);
+
+        // Rate limiter bucket consumption test: Upper and lower case emails hit same bucket
+        RateLimiter::clear(EventFeedbackRateLimiter::contactKey($this->event->id, $fpUpper));
+        RateLimiter::clear(EventFeedbackRateLimiter::ipKey($this->event->id, '127.0.0.1'));
+
+        for ($i = 1; $i <= 3; $i++) {
+            $response = $this->post(route('events.feedback.store', ['event' => $this->event->slug]), [
+                'name' => 'Aisyah Putri',
+                'organization' => 'PT Nusantara',
+                'email' => 'AISYAH@EXAMPLE.COM',
+                'kesan_dan_pesan' => "Pesan unik ke-{$i}",
+            ]);
+            $response->assertStatus(302);
+        }
+
+        // 4th submission with lowercase email is throttled
+        $throttledResponse = $this->post(route('events.feedback.store', ['event' => $this->event->slug]), [
+            'name' => 'Aisyah Putri',
+            'organization' => 'PT Nusantara',
+            'email' => 'aisyah@example.com',
+            'kesan_dan_pesan' => 'Pesan unik ke-4',
+        ]);
+        $throttledResponse->assertStatus(429);
+    }
+
+    public function test_contact_limiter_preserves_event_isolation(): void
+    {
+        $eventA = $this->event;
+        $eventB = Event::create(['name' => 'Hospital Expo 2026', 'slug' => 'hospital-expo-2026', 'is_active' => true]);
+
+        $email = 'isolated.visitor@example.com';
+        $contactFingerprint = EventFeedbackRateLimiter::fingerprintContact(['email' => $email]);
+
+        RateLimiter::clear(EventFeedbackRateLimiter::contactKey($eventA->id, $contactFingerprint));
+        RateLimiter::clear(EventFeedbackRateLimiter::contactKey($eventB->id, $contactFingerprint));
+        RateLimiter::clear(EventFeedbackRateLimiter::ipKey($eventA->id, '127.0.0.1'));
+        RateLimiter::clear(EventFeedbackRateLimiter::ipKey($eventB->id, '127.0.0.1'));
+
+        // Exhaust contact limit on Event A (3 submissions)
+        for ($i = 1; $i <= 3; $i++) {
+            $this->post(route('events.feedback.store', ['event' => $eventA->slug]), [
+                'name' => 'Isolated Visitor',
+                'organization' => 'PT Isolated',
+                'email' => $email,
+                'kesan_dan_pesan' => "Event A distinct message {$i}",
+            ])->assertStatus(302);
+        }
+
+        // 4th submission on Event A is throttled
+        $this->post(route('events.feedback.store', ['event' => $eventA->slug]), [
+            'name' => 'Isolated Visitor',
+            'organization' => 'PT Isolated',
+            'email' => $email,
+            'kesan_dan_pesan' => 'Event A distinct message 4',
+        ])->assertStatus(429);
+
+        // 1st submission on Event B for SAME contact succeeds and is NOT throttled
+        $this->post(route('events.feedback.store', ['event' => $eventB->slug]), [
+            'name' => 'Isolated Visitor',
+            'organization' => 'PT Isolated',
+            'email' => $email,
+            'kesan_dan_pesan' => 'Event B distinct message 1',
+        ])->assertStatus(302);
+
+        $this->assertSame(3, $eventA->guestMessages()->count());
+        $this->assertSame(1, $eventB->guestMessages()->count());
     }
 
     public function test_feedback_submission_is_stored_successfully(): void
@@ -293,7 +455,7 @@ class EventFeedbackTest extends TestCase
 
     public function test_rate_limiter_throttles_excessive_post_submissions_by_ip(): void
     {
-        RateLimiter::clear("event-feedback:post:ip:{$this->event->id}:127.0.0.1");
+        RateLimiter::clear(EventFeedbackRateLimiter::ipKey($this->event->id, '127.0.0.1'));
 
         // 30 requests with distinct contact fingerprints permitted under 30/min IP limit
         for ($i = 1; $i <= 30; $i++) {
@@ -328,8 +490,10 @@ class EventFeedbackTest extends TestCase
     public function test_rate_limiter_throttles_excessive_post_submissions_by_contact(): void
     {
         $contactEmail = 'frequent.sender@example.com';
-        RateLimiter::clear("event-feedback:post:contact:{$this->event->id}:email:{$contactEmail}");
-        RateLimiter::clear("event-feedback:post:ip:{$this->event->id}:127.0.0.1");
+        $contactFingerprint = EventFeedbackRateLimiter::fingerprintContact(['email' => $contactEmail]);
+
+        RateLimiter::clear(EventFeedbackRateLimiter::contactKey($this->event->id, $contactFingerprint));
+        RateLimiter::clear(EventFeedbackRateLimiter::ipKey($this->event->id, '127.0.0.1'));
 
         // 3 submissions with different messages permitted under 3/10min contact limit
         for ($i = 1; $i <= 3; $i++) {
@@ -362,7 +526,7 @@ class EventFeedbackTest extends TestCase
 
     public function test_rate_limiter_throttles_excessive_csrf_token_requests(): void
     {
-        RateLimiter::clear("event-feedback:csrf:{$this->event->id}:127.0.0.1");
+        RateLimiter::clear(EventFeedbackRateLimiter::csrfKey($this->event->id, '127.0.0.1'));
 
         for ($i = 1; $i <= 60; $i++) {
             $response = $this->getJson(route('events.feedback.csrf-token', ['event' => $this->event->slug]));
@@ -375,7 +539,7 @@ class EventFeedbackTest extends TestCase
 
     public function test_shared_ip_booth_allows_multiple_distinct_visitors_below_threshold(): void
     {
-        RateLimiter::clear("event-feedback:post:ip:{$this->event->id}:127.0.0.1");
+        RateLimiter::clear(EventFeedbackRateLimiter::ipKey($this->event->id, '127.0.0.1'));
 
         $visitors = [
             ['name' => 'Pengunjung 1', 'email' => 'p1@example.com', 'org' => 'RS A', 'msg' => 'Pesan pengunjung 1'],
