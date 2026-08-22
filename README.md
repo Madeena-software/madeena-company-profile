@@ -2,7 +2,7 @@
 
 Company profile website for **PT Madeena Karya Indonesia**, an Indonesian manufacturer of Digital Direct Radiography (DDR) equipment based on Camera Coupled X-Ray Detector (CCXD) technology.
 
-> 📄 For full product requirements, data model, and architecture details, see [`docs/PRD.md`](docs/PRD.md).
+> 📄 For full product requirements, data model, and architecture details, see [`docs/PRD.md`](docs/PRD.md). For CMS operator guidance in Indonesian, see [`docs/panduan-cms/panduan-cms.md`](docs/panduan-cms/panduan-cms.md).
 
 ## Tech Stack
 
@@ -10,21 +10,21 @@ Company profile website for **PT Madeena Karya Indonesia**, an Indonesian manufa
 |---|---|---|
 | Backend | Laravel (PHP) | 13.x / 8.4 |
 | Admin Panel | Filament PHP | 5.x |
-| Frontend | Tailwind CSS + Alpine.js | 3.4 / 3.15 |
+| Frontend | Tailwind CSS + Alpine.js | 4.0 / 3.15 |
 | Build Tool | Vite | 6.x |
 | Database | MySQL | 8.4 |
 | Production Server | Nginx + PHP-FPM | Alpine |
 | Container | Docker + Docker Swarm | Multi-stage |
 | Object Storage | MinIO (S3-compatible) | — |
-| CI/CD | GitHub Actions | 8 workflows |
+| CI/CD | GitHub Actions | Workflows |
 
 ## Features
 
-- **Public Website** — Homepage with hero banners, product catalog, blog, company profile, certifications, and contact section with WhatsApp integration
-- **Admin Panel** (`/admin`) — Filament v5 CMS for managing hero banners, products, blog posts, pages, site settings, and user accounts
-- **Inabuyer 2026 Module** — Event feedback form with CSRF protection and a Livewire-based real-time display for exhibition screens
-- **Object Storage** — MinIO S3-compatible storage for media uploads and database backups
-- **Automated Backups** — Database backup upload to S3 with integrity verification and retention pruning
+- **Public Website** — Homepage with dynamic sections, multilingual support via dynamic Language registry, product catalog (`/produk/{slug}`), academic research articles (`/artikel/{slug}`), custom pages (`/halaman/{slug}`), and contact section with WhatsApp integration.
+- **Admin Panel** (`/admin`) — Filament v5 CMS for managing Homepage sections (draft/published & language duplication), Language registry & UI labels, Products, Articles (academic rich editor with KaTeX), Pages (draft/publication lifecycle & preview), Events, Guest Messages, Site Settings, and User accounts.
+- **Event & Guest Message Module** — Public feedback form (`/events/{event:slug}/feedback`) with CSRF protection, rate limiting, anti-spam honeypot, duplicate suppression, and a Livewire real-time display (`/events/{event:slug}/display`) for exhibition screens (with legacy redirects from `/inabuyer2026/...`).
+- **Object Storage** — MinIO S3-compatible storage for media uploads and database backups.
+- **Automated Backups** — Database backup upload to S3 with integrity verification and retention pruning.
 
 ## Quick Start
 
@@ -53,11 +53,11 @@ php artisan storage:link
 composer dev
 ```
 
-The `composer dev` command starts all services concurrently: app server (port 8000), queue worker, log tail, and Vite HMR.
+The `composer dev` command starts all services concurrently: app server (port 8011), queue worker, log tail, and Vite HMR.
 
 ## Admin Access
 
-Navigate to `/admin` and log in. You can log in using Madeena IAM SSO or traditional credentials. The database seeder creates a default admin account using the `FILAMENT_ADMIN_EMAIL` and `FILAMENT_ADMIN_PASSWORD` values from `.env`.
+Navigate to `/admin` and log in. You can log in using Madeena IAM SSO or local credentials. The database seeder creates a default admin account using the `FILAMENT_ADMIN_EMAIL` and `FILAMENT_ADMIN_PASSWORD` values from `.env`.
 
 ## Docker
 
@@ -67,10 +67,9 @@ docker compose up -d
 
 # Production simulation
 docker compose -f docker-compose.simulation.yml up -d
-
-# Production deployment (Swarm)
-docker stack deploy -c docker-compose.prod.yml madeena_cp
 ```
+
+> ℹ️ Production deployments are managed automatically via GitHub Actions CI/CD (`.github/workflows/deploy-swarm.yml`) running on Docker Swarm.
 
 ## Testing
 
@@ -82,9 +81,9 @@ php artisan test --testsuite=Unit        # Unit tests only
 
 ## Documentation
 
-- [`docs/PRD.md`](docs/PRD.md) — Full Product Requirements Document
-- [`README-DEPLOYMENT.md`](README-DEPLOYMENT.md) — Deployment guide
-- [`.ai/`](.ai/README.md) — AI agent control center
+- [`docs/PRD.md`](docs/PRD.md) — Product Requirements Document
+- [`docs/panduan-cms/panduan-cms.md`](docs/panduan-cms/panduan-cms.md) — Panduan Penggunaan CMS (Bahasa Indonesia)
+- [`.agents/AGENTS.md`](.agents/AGENTS.md) — Repository AI delivery framework & agent guidance
 
 ## Contact
 
