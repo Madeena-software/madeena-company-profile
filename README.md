@@ -71,13 +71,23 @@ docker compose -f docker-compose.simulation.yml up -d
 
 > ℹ️ Production deployments are managed via a repository-controlled GitHub Actions Swarm deployment workflow (`.github/workflows/deploy-swarm.yml`) dispatched manually.
 
-## Testing
+## Testing & Quality Gates
 
 ```bash
-php artisan test                         # All tests
+# Run tests
+vendor/bin/phpunit                       # Full PHPUnit suite
+php artisan test                         # Laravel test runner
 php artisan test --testsuite=Feature     # Feature tests only
 php artisan test --testsuite=Unit        # Unit tests only
+
+# Quality & Smoke checks
+./scripts/pint-ratchet.sh HEAD           # Incremental Pint quality ratchet
+./scripts/http-smoke.sh <base-url>       # Deterministic external HTTP smoke test (e.g. http://127.0.0.1:8011)
 ```
+
+- **Continuous Integration**: GitHub Actions executes on GitHub-hosted `ubuntu-latest` for all pushes to `develop` and PRs to `main`, validating PHP 8.4/Laravel 13/Filament 5 parity, Node 24 frontend production asset compilation, full PHPUnit regression, incremental Pint formatting ratchet, and disposable localhost HTTP smoke testing.
+- **Incremental Pint Ratchet**: Code formatting standards are strictly enforced on all PHP files added or modified after baseline `6f6ec58662f6e5b8db3fe6ecf9b6aa281da50f87`. Pre-existing historical formatting debt (49 files) is deferred for a dedicated future formatting task.
+- **Post-Deploy Smoke Testing**: `scripts/http-smoke.sh` provides safe, read-only GET verification (`/up`, `/health`, `/`, `/artikel`, `/admin`) requiring an explicit base URL parameter.
 
 ## Documentation
 

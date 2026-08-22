@@ -155,12 +155,13 @@ The repository serves two core purposes:
 
 - **Docker Swarm Stack**: Composed of `app` (PHP 8.4-FPM), `queue` (artisan worker), `nginx` (web proxy publishing host port 8011), and `db` (MySQL 8.4).
 - **Production Port**: Published web port is `8011`.
-- **CI/CD Pipeline**: GitHub Actions workflows on self-hosted runners execute automated test suites. Swarm deployment (`.github/workflows/deploy-swarm.yml`) is triggered via manual dispatch (`workflow_dispatch`).
+- **CI/CD Pipeline**: Continuous integration executes on GitHub-hosted `ubuntu-latest` for all pushes to `develop` and pull requests targeting `main`. Swarm deployment (`.github/workflows/deploy-swarm.yml`) remains strictly isolated on self-hosted runners via manual dispatch (`workflow_dispatch`).
 
 ## Testing / Quality Gates
 
 - **Test Suite**: PHPUnit 11 test suite located under `tests/`.
-- **Coverage Areas**:
+- **Quality & Verification Gates**:
+  - `ReleaseSmokeTest`: High-level feature smoke test covering 11 critical anonymous/public and route contracts (`/health`, `/up`, homepage, localized homepage, `/artikel`, article detail, `/produk`, `/halaman`, event feedback, event display, and testing-support login boundary).
   - `LanguageRegistryTest`: Language code validation, default language constraints, UI label fallbacks.
   - `HomepageEditorTest`: Section loading, draft saving, live publishing, and cross-language duplication protection.
   - `HomeControllerTest`: Public homepage rendering, language resolution, preview permissions, and auto-pull filtering.
@@ -168,9 +169,13 @@ The repository serves two core purposes:
   - `EventFeedbackTest`: Active/inactive event gating, CSRF token endpoint, IP/contact rate limits, honeypot discarding, duplicate suppression, and display escaping.
   - `PostResourceTest` & `ProductResourceTest`: CRUD authorization, RBAC ownership scoping.
   - `PublicStorageRouteTest`: Storage streaming and path traversal protection.
+  - `Pint Quality Ratchet` (`scripts/pint-ratchet.sh`): Enforces zero code style violations on all PHP files added or touched since baseline `6f6ec58662f6e5b8db3fe6ecf9b6aa281da50f87`.
+  - `Reusable HTTP Smoke Script` (`scripts/http-smoke.sh`): Safe, read-only GET endpoint verification for post-deployment release gate validation against explicit target URLs.
+  - `Localhost HTTP Smoke in CI`: Executes ephemeral server and migration against a temporary SQLite database to verify live HTTP response contracts prior to merge.
 
 ## Current Known Technical Debt / Deferred Scope
 
+- **Repository-Wide Historical Pint Formatting Debt**: 49 pre-existing PHP files at baseline `6f6ec58662f6e5b8db3fe6ecf9b6aa281da50f87` have styling debt. Unchanged files are deferred for a dedicated repository-wide formatting task; new and touched files are strictly guarded by the Pint ratchet.
 - **Translation Groups Entity Linking**: Articles, Products, and Pages do not yet have linked translation group IDs connecting equivalent language variants.
 - **Localized URL Route Groups**: Pages, Articles, and Products currently use single top-level route patterns (`/halaman/{slug}`, `/artikel/{slug}`, `/produk/{slug}`) rather than localized prefix route groups (e.g. `/en/articles/{slug}`).
 - **Page/Product Revision Snapshots**: Editing an already-published Page or Product mutates the live database record directly; separate draft revision snapshots for pages are deferred.
